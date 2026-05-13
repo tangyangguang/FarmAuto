@@ -121,6 +121,21 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 
 在此之前，先留在 FarmAuto 内部 `lib/`，避免过早增加仓库和版本管理成本。
 
+## 独立库准备要求
+
+公共库虽然先放在 FarmAuto 内部，但设计时应按未来独立仓库要求约束：
+
+- 核心逻辑不依赖具体应用项目。
+- README 能独立说明用途、硬件连接、配置和示例。
+- 提供 `library.json`，声明平台、框架、依赖和导出规则。
+- 提供 examples，覆盖最小用法和典型错误处理。
+- 提供清晰版本号和变更记录。
+- 对外 API 使用稳定命名，不暴露应用业务词汇。
+- 接口尽量非阻塞，适合 ESP32 主循环、任务调度和 Web 运行时共存。
+- 硬件差异用配置或后端接口表达，不用复制多套相近逻辑。
+
+这些要求参考成熟 Arduino/PlatformIO 库的常见做法，例如 PlatformIO `library.json` manifest、AccelStepper 的非阻塞 `run()` 模式、SparkFun External EEPROM 的运行时存储器参数配置。
+
 ## 芯片支持策略
 
 公共库可以支持多个芯片型号，但必须避免为了未来可能性提前做复杂框架。
@@ -137,3 +152,9 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 - `At24cRecordStore` 通过容量、页大小、地址字节数等配置支持 AT24C 系列。
 - `MotorCurrentGuard` 首版实现 INA240A2，未来用后端支持 ACS712 和 INA226。
 - `EncodedDcMotor` 通过驱动后端支持单向 PWM 和 H 桥，不把业务动作写进库。
+
+## 参考资料
+
+- PlatformIO `library.json` 文档：https://docs.platformio.org/en/latest/manifests/library-json/index.html
+- AccelStepper 用法说明：https://www.pjrc.com/teensy/td_libs_AccelStepper.html
+- SparkFun External EEPROM Arduino Library：https://github.com/sparkfun/SparkFun_External_EEPROM_Arduino_Library
