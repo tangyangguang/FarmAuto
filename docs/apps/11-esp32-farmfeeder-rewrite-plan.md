@@ -82,8 +82,8 @@ Esp32FarmFeeder 应由应用层 `FeederController` 组合公共库：
 
 ```text
 FeederController
-  3 x EncodedDcMotor
-  MotorCurrentGuard
+  3 x Esp32EncodedDcMotor
+  Esp32MotorCurrentGuard
   At24cRecordStore
   FeedingHistory
 ```

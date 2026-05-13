@@ -22,7 +22,7 @@
 - 应用文档放在 `docs/apps/`。
 - 公共库文档放在 `docs/libs/`。
 - 未来应用目录命名使用 `apps/Esp32FarmDoor` 和 `apps/Esp32FarmFeeder`。
-- 未来公共库目录命名使用 `lib/EncodedDcMotor`、`lib/MotorCurrentGuard`、`lib/At24cRecordStore`。
+- 未来公共库目录命名使用 `lib/Esp32EncodedDcMotor`、`lib/Esp32MotorCurrentGuard`、`lib/At24cRecordStore`。
 
 ## 只读边界
 

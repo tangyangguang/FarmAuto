@@ -83,8 +83,8 @@ Esp32FarmDoor 应由应用层 `DoorController` 组合公共库：
 
 ```text
 DoorController
-  EncodedDcMotor
-  MotorCurrentGuard
+  Esp32EncodedDcMotor
+  Esp32MotorCurrentGuard
   At24cRecordStore
 ```
 

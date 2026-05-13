@@ -38,14 +38,14 @@
 推荐顺序：
 
 1. `At24cRecordStore`
-2. `EncodedDcMotor`
-3. `MotorCurrentGuard`
+2. `Esp32EncodedDcMotor`
+3. `Esp32MotorCurrentGuard`
 
 理由：
 
 - `At24cRecordStore` 业务耦合最低，最适合先独立。
-- `EncodedDcMotor` 需要通过至少两个应用的运动控制场景验证后再拆。
-- `MotorCurrentGuard` 涉及多个传感器后端，首版只有 INA240A2，成熟度最低，最后拆更稳。
+- `Esp32EncodedDcMotor` 需要通过至少两个应用的运动控制场景验证后再拆。
+- `Esp32MotorCurrentGuard` 涉及多个传感器后端，首版只有 INA240A2，成熟度最低，最后拆更稳。
 
 ## 独立仓库命名建议
 
@@ -55,17 +55,17 @@
 - 不建议加 `Esp32` 前缀，除非实现强依赖 ESP32。
 - 理想依赖：Arduino `Wire` 和标准 C++，尽量可跨 Arduino 平台。
 
-`EncodedDcMotor`：
+`Esp32EncodedDcMotor`：
 
 - 推荐名称：`Esp32EncodedDcMotor`。
 - 原因：首版大概率依赖 ESP32 LEDC、ESP32Encoder 和 ESP32 Arduino Core。
 - 如果后续抽出跨平台驱动接口，再考虑去掉 `Esp32` 前缀。
 
-`MotorCurrentGuard`：
+`Esp32MotorCurrentGuard`：
 
-- 推荐名称：`Esp32MotorCurrentGuard` 或 `MotorCurrentGuard`。
+- 推荐名称：`Esp32MotorCurrentGuard`。
 - 如果实现依赖 ESP32 ADC、LEDC 时序或 ESP32 Wire 细节，使用 `Esp32MotorCurrentGuard`。
-- 如果传感器后端足够抽象，保护判定层可独立为 `MotorCurrentGuard`。
+- 如果未来保护判定层能完全脱离 ESP32，可再评估是否拆出更通用的核心库。
 
 ## 每个库拆分前必须满足的条件
 
