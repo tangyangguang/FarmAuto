@@ -9,6 +9,7 @@ FarmAuto/
   docs/
     00-overview.md
     01-architecture.md
+    02-roadmap.md
     30-persistence-and-migration.md
     apps/
       10-esp32-farmdoor-rewrite-plan.md
