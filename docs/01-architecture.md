@@ -23,6 +23,7 @@ FarmAuto/
       22-esp32-motor-current-guard.md
       23-esp32-at24c-record-store.md
       24-library-extraction-plan.md
+      25-public-library-freeze-decisions.md
     15-hardware-resource-budget.md
     16-at24c-layout-budget.md
     17-test-and-acceptance.md
