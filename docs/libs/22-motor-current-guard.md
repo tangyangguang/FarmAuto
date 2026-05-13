@@ -110,6 +110,137 @@ SensorFault
 Disabled
 ```
 
+## 接口级设计
+
+传感器后端只负责采样和换算，保护器只负责保护判定。
+
+建议传感器接口：
+
+```text
+CurrentSensor
+  begin()
+  readSample()
+  calibrateZero(sampleCount)
+  status()
+```
+
+建议采样结果：
+
+```text
+CurrentSample
+  ok
+  rawAdc
+  voltageMv
+  currentMa
+  timestampMs
+  sensorStatus
+```
+
+建议保护器接口：
+
+```text
+CurrentGuard
+  configure(config)
+  reset()
+  update(sample, motorRunning, nowMs)
+  snapshot()
+```
+
+`CurrentGuard` 不主动读取硬件，方便后续接入不同芯片后端，也方便测试。
+
+## 配置结构
+
+建议通用保护配置：
+
+```text
+CurrentGuardConfig
+  enabled
+  warningThresholdMa
+  faultThresholdMa
+  startupGraceMs
+  confirmationMs
+  confirmationSamples
+  filterAlpha
+  sensorFaultPolicy
+```
+
+INA240A2 后端配置：
+
+```text
+Ina240A2Config
+  adcPin
+  adcReferenceMv
+  adcResolutionBits
+  gain
+  rsenseMilliOhm
+  zeroOffsetMv
+  bidirectional
+```
+
+`gain` 默认 50，代表 INA240A2。
+
+## 状态快照
+
+建议状态快照：
+
+```text
+CurrentGuardSnapshot
+  state
+  rawCurrentMa
+  filteredCurrentMa
+  peakCurrentMa
+  thresholdMa
+  overThresholdSinceMs
+  consecutiveOverThresholdSamples
+  sensorStatus
+  faultReason
+```
+
+## 故障原因
+
+建议故障原因：
+
+```text
+None
+Disabled
+SensorReadFailed
+AdcSaturated
+ZeroOffsetInvalid
+OverCurrent
+SustainedOverCurrent
+ConfigInvalid
+```
+
+`Warning` 状态不一定进入故障；只有达到确认条件后才进入 `OverCurrent`。
+
+## 采样与滤波原则
+
+- 采样频率由上层项目决定。
+- 保护器不使用阻塞延时。
+- 首版滤波使用一阶 IIR 或小窗口平均，选择一种即可。
+- 过流判定使用滤波值，峰值记录可保留原始值。
+- 启动宽限期间仍记录电流，但不触发过流故障。
+
+## 首版边界
+
+首版实现：
+
+- INA240A2 模拟后端。
+- mA 换算。
+- 零点校准参数。
+- 启动宽限。
+- 滤波。
+- 连续超限确认。
+- 传感器异常状态。
+
+首版不实现：
+
+- ACS712 后端。
+- INA226 后端。
+- 高精度电能计量。
+- 自动停止电机。
+- 配置持久化。
+
 ## 与上层项目的关系
 
 MotorCurrentGuard 不直接停止电机，也不保存配置。上层项目决定：

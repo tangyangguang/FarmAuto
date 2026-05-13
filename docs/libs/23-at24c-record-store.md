@@ -41,6 +41,69 @@ At24cChipConfig
 
 库可以提供常见型号预设，也允许应用显式传入配置。
 
+## 接口级设计
+
+建议分为低层设备访问和高层记录存储两层。
+
+低层设备访问：
+
+```text
+At24cDevice
+  begin(wire, config)
+  isOnline()
+  read(address, buffer, length)
+  write(address, data, length)
+  compare(address, data, length)
+```
+
+高层记录存储：
+
+```text
+At24cRecordStore
+  begin(device, layout)
+  format(layoutVersion)
+  readLatest(recordType, buffer, bufferLength)
+  writeRecord(recordType, schemaVersion, payload, payloadLength)
+  inspect(recordType)
+```
+
+`format()` 必须由上层项目显式调用，不能在读取失败时自动格式化。
+
+## 布局设计
+
+首版采用固定记录区，避免做复杂文件系统。
+
+建议概念模型：
+
+```text
+RecordRegion
+  recordType
+  startAddress
+  slotSize
+  slotCount
+
+StoreLayout
+  magic
+  layoutVersion
+  regions[]
+```
+
+每个 `recordType` 对应一个记录区。记录区内使用多个固定大小槽位，写入时选择下一个槽位。读取时选择 sequence 最大且 CRC 有效的槽位。
+
+固定槽位的好处：
+
+- 实现简单。
+- 断电恢复逻辑清晰。
+- 不需要动态分配。
+- 容量预算可提前计算。
+
+代价：
+
+- 空间利用率不如文件系统。
+- 每类记录需要预留最大 payload 大小。
+
+这个取舍符合当前设备配置、状态和小型历史记录的需求。
+
 ## 基础能力
 
 EEPROM 访问：
@@ -80,6 +143,25 @@ payloadCrc
 flags
 ```
 
+建议记录状态 flag：
+
+```text
+Empty
+Writing
+Valid
+Retired
+```
+
+写入流程：
+
+1. 选择下一个槽位。
+2. 写入 `Writing` 状态记录。
+3. 回读并校验 CRC。
+4. 写入或更新为 `Valid` 状态。
+5. 旧记录可保持不变，读取时由 sequence 决定最新记录。
+
+如果第 2 步到第 4 步之间断电，读取时忽略未完成或 CRC 无效的记录。
+
 上层项目为不同数据使用不同 `recordType`，例如：
 
 - 设备配置。
@@ -110,6 +192,67 @@ flags
 - 老项目格式迁移。
 
 如果实测出现 EEPROM 页面损坏或频繁断电损坏，再评估是否增加坏块标记或更复杂的磨损均衡。
+
+## 结果与错误
+
+建议操作结果：
+
+```text
+Ok
+NotInitialized
+DeviceOffline
+InvalidConfig
+OutOfRange
+PayloadTooLarge
+ReadFailed
+WriteFailed
+CrcMismatch
+NoValidRecord
+Unchanged
+```
+
+`Unchanged` 表示写前比较发现 payload 未变化，库没有执行 EEPROM 写入。
+
+## 型号支持原则
+
+首版必须支持 AT24C128。
+
+其他型号通过 `At24cChipConfig` 支持，不在代码里散落型号判断。型号预设只做配置表：
+
+```text
+At24cPreset
+  AT24C02
+  AT24C04
+  AT24C08
+  AT24C16
+  AT24C32
+  AT24C64
+  AT24C128
+  AT24C256
+```
+
+如果小容量型号的寻址方式与大容量型号差异明显，应把差异封装在 `At24cDevice` 内，不能泄漏到 `At24cRecordStore`。
+
+## 首版边界
+
+首版实现：
+
+- AT24C128 配置。
+- 可配置容量、页大小、地址字节数。
+- 跨页读写。
+- 写前比较。
+- 固定记录区。
+- 多槽最新记录选择。
+- CRC 校验。
+
+首版不实现：
+
+- 通用文件系统。
+- 动态记录分配。
+- 复杂坏块管理。
+- 加密。
+- 压缩。
+- 老格式迁移。
 
 ## 与上层项目的关系
 
