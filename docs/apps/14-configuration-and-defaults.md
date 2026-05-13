@@ -33,6 +33,11 @@
 | ina240ZeroOffsetMv | mV | 待校准 | ADC 范围内 | 否 | 维护流程写入 |
 | maxRunMs | ms | 待确认 | >0 | 否 | 安全兜底 |
 | maxRunPulses | pulses | 待确认 | >0 | 否 | 安全兜底 |
+| limitSwitchMode | enum | NormallyClosed | Disabled/NormallyClosed/NormallyOpen | 否 | 无硬件时设为 Disabled |
+| limitDebounceMs | ms | 50 | 5-500 | 否 | 上/下限位稳定时间 |
+| homingSpeedPercent | % | 30 | 1-100 | 否 | 远程归零低速运行 |
+| homingMaxMs | ms | 待确认 | >0 | 否 | 归零最大时长 |
+| homingMaxPulses | pulses | 待确认 | >0 | 否 | 归零最大脉冲 |
 
 ## Esp32FarmFeeder 配置草案
 

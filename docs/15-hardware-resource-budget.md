@@ -19,13 +19,16 @@
 | GPIO17 | AT8236 IN2/PWM2 | 是 | LEDC channel |
 | GPIO21 | I2C SDA | 是 | 与 AT24C 共用 |
 | GPIO22 | I2C SCL | 是 | 与 AT24C 共用 |
+| TBD | 上限位开关 | 建议新增 | 新 PCB/GPIO 资源确认 |
+| TBD | 下限位开关 | 建议新增 | 新 PCB/GPIO 资源确认 |
 
 待确认：
 
 - LEDC 频率和分辨率。
 - Arduino ESP32 Core 2.x/3.x LEDC API 差异适配。
 - ESP32Encoder 或 PCNT 资源占用。
-- 是否存在物理限位开关。
+- 上/下限位开关 GPIO 分配，避免与现有按钮、ADC、编码器、I2C、启动绑定位冲突。
+- 限位开关接法建议优先常闭 NC，并明确外部上拉/下拉、电平极性和断线诊断方式。
 - ADC attenuation 和实际可测电压范围。
 
 ## Esp32FarmFeeder

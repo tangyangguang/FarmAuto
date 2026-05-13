@@ -6,6 +6,8 @@
 
 首版 Web/API 必须保持简单、同步 handler 不做长耗时操作。危险操作必须二次确认。
 
+设备按无人值守运行设计。Web/API 应优先支持远程查看、远程恢复和远程诊断；只有系统能明确判断继续远程操作有机械风险时，才返回需要现场处理的故障码。
+
 ## 通用页面
 
 建议页面：
@@ -41,6 +43,10 @@ HardwareFault
 StorageError
 ConfirmRequired
 Forbidden
+LimitConflict
+UnexpectedLimit
+LimitNotReached
+OnsiteRequired
 ```
 
 handler 原则：
@@ -83,9 +89,11 @@ handler 原则：
 - 格式化存储。
 - 清除故障后恢复运行。
 
+`GET /api/status` 应包含上限位、下限位、当前位置可信度、最近一次归零结果和是否需要现场处理。`POST /api/maintenance/home` 建议语义为远程低速归零到下限位：API 只发起归零流程，不在 HTTP handler 内阻塞等待完成。
+
 待确认：
 
-- `home` 和 `set-zero` 是否都需要，还是只保留一个归零语义。
+- `home` 和 `set-zero` 是否都需要；若存在下限位，建议 `home` 为运行到下限位，`set-zero` 仅保留为受限维护功能。
 - 是否需要单独的微调上/下命令。
 - 是否需要导出配置或诊断信息。
 

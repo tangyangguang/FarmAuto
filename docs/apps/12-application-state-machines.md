@@ -13,6 +13,7 @@
 ```text
 Booting
 PositionUnknown
+LimitFault
 IdleClosed
 IdleOpen
 IdlePartial
@@ -29,7 +30,8 @@ Maintenance
 状态说明：
 
 - `Booting`：启动中，加载配置、状态和硬件自检。
-- `PositionUnknown`：当前位置不可信，需要人工确认或重新归零。
+- `PositionUnknown`：当前位置不可信，应优先允许远程低速归零到下限位。
+- `LimitFault`：上/下限位状态冲突、断线、异常方向触发或限位未按预期触发。
 - `IdleClosed`：门处于已关闭位置。
 - `IdleOpen`：门处于已打开位置。
 - `IdlePartial`：门停在中间位置。
@@ -52,6 +54,10 @@ StopRequested
 HomeRequested
 CalibrationRequested
 TargetReached
+OpenLimitTriggered
+CloseLimitTriggered
+LimitConflictDetected
+UnexpectedLimitTriggered
 MotorStopped
 OverCurrent
 EncoderNoPulse
@@ -64,11 +70,11 @@ ConfigChanged
 
 待确认问题：
 
-- 是否存在物理上/下限位开关。
+- 上/下限位开关是否作为自动门首版硬件必选项。
 - 断电重启后保存的位置是否默认可信。
-- 归零是“人工确认当前位置为零”，还是“电机运行到机械零点”。
+- 归零建议定义为“电机低速运行到下限位”，不依赖现场人工确认。
 - 用户停止后再次开/关门的目标策略。
-- 故障清除后是否回到 `PositionUnknown`。
+- 故障清除后是否回到 `PositionUnknown`，还是根据限位状态直接回到 `IdleClosed` / `IdleOpen`。
 
 ## Esp32FarmFeeder 状态机
 
