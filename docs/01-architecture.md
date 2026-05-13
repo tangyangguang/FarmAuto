@@ -14,12 +14,18 @@ FarmAuto/
     apps/
       10-esp32-farmdoor-rewrite-plan.md
       11-esp32-farmfeeder-rewrite-plan.md
+      12-application-state-machines.md
+      13-web-api-and-maintenance.md
+      14-configuration-and-defaults.md
     libs/
       20-public-library-boundaries.md
       21-esp32-encoded-dc-motor.md
       22-esp32-motor-current-guard.md
       23-esp32-at24c-record-store.md
       24-library-extraction-plan.md
+    15-hardware-resource-budget.md
+    16-at24c-layout-budget.md
+    17-test-and-acceptance.md
 
   apps/
     Esp32FarmDoor/
@@ -65,7 +71,8 @@ Esp32FarmFeeder 负责三路喂食业务：
 - 单次喂食目标配置。
 - 今日累计与 7 天历史。
 - 清空当天计数。
-- 电流保护与堵转检测。
+- 编码器无脉冲、最大时间、最大脉冲保护。
+- 电流检测仅做未来硬件预留。
 - 喂食器相关配置、状态和事件持久化。
 
 两个应用不共享业务逻辑，不做成同一个固件。

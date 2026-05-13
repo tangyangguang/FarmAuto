@@ -1,0 +1,151 @@
+# Web/API 与维护功能草案
+
+## 目标
+
+本文定义两个应用的本地 Web 页面和 API 草案，用于后续评估 Esp32Base Web 能力、路由数量、handler 耗时和危险操作安全性。
+
+首版 Web/API 必须保持简单、同步 handler 不做长耗时操作。危险操作必须二次确认。
+
+## 通用页面
+
+建议页面：
+
+- `/`：总览页。
+- `/control`：控制页。
+- `/config`：配置页。
+- `/maintenance`：维护页。
+- `/logs`：最近事件或日志入口。
+
+## 通用 API 约定
+
+建议返回 JSON：
+
+```json
+{
+  "ok": true,
+  "code": "Ok",
+  "message": "",
+  "data": {}
+}
+```
+
+错误码建议：
+
+```text
+Ok
+Busy
+InvalidState
+InvalidArgument
+NotConfigured
+HardwareFault
+StorageError
+ConfirmRequired
+Forbidden
+```
+
+handler 原则：
+
+- 不使用长阻塞 delay。
+- 不在请求中执行长时间运动流程，只发起命令。
+- 保存配置前先校验范围。
+- 危险操作需要确认 token 或二次确认参数。
+
+## Esp32FarmDoor API 草案
+
+状态：
+
+- `GET /api/status`
+- `GET /api/config`
+- `GET /api/logs`
+
+控制：
+
+- `POST /api/door/open`
+- `POST /api/door/close`
+- `POST /api/door/stop`
+
+配置：
+
+- `POST /api/config`
+
+维护：
+
+- `POST /api/maintenance/home`
+- `POST /api/maintenance/set-zero`
+- `POST /api/maintenance/calibrate`
+- `POST /api/maintenance/format-storage`
+- `POST /api/maintenance/clear-fault`
+
+危险操作：
+
+- 归零。
+- 校准。
+- 格式化存储。
+- 清除故障后恢复运行。
+
+待确认：
+
+- `home` 和 `set-zero` 是否都需要，还是只保留一个归零语义。
+- 是否需要单独的微调上/下命令。
+- 是否需要导出配置或诊断信息。
+
+## Esp32FarmFeeder API 草案
+
+状态：
+
+- `GET /api/status`
+- `GET /api/config`
+- `GET /api/history`
+- `GET /api/logs`
+
+控制：
+
+- `POST /api/feeders/1/start`
+- `POST /api/feeders/2/start`
+- `POST /api/feeders/3/start`
+- `POST /api/feeders/1/stop`
+- `POST /api/feeders/2/stop`
+- `POST /api/feeders/3/stop`
+- `POST /api/feeders/start-all`
+- `POST /api/feeders/stop-all`
+
+配置：
+
+- `POST /api/config`
+
+维护：
+
+- `POST /api/maintenance/clear-today`
+- `POST /api/maintenance/calibrate-feed-rate`
+- `POST /api/maintenance/format-storage`
+- `POST /api/maintenance/clear-fault`
+
+危险操作：
+
+- 清空当天计数。
+- 标定每圈下料量。
+- 格式化存储。
+
+待确认：
+
+- 配置主要使用克数还是圈数。
+- 是否需要一键测试单路固定小剂量。
+- 是否需要历史记录导出。
+
+## 路由预算
+
+Esp32Base Web 能力进入实现前需要确认：
+
+- 可注册 route 数量。
+- 同步 handler 建议耗时。
+- Web Auth 是否启用。
+- 静态页面放置方式。
+- JSON 解析和响应大小限制。
+
+如果 route 数量受限，应合并为少量资源式 API，例如：
+
+- `POST /api/command`
+- `GET /api/status`
+- `GET /api/config`
+- `POST /api/config`
+- `POST /api/maintenance`
