@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Local read-only legacy projects. They may contain historical credentials.
+old_prj/
+
+# PlatformIO build/cache output
+.pio/
+**/.pio/
+
+# Local editor settings
+.vscode/
+**/.vscode/
+
+# Build artifacts
+*.bin
+*.elf
+*.map
+*.hex

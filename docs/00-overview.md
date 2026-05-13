@@ -1,0 +1,46 @@
+# FarmAuto 工作区总览
+
+## 项目定位
+
+FarmAuto 是养殖自动化设备 monorepo，首版规划两个独立应用：
+
+- FarmDoor：鸡舍/养殖场自动门控制器。
+- FarmFeeder：三路喂食器控制器。
+
+本工作区只引用同级目录的 Esp32Base 基础库：
+
+```text
+/Users/tyg/dir/claude_dir/Esp32Base
+```
+
+FarmAuto 不修改 Esp32Base 内任何文件。遇到明确属于 Esp32Base 的能力缺口或可复现 bug 时，只整理问题提示词，让用户到 Esp32Base 项目处理。
+
+## 阶段范围
+
+当前阶段只做分析、策划和文档，不进入编码阶段，不创建 PlatformIO 工程，不实现源码。
+
+首版产品目标是本地可靠控制：
+
+- 设备提供本地 Web 控制和状态查看。
+- 远程访问由 VPN、Tailscale、路由器端口映射或内网穿透解决。
+- 首版不接入 Blinker、MQTT 或云端控制协议。
+
+## 老项目使用原则
+
+`old_prj/` 下两个老项目只读参考，不能修改：
+
+- `old_prj/prj1_RC_Lifting_Door_Client_V5_AT8236_newPCB`
+- `old_prj/prj2_RC_Feeder_V2_newPCB`
+
+老项目只用于识别需求线索，不参考其实现方案、类设计、存储格式、流程写法或历史包袱。新项目应先完善需求，再独立给出当前最佳方案。
+
+## 正式文档阅读顺序
+
+- `00-overview.md`：工作区目标、阶段范围、只读规则。
+- `01-architecture.md`：monorepo 架构、应用边界、公共库准入原则。
+- `02-farmdoor-rewrite-plan.md`：FarmDoor 自动门重写方案。
+- `03-farmfeeder-rewrite-plan.md`：FarmFeeder 三路喂食器重写方案。
+- `04-encoded-dc-motor.md`：EncodedDcMotor 公共电机库方案。
+- `05-motor-current-guard.md`：MotorCurrentGuard 电流保护库方案。
+- `06-at24c-record-store.md`：At24cRecordStore 记录存储库方案。
+- `07-persistence-and-migration.md`：持久化、版本、升级和恢复原则。
