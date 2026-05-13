@@ -4,7 +4,7 @@
 
 At24cRecordStore 是 AT24C/24LC/24AA 系列 I2C EEPROM 上的可靠记录存储库。它提供页写入、记录校验、版本和最新记录选择能力。
 
-它不绑定 FarmDoor 或 FarmFeeder 的业务字段。
+它不绑定任何具体应用项目的业务字段。
 
 ## 支持范围
 
@@ -80,13 +80,13 @@ payloadCrc
 flags
 ```
 
-应用为不同数据使用不同 `recordType`：
+上层项目为不同数据使用不同 `recordType`，例如：
 
-- FarmDoor 配置。
-- FarmDoor 状态。
-- FarmFeeder 配置。
-- FarmFeeder 今日计数。
-- FarmFeeder 历史记录。
+- 设备配置。
+- 运行状态。
+- 校准参数。
+- 统计记录。
+- 历史记录。
 
 ## 可靠性策略
 
@@ -111,9 +111,9 @@ flags
 
 如果实测出现 EEPROM 页面损坏或频繁断电损坏，再评估是否增加坏块标记或更复杂的磨损均衡。
 
-## 与应用的关系
+## 与上层项目的关系
 
-At24cRecordStore 只保存和读取字节 payload。应用负责：
+At24cRecordStore 只保存和读取字节 payload。上层项目负责：
 
 - 定义配置结构。
 - 定义默认值。
