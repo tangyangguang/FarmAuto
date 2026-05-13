@@ -18,7 +18,7 @@ FarmAuto/
       20-public-library-boundaries.md
       21-esp32-encoded-dc-motor.md
       22-esp32-motor-current-guard.md
-      23-at24c-record-store.md
+      23-esp32-at24c-record-store.md
       24-library-extraction-plan.md
 
   apps/
@@ -28,7 +28,7 @@ FarmAuto/
   lib/
     Esp32EncodedDcMotor/
     Esp32MotorCurrentGuard/
-    At24cRecordStore/
+    Esp32At24cRecordStore/
 
   old_prj/
 ```
@@ -78,7 +78,7 @@ Esp32FarmFeeder 负责三路喂食业务：
 
 - `Esp32EncodedDcMotor`：带编码器 DC 电机运动控制。
 - `Esp32MotorCurrentGuard`：电机电流采样与过流/堵转辅助保护。
-- `At24cRecordStore`：AT24C 系列 I2C EEPROM 可靠记录存储。
+- `Esp32At24cRecordStore`：AT24C 系列 I2C EEPROM 可靠记录存储。
 
 暂不抽取的能力：
 

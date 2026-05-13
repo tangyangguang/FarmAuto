@@ -1,8 +1,8 @@
-# At24cRecordStore 记录存储库方案
+# Esp32At24cRecordStore 记录存储库方案
 
 ## 定位
 
-At24cRecordStore 是 AT24C/24LC/24AA 系列 I2C EEPROM 上的可靠记录存储库。它提供页写入、记录校验、版本和最新记录选择能力。
+Esp32At24cRecordStore 是 AT24C/24LC/24AA 系列 I2C EEPROM 上的可靠记录存储库。它提供页写入、记录校验、版本和最新记录选择能力。
 
 它不绑定任何具体应用项目的业务字段。
 
@@ -61,7 +61,7 @@ At24cDevice
 高层记录存储：
 
 ```text
-At24cRecordStore
+Esp32At24cRecordStore
   begin(device, layout)
   format(layoutVersion)
   readLatest(recordType, buffer, bufferLength)
@@ -234,7 +234,7 @@ At24cPreset
   AT24C512
 ```
 
-如果小容量型号的寻址方式与大容量型号差异明显，应把差异封装在 `At24cDevice` 内，不能泄漏到 `At24cRecordStore`。
+如果小容量型号的寻址方式与大容量型号差异明显，应把差异封装在 `At24cDevice` 内，不能泄漏到 `Esp32At24cRecordStore`。
 
 ## 首版边界
 
@@ -278,7 +278,7 @@ At24cPreset
 
 ## 与上层项目的关系
 
-At24cRecordStore 只保存和读取字节 payload。上层项目负责：
+Esp32At24cRecordStore 只保存和读取字节 payload。上层项目负责：
 
 - 定义配置结构。
 - 定义默认值。

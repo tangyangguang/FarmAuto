@@ -85,7 +85,7 @@ Esp32FarmDoor 应由应用层 `DoorController` 组合公共库：
 DoorController
   Esp32EncodedDcMotor
   Esp32MotorCurrentGuard
-  At24cRecordStore
+  Esp32At24cRecordStore
 ```
 
 开门是运行到配置的开门目标位置。关门是运行回零或运行到配置的关门位置。停止命令应优先保证安全，可根据配置选择急停、刹车或软停止后刹车。

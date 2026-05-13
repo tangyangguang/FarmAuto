@@ -12,7 +12,7 @@ FarmAuto 的 `lib/` 用来沉淀可跨项目复用的硬件和存储能力。公
 
 - `Esp32EncodedDcMotor`：带编码器 DC 电机运动控制。
 - `Esp32MotorCurrentGuard`：电机电流采样与过流/堵转辅助保护。
-- `At24cRecordStore`：AT24C/24LC/24AA 系列 I2C EEPROM 可靠记录存储。
+- `Esp32At24cRecordStore`：AT24C/24LC/24AA 系列 I2C EEPROM 可靠记录存储。
 
 这些库未来可能被 FarmAuto 之外的其他 Esp32 项目使用，因此命名和文档都不绑定具体应用。
 
@@ -81,7 +81,7 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 
 - `Esp32EncodedDcMotor`。
 - `Esp32MotorCurrentGuard`。
-- `At24cRecordStore`。
+- `Esp32At24cRecordStore`。
 
 ## 什么时候沉淀到 Esp32Base
 
@@ -149,7 +149,7 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 
 例子：
 
-- `At24cRecordStore` 通过容量、页大小、地址字节数等配置支持 AT24C 系列。
+- `Esp32At24cRecordStore` 通过容量、页大小、地址字节数等配置支持 AT24C 系列。
 - `Esp32MotorCurrentGuard` 首版实现 INA240A2，未来用后端支持 ACS712 和 INA226。
 - `Esp32EncodedDcMotor` 通过驱动后端支持单向 PWM 和 H 桥，不把业务动作写进库。
 

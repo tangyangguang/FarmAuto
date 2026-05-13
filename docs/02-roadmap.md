@@ -42,7 +42,7 @@ FarmAuto 当前处于规划与架构阶段。已经完成：
 
 - 冻结 `Esp32EncodedDcMotor` 的接口级设计。
 - 冻结 `Esp32MotorCurrentGuard` 的接口级设计。
-- 冻结 `At24cRecordStore` 的接口级设计。
+- 冻结 `Esp32At24cRecordStore` 的接口级设计。
 - 在冻结前查阅成熟 Arduino/PlatformIO 库和芯片官方资料，确认接口风格、非阻塞模型、芯片配置方式和独立库结构。
 
 产物：
@@ -66,7 +66,7 @@ FarmAuto 当前处于规划与架构阶段。已经完成：
 
 - 创建 `lib/Esp32EncodedDcMotor/`。
 - 创建 `lib/Esp32MotorCurrentGuard/`。
-- 创建 `lib/At24cRecordStore/`。
+- 创建 `lib/Esp32At24cRecordStore/`。
 
 产物：
 
@@ -89,7 +89,7 @@ FarmAuto 当前处于规划与架构阶段。已经完成：
 
 建议顺序：
 
-1. `At24cRecordStore`
+1. `Esp32At24cRecordStore`
 2. `Esp32EncodedDcMotor`
 3. `Esp32MotorCurrentGuard`
 
@@ -101,7 +101,7 @@ FarmAuto 当前处于规划与架构阶段。已经完成：
 
 完成标准：
 
-- `At24cRecordStore` 能完成基本读写、CRC、双槽或追加式最新记录选择、写前比较。
+- `Esp32At24cRecordStore` 能完成基本读写、CRC、双槽或追加式最新记录选择、写前比较。
 - `Esp32EncodedDcMotor` 能完成软启动、软停止、目标脉冲、状态机、基础保护。
 - `Esp32MotorCurrentGuard` 能完成 INA240A2 电流换算、滤波、启动宽限、连续超限判定。
 

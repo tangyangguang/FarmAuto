@@ -37,21 +37,21 @@
 
 推荐顺序：
 
-1. `At24cRecordStore`
+1. `Esp32At24cRecordStore`
 2. `Esp32EncodedDcMotor`
 3. `Esp32MotorCurrentGuard`
 
 理由：
 
-- `At24cRecordStore` 业务耦合最低，最适合先独立。
+- `Esp32At24cRecordStore` 业务耦合最低，最适合先独立。
 - `Esp32EncodedDcMotor` 需要通过至少两个应用的运动控制场景验证后再拆。
 - `Esp32MotorCurrentGuard` 涉及多个传感器后端，首版只有 INA240A2，成熟度最低，最后拆更稳。
 
 ## 独立仓库命名建议
 
-`At24cRecordStore`：
+`Esp32At24cRecordStore`：
 
-- 推荐名称：`At24cRecordStore`。
+- 推荐名称：`Esp32At24cRecordStore`。
 - 不建议加 `Esp32` 前缀，除非实现强依赖 ESP32。
 - 理想依赖：Arduino `Wire` 和标准 C++，尽量可跨 Arduino 平台。
 
@@ -122,6 +122,6 @@ FarmAuto/lib/<LibraryName>
 1. 冻结三个公共库接口级方案。
 2. 完善两个应用项目需求设计。
 3. 根据应用需求确认公共库首版边界。
-4. 再决定是否先拆出 `At24cRecordStore`。
+4. 再决定是否先拆出 `Esp32At24cRecordStore`。
 
 在以上工作完成前，不创建三个独立仓库。
