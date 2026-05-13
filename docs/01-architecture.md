@@ -19,6 +19,7 @@ FarmAuto/
       21-encoded-dc-motor.md
       22-motor-current-guard.md
       23-at24c-record-store.md
+      24-library-extraction-plan.md
 
   apps/
     Esp32FarmDoor/
