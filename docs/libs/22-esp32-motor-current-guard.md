@@ -14,6 +14,8 @@ Esp32MotorCurrentGuard 是电机电流采样与保护判定库。它面向电机
 
 首版真实实现 INA240A2。未来增加其他芯片时，应新增后端，不改变 `CurrentGuard` 的保护判定层。
 
+公共库不定义某个设备是否默认启用电流保护，也不提供固定业务阈值。是否启用、阈值是多少、故障后如何处理，都由上层应用根据硬件和实测参数配置。
+
 ## 分层设计
 
 ```text
@@ -38,7 +40,9 @@ INA240A2 是模拟输出电流检测放大器，适合 PWM 电机电流检测。
 配置项：
 
 - ADC 引脚。
+- ADC attenuation。
 - ADC 参考电压或校准参数。
+- ADC 分辨率。
 - INA240 增益，A2 默认 50V/V。
 - Rsense 采样电阻值。
 - 零点电压。
@@ -59,6 +63,7 @@ I = Vshunt / Rsense
 - mA 换算。
 - ADC 饱和检测。
 - 零点异常检测。
+- 传感器读取失败检测。
 
 ## ACS712 未来后端
 
@@ -95,7 +100,7 @@ CurrentGuard 不关心底层芯片，只接收电流采样值。
 核心能力：
 
 - 启动宽限：电机启动初期不判定过流。
-- 滤波：一阶滤波或小窗口平均。
+- 滤波：首版使用一阶 IIR。
 - 连续超限确认：超过阈值持续一段时间或连续 N 次后触发。
 - 峰值电流记录。
 - 传感器故障状态。
@@ -166,11 +171,20 @@ CurrentGuardConfig
   sensorFaultPolicy
 ```
 
+推荐默认值：
+
+- `filterAlpha` 默认 0.2。
+- `startupGraceMs` 默认 1000ms，上层可按电机软启动时长覆盖。
+- 保护判定同时支持 `confirmationMs` 和 `confirmationSamples`。
+- 公共库不提供固定 `warningThresholdMa` / `faultThresholdMa`，必须由上层配置。
+- `sensorFaultPolicy` 默认按故障处理，不把不可信传感器当作正常保护。
+
 INA240A2 后端配置：
 
 ```text
 Ina240A2Config
   adcPin
+  adcAttenuation
   adcReferenceMv
   adcResolutionBits
   gain
@@ -179,7 +193,7 @@ Ina240A2Config
   bidirectional
 ```
 
-`gain` 默认 50，代表 INA240A2。
+`gain` 默认 50，代表 INA240A2。`bidirectional` 默认启用，适合正反转电机的远程诊断。
 
 ## 状态快照
 
@@ -219,9 +233,10 @@ ConfigInvalid
 
 - 采样频率由上层项目决定。
 - 保护器不使用阻塞延时。
-- 首版滤波使用一阶 IIR 或小窗口平均，选择一种即可。
+- 首版滤波使用一阶 IIR。
 - 过流判定使用滤波值，峰值记录可保留原始值。
 - 启动宽限期间仍记录电流，但不触发过流故障。
+- PWM 噪声明显时，应通过采样频率、采样时刻、硬件滤波和 `filterAlpha` 实测调整。
 
 ## 首版边界
 
@@ -259,4 +274,4 @@ Esp32MotorCurrentGuard 不直接停止电机，也不保存配置。上层项目
 - 阈值是多少。
 - 过流后停止哪台电机。
 - 如何记录事件。
-- 如何在 Web 上显示。
+- 如何在上层诊断界面显示。

@@ -37,11 +37,14 @@ At24cChipConfig
   addressBytes
   writeCycleMs
   maxWriteChunkBytes
+  smallDeviceAddressBits
 ```
 
 库可以提供常见型号预设，也允许应用显式传入配置。
 
 这个设计参考成熟外部 EEPROM 库的做法：通过运行时配置描述容量、地址字节数和页大小，让上层把 EEPROM 看成连续地址空间，同时由库内部处理页写入限制。
+
+小容量型号如果使用 I2C 地址位选择内部地址，应由 `At24cDevice` 在内部完成逻辑地址到设备地址和 word address 的映射，不能泄漏到记录存储层。
 
 ## 接口级设计
 
@@ -140,18 +143,17 @@ recordType
 schemaVersion
 sequence
 payloadLength
-headerCrc
 payloadCrc
+headerCrc
 flags
 ```
 
-建议记录状态 flag：
+首版记录状态 flag：
 
 ```text
 Empty
 Writing
 Valid
-Retired
 ```
 
 写入流程：
@@ -163,6 +165,21 @@ Retired
 5. 旧记录可保持不变，读取时由 sequence 决定最新记录。
 
 如果第 2 步到第 4 步之间断电，读取时忽略未完成或 CRC 无效的记录。
+
+首版不主动写 `Retired`。旧记录自然保留，读取时只选择 sequence 最新且 CRC 有效的 `Valid` 记录。这样可以少一次 EEPROM 写入，也降低断电流程复杂度。
+
+CRC 和字节序规则：
+
+- 固定使用小端字节序。
+- `payloadCrc` 覆盖 payload 全部字节。
+- `headerCrc` 覆盖 record header 中除 `headerCrc` 自身以外的字段。
+- CRC 算法进入源码前必须固定，后续变更需要提升 layout 或 schema version。
+
+sequence 规则：
+
+- `sequence` 使用 `uint32_t` 递增。
+- 读取最新记录时使用半区间回绕比较，避免 sequence 回绕后误选旧记录。
+- 格式化后首条记录 sequence 从 1 开始。
 
 上层项目为不同数据使用不同 `recordType`，例如：
 
@@ -184,6 +201,7 @@ Retired
 - 读取时选择 sequence 最大且 CRC 有效的记录。
 - 内容未变化时不写入。
 - 格式化必须由应用显式触发，库不能静默清空。
+- 设备离线时返回 `DeviceOffline`，不能伪造默认成功。
 
 暂不做：
 
