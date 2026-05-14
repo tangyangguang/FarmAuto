@@ -177,7 +177,7 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 源码骨架前必须完成的依赖决策：
 
 - `Esp32EncodedDcMotor`：明确编码器后端优先使用 ESP32 PCNT/ESP32Encoder，只有目标芯片或依赖限制不满足时才自写后端。
-- `Esp32At24cRecordStore`：必须评估 RobTillaart I2C_EEPROM 和 SparkFun External EEPROM 是否可作为 `At24cDevice` 低层后端。
+- `Esp32At24cRecordStore`：必须评估 RobTillaart I2C_EEPROM 和 SparkFun External EEPROM 是否可作为 `At24cDevice` 低层后端；当前评估结论见 `docs/libs/29-at24c-low-level-driver-evaluation.md`。
 - 若不采用成熟 EEPROM 低层库，必须在文档中写明原因，例如依赖体积、错误模型不匹配、页写/ACK polling 控制不足、地址范围校验不足、PlatformIO 兼容性问题或许可证/维护风险。
 - 无论低层后端是否复用，`Esp32At24cRecordStore` 的 recordType、CRC、双阶段提交、wear-levelled record ring 和 inspect 诊断仍由本库记录层负责。
 

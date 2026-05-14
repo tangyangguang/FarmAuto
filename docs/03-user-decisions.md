@@ -20,7 +20,7 @@
 | C1 | 三个公共库是否按推荐决策进入接口冻结默认值 | 建议接受，实测项保留为后续校准 | `docs/libs/25-public-library-freeze-decisions.md` | `docs/libs/21-esp32-encoded-dc-motor.md`、`docs/libs/22-esp32-motor-current-guard.md`、`docs/libs/23-esp32-at24c-record-store.md` | 是否接受 C1；如不接受，指出具体项 |
 | C2 | 公共库字段表是否作为源码骨架前的接口冻结基线 | 建议接受为语义基线，源码命名可小幅调整 | `docs/libs/26-public-library-interface-fields.md` | `docs/libs/25-public-library-freeze-decisions.md` | 是否接受 C2 |
 | C3 | 公共库测试和 examples 是否作为首版验收要求 | 建议接受，避免源码阶段只写能编译但不可验证的库 | `docs/libs/27-public-library-test-checklist.md`、`docs/libs/28-public-library-examples.md` | `docs/17-test-and-acceptance.md` | 是否接受 C3 |
-| C4 | AT24C128 record region、slotCount 和高频写入预算 | 建议先接受当前布局为草案，实机前按 writesPerDay 再算一遍 | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md` | 是否接受当前容量预算思路 |
+| C4 | AT24C128 record region、slotCount、高频写入预算和低层后端策略 | 建议先接受当前布局为草案，实机前按 writesPerDay 再算一遍；低层后端首版使用自研最小 `At24cDevice` | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md`、`docs/libs/29-at24c-low-level-driver-evaluation.md` | 是否接受当前容量预算和低层后端策略 |
 | C5 | 自动门故障时默认 `Coast` 的安全性 | 先按 `Coast` 写入方案，但标为必须实机验证 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 是否确认先按 `Coast` 作为默认方案 |
 | C6 | 自动门断电恢复后位置可信的判定规则 | 建议采用“提交成功 + 限位不冲突 + 状态记录完整”才可信 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/30-persistence-and-migration.md` | 是否接受该判定规则 |
 | C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 进入硬件图或源码前必须确认 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 提供或确认硬件资源表 |
