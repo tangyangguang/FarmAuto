@@ -124,6 +124,8 @@ MotorProtection
 MotorStopPolicy
   normalStopMode
   faultStopMode
+  brakeMs
+  emergencyOutputMode
 ```
 
 `outputPulsesPerRev` 可以由 `motorShaftPulsesPerRev * gearRatio` 得出，也允许应用显式覆盖，便于实测校准。
@@ -137,6 +139,8 @@ MotorStopPolicy
 - `startupGraceMs` 建议不小于 `max(softStartMs, 1000ms)`。
 - `normalStopMode` 默认 `SoftStopThenBrake`。
 - `faultStopMode` 默认 `EmergencyStop`，具体刹车或滑行由驱动后端配置。
+- `brakeMs` 默认由上层配置，未配置时可使用 200ms 作为实测前起点。
+- `emergencyOutputMode` 必须显式配置为 `Brake` 或 `Coast`，避免故障输出行为含糊。
 
 状态命名采用动作阶段命名。软启动和软停止成对使用 `SoftStarting` / `SoftStopping`，避免 `Starting` 与 `SoftStopping` 风格不一致。
 
@@ -178,18 +182,23 @@ Esp32EncodedDcMotor
 ```text
 MotorSnapshot
   state
+  activeCommand
   direction
   currentSpeedPercent
   targetSpeedPercent
+  driverOutputPercent
   positionPulses
   segmentStartPulses
   targetPulses
+  remainingPulses
   pulsesPerSecond
   rpm
   elapsedMs
+  lastUpdateMs
   lastPulseMs
   faultReason
-  commandResult
+  lastCommandResult
+  encoderDeltaSinceLastCheck
 ```
 
 状态快照只反映电机控制状态，不包含业务字段。
@@ -244,8 +253,30 @@ Busy
 InvalidArgument
 InvalidState
 NotInitialized
+AlreadyAtTarget
+FaultActive
+ConfigMissing
+TargetTooSmall
 DriverRejected
 ```
+
+## Braking 与 EmergencyStop
+
+`Braking` 必须有明确退出条件，不能依赖隐式延时。
+
+推荐规则：
+
+- 正常停止进入 `Braking` 时，驱动后端执行刹车输出。
+- `brakeMs` 到期后进入 `Idle`，并关闭或保持驱动输出由驱动后端策略决定。
+- 如果驱动后端报告错误，进入 `Fault`。
+- `brakeMs` 为 0 时跳过 `Braking`。
+
+`EmergencyStop` 是故障停机命令，不等同于固定刹车方式：
+
+- `EmergencyStop` 立即退出 `SoftStarting`、`Running` 或 `SoftStopping`。
+- H 桥输出采用 `emergencyOutputMode`，可配置为 `Brake` 或 `Coast`。
+- 执行完紧急输出后进入 `Fault`。
+- 上层必须通过 `clearFault()` 明确清除故障，不能自动恢复运行。
 
 ## 驱动后端
 
@@ -273,6 +304,30 @@ DriverRejected
 - 编码器计数后端用适配层隔离，避免公共接口绑定某个实现。
 - 计数后端必须能返回 `int64_t` 累计位置。
 - Arduino ESP32 Core 2.x/3.x LEDC API 差异应封装在驱动后端内。
+
+建议硬件配置字段：
+
+```text
+MotorHardwareConfig
+  pwmFrequencyHz
+  pwmResolutionBits
+  pwmPolarity
+  ledcChannelA
+  ledcChannelB
+  driverType
+
+EncoderBackendConfig
+  backendType
+  pinA
+  pinB
+  countMode
+  pcntUnit
+  pcntChannelA
+  pcntChannelB
+  glitchFilterNs
+```
+
+`pcntUnit` 和 channel 字段可在非 PCNT 后端中忽略，但配置结构应能表达资源占用，方便上层避免冲突。
 
 ## 与 Esp32MotorCurrentGuard 的关系
 

@@ -138,11 +138,13 @@ Ina240A2AnalogSensor
 ```text
 CurrentSample
   ok
+  sequence
   rawAdc
   voltageMv
   currentMa
   timestampMs
   sensorStatus
+  sampleLost
 ```
 
 建议保护器接口：
@@ -209,8 +211,16 @@ CurrentGuardSnapshot
   filteredCurrentMa
   peakCurrentMa
   thresholdMa
+  warningThresholdMa
+  faultThresholdMa
+  sampleRateHz
+  lastSampleMs
   overThresholdSinceMs
   consecutiveOverThresholdSamples
+  adcSaturationCount
+  sensorFaultCount
+  warningSinceMs
+  faultSinceMs
   sensorStatus
   faultReason
 ```
@@ -227,8 +237,10 @@ CurrentTracePoint
   rawCurrentMa
   filteredCurrentMa
   peakCurrentMa
+  thresholdMa
   state
   sensorStatus
+  faultReason
 ```
 
 推荐策略：
@@ -266,6 +278,20 @@ ConfigInvalid
 - 过流判定使用滤波值，峰值记录可保留原始值。
 - 启动宽限期间仍记录电流，但不触发过流故障。
 - PWM 噪声明显时，应通过采样频率、采样时刻、硬件滤波和 `filterAlpha` 实测调整。
+- 采样中断或 sequence 不连续时，应在 snapshot 中反映采样丢失。
+- 首版不做 RMS；远程诊断优先保留峰值、滤波值、饱和计数和采样丢失。
+
+## INA240A2 ADC 与校准
+
+INA240A2 的 ADC 配置必须由最大输出电压范围反推，不能写死。
+
+建议原则：
+
+- `adcAttenuation` 由 `adcReferenceMv`、INA240A2 输出范围和 ESP32 ADC 可测范围决定。
+- 零点校准应在被测电机无电流或断电状态下执行。
+- 校准结果只保存零点偏移，不在传感器类中自行持久化。
+- PWM 噪声明显时，上层应固定采样周期，并通过实测决定是否避开 PWM 边沿。
+- ADC 饱和应累加 `adcSaturationCount`，便于远程判断阈值失效或硬件异常。
 
 ## 首版边界
 

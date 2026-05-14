@@ -48,6 +48,14 @@ At24cChipConfig
 
 小容量型号如果使用 I2C 地址位选择内部地址，应由 `At24cDevice` 在内部完成逻辑地址到设备地址和 word address 的映射，不能泄漏到记录存储层。
 
+小容量寻址规则：
+
+- `addressBytes=1` 且 `smallDeviceAddressBits>0` 时，逻辑地址高位映射到 I2C device address 低位。
+- `deviceAddress = i2cAddress | ((logicalAddress >> 8) & ((1 << smallDeviceAddressBits) - 1))`。
+- `wordAddress = logicalAddress & 0xFF`。
+- `addressBytes=2` 时，`smallDeviceAddressBits` 必须为 0，完整逻辑地址写入 2 字节 word address。
+- 所有映射后访问都必须检查 `logicalAddress + length <= capacityBytes`。
+
 ## 接口级设计
 
 建议分为低层设备访问和高层记录存储两层。
@@ -158,15 +166,18 @@ Writing
 Valid
 ```
 
-写入流程：
+提交流程：
 
 1. 选择下一个槽位。
-2. 写入 `Writing` 状态记录。
-3. 回读并校验 CRC。
-4. 写入或更新为 `Valid` 状态。
-5. 旧记录可保持不变，读取时由 sequence 决定最新记录。
+2. 构造 `flags=Writing` 的完整 header 和 payload，并计算对应的 `headerCrc` 与 `payloadCrc`。
+3. 写入完整 header + payload。
+4. 回读完整记录并校验 header CRC 与 payload CRC。
+5. 构造 `flags=Valid` 的 header，并重新计算 `headerCrc`。
+6. 只重写 header，且 header 必须位于同一页内。
+7. 回读 header，确认 `flags=Valid` 且 header CRC 正确。
+8. 旧记录保持不变，读取时由 sequence 决定最新记录。
 
-如果第 2 步到第 4 步之间断电，读取时忽略未完成或 CRC 无效的记录。
+如果第 2 步到第 7 步之间断电，读取时忽略未完成、非 `Valid` 或 CRC 无效的记录。
 
 首版不主动写 `Retired`。旧记录自然保留，读取时只选择 sequence 最新且 CRC 有效的 `Valid` 记录。这样可以少一次 EEPROM 写入，也降低断电流程复杂度。
 
@@ -176,6 +187,7 @@ CRC 和字节序规则：
 - `payloadCrc` 覆盖 payload 全部字节。
 - `headerCrc` 覆盖 record header 中除 `headerCrc` 自身以外的字段。
 - CRC 算法进入源码前必须固定，后续变更需要提升 layout 或 schema version。
+- header 必须保证不跨 EEPROM 页，避免提交 `Valid` 时出现跨页半写。
 
 sequence 规则：
 
@@ -246,16 +258,45 @@ Ok
 NotInitialized
 DeviceOffline
 InvalidConfig
+LayoutMismatch
 OutOfRange
 PayloadTooLarge
 ReadFailed
 WriteFailed
 CrcMismatch
+HeaderCrcMismatch
 NoValidRecord
 Unchanged
+AckTimeout
+CompareFailed
+FormatRequired
 ```
 
 `Unchanged` 表示写前比较发现 payload 未变化，库没有执行 EEPROM 写入。
+
+`inspect(recordType)` 建议返回：
+
+```text
+RecordInspect
+  deviceOnline
+  regionFound
+  regionUsedBytes
+  validSlotCount
+  latestSequence
+  latestSchemaVersion
+  lastError
+  slots[]
+
+RecordSlotInspect
+  slotIndex
+  address
+  flags
+  sequence
+  schemaVersion
+  payloadLength
+  headerCrcOk
+  payloadCrcOk
+```
 
 ## 型号支持原则
 
