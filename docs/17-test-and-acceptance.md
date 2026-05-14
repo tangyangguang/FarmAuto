@@ -82,6 +82,15 @@ Esp32FarmFeeder：
 - 单路小剂量测试不计入今日正式投喂量，但写入维护事件。
 - 当前无电流检测时，堵转保护依赖编码器和时间/脉冲限制。
 
+长期记录：
+
+- 自动门端点维护全过程有长期记录。
+- 自动门故障停止记录包含 faultReason、positionPulses、durationMs 和电流摘要。
+- 喂食器每次投喂完成记录 actualPulses、durationMs 和 gramsX100。
+- 喂食器补料、设置余量、低余量告警写入长期记录。
+- JSON Lines 导出保留结构化字段。
+- CSV 导出包含 time、eventType、channel、result、pulses、durationMs、grams、faultReason 等常用列。
+
 ## 硬件在环测试
 
 - 电机空载运行。
