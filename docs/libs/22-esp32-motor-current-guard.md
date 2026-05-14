@@ -234,13 +234,19 @@ CurrentGuardSnapshot
 ```text
 CurrentTracePoint
   timestampMs
+  sequence
+  rawAdc
+  voltageMv
   rawCurrentMa
   filteredCurrentMa
   peakCurrentMa
+  warningThresholdMa
   thresholdMa
   state
   sensorStatus
   faultReason
+  sampleLost
+  adcSaturated
 ```
 
 推荐策略：
@@ -252,6 +258,20 @@ CurrentTracePoint
 - `CurrentTraceBuffer` 必须固定容量、非阻塞、无动态扩容，避免影响实时保护。
 
 这样既能支持远程诊断图表，又不会把 Web、历史存储或业务展示塞进公共库。
+
+高价值图表：
+
+- 原始 ADC 曲线。
+- 传感器输出电压曲线。
+- 原始电流与滤波电流曲线。
+- warning/fault 阈值线。
+- 启动宽限区间。
+- 连续超限确认区间。
+- ADC 饱和点。
+- 采样丢失点。
+- 传感器异常和故障原因时间线。
+
+INA240A2 是模拟电流检测放大器，不是数字传感器。首版不需要依赖复杂第三方库，重点应放在 ADC 校准、零点校准、滤波、阈值确认、采样异常诊断和 trace 数据输出。
 
 ## 故障原因
 

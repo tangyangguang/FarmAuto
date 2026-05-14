@@ -105,6 +105,25 @@ MotorSnapshot
   encoderDeltaSinceLastCheck
 ```
 
+trace 字段：
+
+```text
+MotorTracePoint
+  timestampMs
+  state
+  activeCommand
+  direction
+  positionPulses
+  targetPulses
+  remainingPulses
+  pulsesPerSecond
+  rpm
+  targetSpeedPercent
+  driverOutputPercent
+  encoderDelta
+  faultReason
+```
+
 event 字段：
 
 ```text
@@ -185,13 +204,19 @@ trace 字段：
 ```text
 CurrentTracePoint
   timestampMs
+  sequence
+  rawAdc
+  voltageMv
   rawCurrentMa
   filteredCurrentMa
   peakCurrentMa
+  warningThresholdMa
   thresholdMa
   state
   sensorStatus
   faultReason
+  sampleLost
+  adcSaturated
 ```
 
 event 字段：
@@ -265,7 +290,13 @@ RecordInspect
   latestSequence
   latestSchemaVersion
   nextSlotIndex
+  totalWrites
+  unchangedSkips
+  crcErrorCount
+  verifyFailedCount
+  ackTimeoutCount
   estimatedWritesPerSlot
+  estimatedLifetimePercent
   lastError
   slots[]
 

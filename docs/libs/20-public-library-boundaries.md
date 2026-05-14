@@ -153,8 +153,32 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 - `Esp32MotorCurrentGuard` 首版实现 INA240A2，未来用后端支持 ACS712 和 INA226。
 - `Esp32EncodedDcMotor` 通过驱动后端支持单向 PWM 和 H 桥，不把业务动作写进库。
 
+## 成熟库复用边界
+
+公共库设计不应重复造底层轮子。进入源码阶段前，必须优先评估 Arduino、PlatformIO、ESP-IDF 和芯片厂商已有能力。
+
+推荐判断：
+
+| 领域 | 成熟能力 | 推荐用法 | 为什么仍需要 FarmAuto 公共库 |
+| --- | --- | --- | --- |
+| ESP32 编码器读取 | ESP32 PCNT、ESP32Encoder 等 | 优先作为编码器后端或实现参考 | 它们解决计数，不解决软启动、软停止、运动命令、故障状态和远程诊断 |
+| 通用电机库 | AccelStepper、SimpleFOC 等 | 学习非阻塞接口和状态推进模式 | 当前是带编码器 DC 电机定量运动和设备保护，不需要引入完整运动控制或 FOC 调参体系 |
+| AT24C 低层读写 | RobTillaart I2C_EEPROM、SparkFun External EEPROM | 可作为低层访问参考或候选依赖 | 它们主要解决 EEPROM 读写、页大小、update/verify，不直接提供本项目需要的 recordType、原子提交、CRC、wear-levelled record ring 和 inspect 诊断 |
+| ESP32 flash 存储 | ESP-IDF NVS、LittleFS、FATFS、wear levelling | 通过 Esp32BaseFs 使用高层文件系统能力 | 多年原始记录属于应用层，不应塞进 AT24C 记录库；公共库只处理外部 EEPROM 上的小型可靠记录 |
+| 电流采样 | INA240 数据手册、ESP32 ADC 校准能力 | 按芯片特性和 ADC 校准实现 | INA240A2 是模拟放大器，成熟“库”的价值有限；关键在采样、校准、滤波、故障判定和 trace 数据 |
+
+结论：
+
+- 可以复用成熟底层库或官方外设能力。
+- 不应为了“自己写库”而手写 PCNT 解码、I2C 页写细节或 flash 文件系统。
+- FarmAuto 公共库的价值在于把底层能力组合成可复用的设备部件能力：非阻塞控制、可靠状态机、结构化诊断、远程可观察性、断电恢复和磨损均衡。
+- 如果某个成熟库已经完整满足目标，应直接采用；如果只覆盖底层能力，则用适配层复用，不把业务或诊断要求塞给底层库。
+
 ## 参考资料
 
 - PlatformIO `library.json` 文档：https://docs.platformio.org/en/latest/manifests/library-json/index.html
 - AccelStepper 用法说明：https://www.pjrc.com/teensy/td_libs_AccelStepper.html
 - SparkFun External EEPROM Arduino Library：https://github.com/sparkfun/SparkFun_External_EEPROM_Arduino_Library
+- RobTillaart I2C_EEPROM：https://github.com/RobTillaart/I2C_EEPROM
+- ESP32Encoder：https://github.com/madhephaestus/ESP32Encoder
+- Espressif Storage API：https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/index.html

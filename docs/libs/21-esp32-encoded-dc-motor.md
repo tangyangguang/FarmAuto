@@ -54,6 +54,16 @@ Fault
 - 支持 `X1` / `X2` / `X4` 计数模式配置，默认 `X1`。
 - 支持电机方向和编码器方向独立反转配置。
 
+`X1` / `X2` / `X4` 是 AB 相正交编码器的计数倍率：
+
+- `X1`：每个完整 AB 周期计 1 次。
+- `X2`：每个完整 AB 周期计 2 次。
+- `X4`：A/B 上升沿和下降沿都计数，每个完整 AB 周期计 4 次。
+
+如果某个编码器按 `X1` 口径是 16 pulses/rev，则同一硬件在 `X2` 下会变成 32 counts/rev，在 `X4` 下会变成 64 counts/rev。默认使用 `X1` 是为了避免廉价减速电机编码器标称口径不清时出现 2 倍或 4 倍位置误差。需要更高分辨率时，应用必须显式选择 `X2` 或 `X4`，并同步校准 `outputPulsesPerRev`。
+
+编码器读取实现不应从零手写复杂中断解码。首版优先复用 ESP32 PCNT 或成熟 ESP32 编码器库作为后端，并用适配层隔离，公共库重点提供运动状态机、软启动/软停止、保护、诊断和命令语义。
+
 运动目标：
 
 - 运行指定脉冲数。
@@ -202,6 +212,47 @@ MotorSnapshot
 ```
 
 状态快照只反映电机控制状态，不包含业务字段。
+
+## 运行图表数据支持
+
+公共库不生成 Web 图表、不输出 HTML/JS，也不依赖任何页面框架。但为了支持上层项目做远程运行动态图表，电机库必须提供稳定的连续数据来源。
+
+建议提供最近一次 trace 点：
+
+```text
+MotorTracePoint
+  timestampMs
+  state
+  activeCommand
+  direction
+  positionPulses
+  targetPulses
+  remainingPulses
+  pulsesPerSecond
+  rpm
+  targetSpeedPercent
+  driverOutputPercent
+  encoderDelta
+  faultReason
+```
+
+高价值图表：
+
+- 位置随时间变化曲线。
+- 剩余脉冲随时间变化曲线。
+- 速度或 PPS/RPM 曲线。
+- PWM 输出百分比曲线。
+- 软启动/软停止阶段曲线。
+- 状态时间线。
+- 故障发生点和故障原因标记。
+
+推荐策略：
+
+- `snapshot()` 提供当前状态。
+- `latestTracePoint()` 提供适合上层采样的轻量时间序列点。
+- 上层项目维护固定容量 ring buffer，并通过自己的 Web/API 输出 JSON。
+- 电机库可以提供可选的小型 `MotorTraceBuffer` 工具类，但不作为运动控制必需依赖。
+- trace buffer 必须固定容量、非阻塞、无动态扩容，避免影响电机控制实时性。
 
 ## 故障原因
 

@@ -268,6 +268,20 @@ Hot
 - `inspect(recordType)` 必须能看到每个槽位状态。
 - `inspect(recordType)` 应给出 `nextSlotIndex` 和 `estimatedWritesPerSlot`。
 - 上层应能远程查看 layout 是否给高频记录分配了足够槽位。
+- `inspect(recordType)` 应提供足够数据支持磨损均衡和可靠性图表。
+
+高价值诊断图表：
+
+- 每个 recordType 的写入次数。
+- 每个 recordType 的预计寿命百分比。
+- 每个槽位的有效/无效状态分布。
+- 每个槽位的 sequence 分布。
+- CRC 错误次数趋势。
+- 写后校验失败次数趋势。
+- `Unchanged` 跳过写入次数。
+- 设备离线、ACK timeout、compare failed 等错误时间线。
+
+这些图表由上层项目生成，公共库只提供 `inspect()`、结果码、事件和计数器，不生成 UI。
 
 暂不做：
 
@@ -339,7 +353,13 @@ RecordInspect
   latestSequence
   latestSchemaVersion
   nextSlotIndex
+  totalWrites
+  unchangedSkips
+  crcErrorCount
+  verifyFailedCount
+  ackTimeoutCount
   estimatedWritesPerSlot
+  estimatedLifetimePercent
   lastError
   slots[]
 
