@@ -21,7 +21,7 @@ Opening
 Closing
 SoftStopping
 Stopped
-Homing
+EndpointCalibrating
 Calibrating
 Fault
 Maintenance
@@ -30,8 +30,8 @@ Maintenance
 状态说明：
 
 - `Booting`：启动中，加载配置、状态和硬件自检。
-- `PositionUnknown`：当前位置不可信，应优先允许远程低速关门，直到触发关门/下限位。
-- `LimitFault`：关门/下限位断线、异常方向触发、限位未按预期触发，或可选上限位与下限位冲突。
+- `PositionUnknown`：当前位置不可信，应优先允许远程低速开门，直到触发开门/上限位完成端点校准。
+- `LimitFault`：开门/上限位断线、异常方向触发、限位未按预期触发，或可选下限位与上限位冲突。
 - `IdleClosed`：门处于已关闭位置。
 - `IdleOpen`：门处于已打开位置。
 - `IdlePartial`：门停在中间位置。
@@ -39,10 +39,10 @@ Maintenance
 - `Closing`：正在关门。
 - `SoftStopping`：正在按策略软停止。
 - `Stopped`：用户主动停止后的稳定状态。
-- `Homing`：低速寻找关门/下限位流程执行中。
+- `EndpointCalibrating`：低速寻找开门/上限位流程执行中。
 - `Calibrating`：校准流程执行中。
 - `Fault`：故障停机。
-- `Maintenance`：维护模式，允许归零、格式化、校准等危险操作。
+- `Maintenance`：维护模式，允许端点校准、格式化、校准等危险操作。
 
 关键事件：
 
@@ -51,7 +51,7 @@ BootCompleted
 OpenRequested
 CloseRequested
 StopRequested
-HomeRequested
+EndpointCalibrationRequested
 CalibrationRequested
 TargetReached
 OpenLimitTriggered
@@ -70,10 +70,10 @@ ConfigChanged
 
 待确认问题：
 
-- 关门/下限位开关已确认为首版硬件必选项。
-- 开门/上限位开关作为可选增强，不作为首版必需项。
+- 开门/上限位开关已确认为首版硬件必选项。
+- 关门/下限位开关作为可选增强，不作为首版必需项。
 - 断电重启后，已成功提交且与限位不冲突的保存位置应作为可信恢复依据。
-- 归零建议定义为“电机低速关门，直到触发关门/下限位”，不依赖现场人工确认。
+- 端点校准建议定义为“电机低速开门，直到触发开门/上限位”，不依赖现场人工确认。
 - 用户停止后再次开/关门的目标策略。
 - 故障清除后是否回到 `PositionUnknown`，还是根据限位状态直接回到 `IdleClosed` / `IdleOpen`。
 

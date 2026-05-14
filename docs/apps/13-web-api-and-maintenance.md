@@ -76,24 +76,24 @@ handler 原则：
 
 维护：
 
-- `POST /api/maintenance/home`
-- `POST /api/maintenance/set-zero`
+- `POST /api/maintenance/calibrate-open-limit`
+- `POST /api/maintenance/set-position`
 - `POST /api/maintenance/calibrate`
 - `POST /api/maintenance/format-storage`
 - `POST /api/maintenance/clear-fault`
 
 危险操作：
 
-- 归零。
+- 端点校准。
 - 校准。
 - 格式化存储。
 - 清除故障后恢复运行。
 
-`GET /api/status` 应包含关门/下限位、可选开门/上限位、当前位置可信度、最近一次归零结果和是否需要现场处理。`POST /api/maintenance/home` 建议语义为远程低速关门直到触发关门/下限位：API 只发起归零流程，不在 HTTP handler 内阻塞等待完成。
+`GET /api/status` 应包含开门/上限位、可选关门/下限位、当前位置可信度、最近一次端点校准结果和是否需要现场处理。`POST /api/maintenance/calibrate-open-limit` 建议语义为远程低速开门直到触发开门/上限位：API 只发起校准流程，不在 HTTP handler 内阻塞等待完成。
 
 待确认：
 
-- `home` 和 `set-zero` 是否都需要；若存在关门/下限位，建议 `home` 为运行到关门/下限位，`set-zero` 仅保留为受限维护功能。
+- `calibrate-open-limit` 和 `set-position` 是否都需要；建议前者为运行到开门/上限位，后者仅保留为受限维护功能。
 - 是否需要单独的微调上/下命令。
 - 是否需要导出配置或诊断信息。
 

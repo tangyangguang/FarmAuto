@@ -23,7 +23,7 @@ examples 应验证公共库独立可用，不包含具体应用业务语义。
 
 - 演示 AT8236 双 PWM H 桥驱动。
 - 演示 AB 编码器位置读取。
-- 演示 `runPulses()`、`update(nowMs)` 和 `snapshot()`。
+- 演示 `requestMoveByPulses()`、`update(nowMs)` 和 `snapshot()`。
 
 覆盖：
 

@@ -69,7 +69,7 @@ Fault
 - 运行指定脉冲数。
 - 运行指定输出轴圈数。
 - 运行到绝对脉冲位置。
-- 运行回零。
+- 运行到编码器坐标 0。
 
 速度控制：
 
@@ -158,6 +158,13 @@ MotorStopPolicy
 
 首版接口应围绕一个电机实例展开，避免为了多电机编排增加复杂抽象。
 
+API 命名原则：
+
+- 使用 `requestMove*` 表示“提交非阻塞运动请求”，避免误解为函数会阻塞直到运动完成。
+- 使用 `currentPosition*` 表示当前编码器坐标，避免和目标位置混淆。
+- 不复制 old_prj 命名，也不照搬步进电机库命名；只借鉴成熟库的非阻塞目标推进思想。
+- 不提供业务化找零点 API。机械找零点、找限位、设零点都由应用层组合完成。
+
 建议概念接口：
 
 ```text
@@ -168,23 +175,22 @@ Esp32EncodedDcMotor
   configureMotionProfile(config)
   configureProtection(config)
   configureStopPolicy(config)
-  setPositionPulses(pulses)
-  resetPosition()
-  positionPulses()
-  runPulses(direction, pulses, speedPercent)
-  runRevolutions(direction, revolutions, speedPercent)
-  runToPosition(targetPulses, speedPercent)
+  setCurrentPositionPulses(pulses)
+  currentPositionPulses()
+  requestMoveByPulses(deltaPulses, speedPercent)
+  requestMoveByRevolutions(deltaRevolutions, speedPercent)
+  requestMoveToPosition(targetPulses, speedPercent)
   requestStop(mode)
-  emergencyStop(reason)
+  requestEmergencyStop(reason)
   clearFault()
   snapshot()
 ```
 
 `update(nowMs)` 必须非阻塞，由上层项目在主循环或调度器中周期调用。
 
-这种设计参考成熟电机库的常见模式：配置目标后立即返回，实际运动由主循环中反复调用 `run/update` 推进。这样不会阻塞上层循环、输入处理、日志、看门狗和其他执行器。
+这种设计参考成熟电机库的常见非阻塞模式：配置目标后立即返回，实际运动由主循环中反复调用 `update(nowMs)` 推进。这样不会阻塞上层循环、输入处理、日志、看门狗和其他执行器。
 
-公共库不提供专门的业务化归零 API。如果上层要运行到编码器坐标 0，应调用 `runToPosition(0, speedPercent)`。机械归零、寻找限位、设置当前坐标为 0 等语义属于应用层。
+公共库不提供专门的业务化找零点 API。如果上层要运行到编码器坐标 0，应调用 `requestMoveToPosition(0, speedPercent)`。如果上层要把当前位置定义为 0，应调用 `setCurrentPositionPulses(0)`。机械找零点、寻找限位、设置零点的授权流程属于应用层。
 
 ## 状态快照
 
@@ -418,7 +424,7 @@ Esp32EncodedDcMotor 不直接读取电流。它只暴露运动状态和故障停
 
 ## 设计参考
 
-- AccelStepper 的位置控制接口采用 `moveTo()` 设置目标、`run()` 反复推进运动的非阻塞模型；本库也应保持同类设计原则，但面向带编码器 DC 电机而不是步进电机。
+- 成熟运动库常采用“提交目标后由主循环反复推进”的非阻塞模型；本库采用同类设计原则，但 API 命名使用 `requestMove*`，明确表达这是异步运动请求，并面向带编码器 DC 电机而不是步进电机。
 - 多电机协调不进入首版核心库。首版先保证单电机状态机稳定，后续如多个项目真实需要，再考虑独立编排层。
 
 ## 不包含内容

@@ -12,7 +12,7 @@
 - 所有配置必须有合法范围。
 - Web 保存前必须校验。
 - 配置变更时写入持久化。
-- 运行状态只在停止、故障、归零、清计数、日期切换等关键点保存。
+- 运行状态只在停止、故障、端点校准、清计数、日期切换等关键点保存。
 - 运行中是否允许修改配置必须逐项定义。
 
 ## Esp32FarmDoor 配置草案
@@ -33,12 +33,13 @@
 | ina240ZeroOffsetMv | mV | 待校准 | ADC 范围内 | 否 | 维护流程写入 |
 | maxRunMs | ms | 待确认 | >0 | 否 | 安全兜底 |
 | maxRunPulses | pulses | 待确认 | >0 | 否 | 安全兜底 |
-| closeLimitSwitchMode | enum | NormallyClosed | NormallyClosed/NormallyOpen | 否 | 关门/下限位，首版必需 |
-| openLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 开门/上限位，可选 |
+| openLimitSwitchMode | enum | NormallyClosed | NormallyClosed/NormallyOpen | 否 | 开门/上限位，首版必需 |
+| closeLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 关门/下限位，可选 |
 | limitDebounceMs | ms | 50 | 5-500 | 否 | 限位稳定时间 |
-| homingSpeedPercent | % | 30 | 1-100 | 否 | 远程归零低速运行 |
-| homingMaxMs | ms | 待确认 | >0 | 否 | 归零最大时长 |
-| homingMaxPulses | pulses | 待确认 | >0 | 否 | 归零最大脉冲 |
+| openLimitCalibrateSpeedPercent | % | 30 | 1-100 | 否 | 远程端点校准低速运行 |
+| openLimitCalibrateMaxMs | ms | 待确认 | >0 | 否 | 端点校准最大时长 |
+| openLimitCalibrateMaxPulses | pulses | 待确认 | >0 | 否 | 端点校准最大脉冲 |
+| maxCloseUnwindPulses | pulses | 待确认 | >0 | 否 | 关门最大放绳脉冲，防止过放反卷 |
 | faultEmergencyOutputMode | enum | Coast | Coast/Brake | 否 | 故障停机默认倾向滑行，需实测确认 |
 
 ## Esp32FarmFeeder 配置草案

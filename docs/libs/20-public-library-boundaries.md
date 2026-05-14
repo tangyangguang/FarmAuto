@@ -134,7 +134,7 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 - 接口尽量非阻塞，适合 ESP32 主循环、任务调度和 Web 运行时共存。
 - 硬件差异用配置或后端接口表达，不用复制多套相近逻辑。
 
-这些要求参考成熟 Arduino/PlatformIO 库的常见做法，例如 PlatformIO `library.json` manifest、AccelStepper 的非阻塞 `run()` 模式、SparkFun External EEPROM 的运行时存储器参数配置。
+这些要求参考成熟 Arduino/PlatformIO 库的常见做法，例如 PlatformIO `library.json` manifest、非阻塞循环推进模式、SparkFun External EEPROM 的运行时存储器参数配置。
 
 ## 芯片支持策略
 
