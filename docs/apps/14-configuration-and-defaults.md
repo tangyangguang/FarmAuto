@@ -33,8 +33,9 @@
 | ina240ZeroOffsetMv | mV | 待校准 | ADC 范围内 | 否 | 维护流程写入 |
 | maxRunMs | ms | 待确认 | >0 | 否 | 安全兜底 |
 | maxRunPulses | pulses | 待确认 | >0 | 否 | 安全兜底 |
-| limitSwitchMode | enum | NormallyClosed | Disabled/NormallyClosed/NormallyOpen | 否 | 无硬件时设为 Disabled |
-| limitDebounceMs | ms | 50 | 5-500 | 否 | 上/下限位稳定时间 |
+| closeLimitSwitchMode | enum | NormallyClosed | NormallyClosed/NormallyOpen | 否 | 关门/下限位，首版必需 |
+| openLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 开门/上限位，可选 |
+| limitDebounceMs | ms | 50 | 5-500 | 否 | 限位稳定时间 |
 | homingSpeedPercent | % | 30 | 1-100 | 否 | 远程归零低速运行 |
 | homingMaxMs | ms | 待确认 | >0 | 否 | 归零最大时长 |
 | homingMaxPulses | pulses | 待确认 | >0 | 否 | 归零最大脉冲 |
@@ -47,31 +48,41 @@
 | motorSpeedPercent | % | 100 | 1-100 | 否 | 待实机确认 |
 | softStartMs | ms | 1000 | 0-10000 | 否 | 三路共用或每路独立待确认 |
 | softStopMs | ms | 500 | 0-10000 | 否 | 三路共用或每路独立待确认 |
-| feeder1TargetGrams | g | 待确认 | >0 | 否 | 建议主配置 |
-| feeder2TargetGrams | g | 待确认 | >0 | 否 | 建议主配置 |
-| feeder3TargetGrams | g | 待确认 | >0 | 否 | 建议主配置 |
+| feeder1TargetMode | enum | Revolutions | Grams/Revolutions | 否 | 每路可独立选择 |
+| feeder2TargetMode | enum | Revolutions | Grams/Revolutions | 否 | 每路可独立选择 |
+| feeder3TargetMode | enum | Revolutions | Grams/Revolutions | 否 | 每路可独立选择 |
+| feeder1TargetGrams | g | 待标定 | >0 | 否 | 克数模式使用 |
+| feeder2TargetGrams | g | 待标定 | >0 | 否 | 克数模式使用 |
+| feeder3TargetGrams | g | 待标定 | >0 | 否 | 克数模式使用 |
+| feeder1TargetRevolutionsX100 | 0.01 圈 | 待确认 | >0 | 否 | 圈数模式使用 |
+| feeder2TargetRevolutionsX100 | 0.01 圈 | 待确认 | >0 | 否 | 圈数模式使用 |
+| feeder3TargetRevolutionsX100 | 0.01 圈 | 待确认 | >0 | 否 | 圈数模式使用 |
 | feeder1GramsPerRevX100 | 0.01g/圈 | 7000 | >0 | 否 | 默认约 70g/圈 |
 | feeder2GramsPerRevX100 | 0.01g/圈 | 7000 | >0 | 否 | 每路应可标定 |
 | feeder3GramsPerRevX100 | 0.01g/圈 | 7000 | >0 | 否 | 每路应可标定 |
+| feeder1BucketCapacityGrams | g | 待配置 | >0 | 可改 | 饲料桶容量 |
+| feeder2BucketCapacityGrams | g | 待配置 | >0 | 可改 | 饲料桶容量 |
+| feeder3BucketCapacityGrams | g | 待配置 | >0 | 可改 | 饲料桶容量 |
+| feeder1BucketRemainGrams | g | 待设置 | >=0 | 可改 | 当前估算余量 |
+| feeder2BucketRemainGrams | g | 待设置 | >=0 | 可改 | 当前估算余量 |
+| feeder3BucketRemainGrams | g | 待设置 | >=0 | 可改 | 当前估算余量 |
 | gearRatioX100 | 0.01 | 27000 | >0 | 否 | 270:1 |
 | motorShaftPulsesPerRev | pulses | 16 | >0 | 否 | 单边计数口径需确认 |
 | outputPulsesPerRev | pulses | 4320 | >0 | 否 | 可由配置计算或覆盖 |
 | startAllIntervalMs | ms | 1000 | >=0 | 否 | 顺序启动间隔 |
-| stopAllIntervalMs | ms | 200 | >=0 | 否 | 是否需要待确认 |
+| stopAllMode | enum | StopAllNow | StopAllNow/EmergencyStopAll | 否 | 普通停止同时请求各路软停止 |
 | maxRunMs | ms | 300000 | >0 | 否 | 默认 5 分钟 |
 | maxRunPulses | pulses | 432000 | >0 | 否 | 默认 100 圈 |
-| dailyScheduleEnabled | bool | true | true/false | 否 | 每天定时投喂 |
-| dailyScheduleTimeMinutes | min/day | 待确认 | 0-1439 | 否 | 每日执行时间 |
+| dailyScheduleEnabled | bool | false | true/false | 否 | 未配置时间时不自动投喂 |
+| dailyScheduleTimeMinutes | min/day | 未配置 | 0-1439 | 否 | 配置后才可启用每日计划 |
 | skipToday | bool | false | true/false | 可改 | 只影响当天，日期切换后自动清除 |
 | longTermRecordRetentionDays | days | 待确认 | >0 | 否 | 多年原始记录目标，存储介质待定 |
 
-当前硬件没有电流检测。未来如增加，每电机一个 INA240 芯片，对应配置再加入每路电流阈值和校准参数。
+当前硬件没有电流检测。未来如增加，每电机一个 INA240A2 芯片，对应配置再加入每路电流阈值和校准参数。
 
 ## 待确认
 
 - 电机轴每圈脉冲数的计数口径是单边、双边还是四倍频。
 - `outputPulsesPerRev` 是否总是由参数计算，还是允许手动覆盖。
-- 喂食器目标配置是否最终以克数为主。
 - 三路喂食器是否需要每路独立速度、软启动、软停止。
-- 日期来源失败时是否允许喂食和记录历史。
 - 长期原始记录使用的存储介质和容量策略。
