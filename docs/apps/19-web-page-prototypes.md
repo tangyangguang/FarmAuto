@@ -4,6 +4,8 @@
 
 本文只定义 Esp32FarmDoor 和 Esp32FarmFeeder 的本地 Web 页面原型，不进入前端实现。源码阶段应先根据本文确认页面信息架构，再实现 HTML/CSS/JS。
 
+更细的页面状态字段、按钮启用条件、维护流程和确认规则见 `docs/apps/21-web-workflows.md`。
+
 页面设计原则：
 
 - 首屏直接进入设备操作界面，不做欢迎页或营销页。

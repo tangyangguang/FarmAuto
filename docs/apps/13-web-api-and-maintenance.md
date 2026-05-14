@@ -8,7 +8,7 @@
 
 设备按无人值守运行设计。Web/API 应优先支持远程查看、远程恢复和远程诊断；只有系统能明确判断继续远程操作有机械风险时，才返回需要现场处理的故障码。
 
-页面原型和信息架构见 `docs/apps/19-web-page-prototypes.md`。本文侧重 API、路由和维护语义；页面排版不在本文展开。
+页面原型和信息架构见 `docs/apps/19-web-page-prototypes.md`。页面工作流细化见 `docs/apps/21-web-workflows.md`。本文侧重 API、路由和维护语义；页面排版不在本文展开。
 
 ## 通用页面
 

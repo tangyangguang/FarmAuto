@@ -21,6 +21,7 @@ FarmAuto/
       18-long-term-records.md
       19-web-page-prototypes.md
       20-feeder-bucket-level-sensing.md
+      21-web-workflows.md
     libs/
       20-public-library-boundaries.md
       21-esp32-encoded-dc-motor.md
