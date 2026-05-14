@@ -124,6 +124,8 @@ StoreLayout
 
 这个取舍比动态文件系统和全局日志结构简单，也更适合 ESP32 小型无人值守设备远程维护。容量和磨损均衡能力由 `slotCount` 和写入频率共同决定。
 
+该设计采用 EEPROM 小记录存储的经典实践：circular buffer / rolling slot / sequence / CRC。每次写入移动到下一个槽位，启动时扫描所有槽位并选择最新有效 sequence；CRC 和 `Writing -> Valid` 提交过程用于处理掉电和局部写入失败。
+
 ## 基础能力
 
 EEPROM 访问：
@@ -412,6 +414,7 @@ At24cPreset
 
 - SparkFun External EEPROM Arduino Library 使用运行时 memory type 或显式 memory size/address bytes/page size 配置，并由库内部处理页写限制。
 - PlatformIO `library.json` 用于声明独立库元数据、依赖、平台、框架和导出规则；本库未来独立时应按该格式准备。
+- Microchip / Atmel AVR101 High Endurance EEPROM Storage 使用 circular buffer 提升 EEPROM 高频参数写入寿命；本库的 record ring 采用同类思路，但使用 recordType、sequence 和 CRC 做通用化。
 
 ## 与上层项目的关系
 
