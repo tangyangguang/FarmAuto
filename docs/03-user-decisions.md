@@ -20,7 +20,7 @@
 | C1 | 三个公共库是否按推荐决策进入接口冻结默认值 | 建议接受，实测项保留为后续校准 | `docs/libs/25-public-library-freeze-decisions.md` | `docs/libs/21-esp32-encoded-dc-motor.md`、`docs/libs/22-esp32-motor-current-guard.md`、`docs/libs/23-esp32-at24c-record-store.md` | 是否接受 C1；如不接受，指出具体项 |
 | C2 | 公共库字段表是否作为源码骨架前的接口冻结基线 | 建议接受为语义基线，源码命名可小幅调整 | `docs/libs/26-public-library-interface-fields.md` | `docs/libs/25-public-library-freeze-decisions.md` | 是否接受 C2 |
 | C3 | 公共库测试和 examples 是否作为首版验收要求 | 建议接受，避免源码阶段只写能编译但不可验证的库 | `docs/libs/27-public-library-test-checklist.md`、`docs/libs/28-public-library-examples.md` | `docs/17-test-and-acceptance.md` | 是否接受 C3 |
-| C4 | AT24C128 record region、slotCount、高频写入预算和低层后端策略 | 建议先接受当前布局为草案，实机前按 writesPerDay 再算一遍；低层后端首版使用自研最小 `At24cDevice` | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md`、`docs/libs/29-at24c-low-level-driver-evaluation.md` | 是否接受当前容量预算和低层后端策略 |
+| C4 | AT24C128 record region、slotCount、高频写入预算和低层后端策略 | 建议接受两个应用各自独立 AT24C128 的预算草案，实机前按 writesPerDay 再算一遍；低层后端首版使用自研最小 `At24cDevice` | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md`、`docs/libs/29-at24c-low-level-driver-evaluation.md` | 是否接受当前容量预算和低层后端策略 |
 | C5 | 自动门故障时默认 `Coast` 的安全性 | 先按 `Coast` 写入方案，但标为必须实机验证 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 是否确认先按 `Coast` 作为默认方案 |
 | C6 | 自动门断电恢复后位置可信的判定规则 | 建议采用“提交成功 + 限位不冲突 + 状态记录完整”才可信 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/30-persistence-and-migration.md` | 是否接受该判定规则 |
 | C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 进入硬件图或源码前必须确认 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 提供或确认硬件资源表 |
@@ -63,10 +63,10 @@
 | 决策 | 推荐值 | 为什么需要确认 |
 | --- | --- | --- |
 | 首版实测型号 | AT24C128 | 当前已知硬件目标 |
-| 支持型号范围 | AT24C02/04/08/16/32/64/128/256/512 | 超出范围不承诺 |
+| 支持型号范围 | 首版承诺 AT24C128，推荐兼容 AT24C32/64/256/512 | AT24C02/04/08/16 如需特殊寻址代码，首版不支持 |
 | 存储模型 | wear-levelled record ring | 独立最佳实践设计，避免老项目路径依赖 |
 | 是否做全局动态 wear leveling | 首版不做 | 静态记录环更简单可靠；高频数据靠 slotCount 和保存频率解决 |
-| 是否做坏块管理 | 首版不做 | AT24C 小容量场景先用多槽、CRC、诊断；实测需要再加 |
+| 是否做坏块管理 | 首版不做 | 先用多槽、CRC、诊断；实测需要再加 |
 | FRAM 支持 | 首版不纳入，未来独立库 | 避免 EEPROM 和 FRAM 概念混杂 |
 | 高频记录 slotCount | 按 writesPerDay 估算后确认 | 直接影响 EEPROM 寿命 |
 

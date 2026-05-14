@@ -48,6 +48,17 @@ FarmAuto/
 
 当前阶段不创建 `apps/` 和 `lib/` 源码工程；以上结构先作为后续实施目标。
 
+源码阶段必须保持目录边界清晰：
+
+- `apps/Esp32FarmDoor/` 只放自动门应用固件、页面/API、业务状态机、应用配置和应用持久化 schema。
+- `apps/Esp32FarmFeeder/` 只放喂食器应用固件、页面/API、业务状态机、应用配置和应用持久化 schema。
+- `lib/Esp32EncodedDcMotor/` 只放通用带编码器 DC 电机库。
+- `lib/Esp32MotorCurrentGuard/` 只放通用电流采样与保护判定库。
+- `lib/Esp32At24cRecordStore/` 只放通用 AT24C 记录存储库。
+- 两个应用不能互相 include 源码；只能共同依赖 `lib/` 和 Esp32Base。
+- 公共库不能 include `apps/` 内任何文件。
+- 应用独有 recordType、Web route、默认配置和业务文案必须留在对应应用目录。
+
 ## 依赖方向
 
 依赖方向必须保持单向：

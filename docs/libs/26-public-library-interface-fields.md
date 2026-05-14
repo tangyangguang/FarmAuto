@@ -243,7 +243,6 @@ At24cChipConfig
   addressBytes
   writeCycleMs
   maxWriteChunkBytes
-  smallDeviceAddressBits
 
 RecordRegion
   recordType

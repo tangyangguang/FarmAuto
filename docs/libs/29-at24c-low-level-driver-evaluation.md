@@ -18,7 +18,7 @@
 
 - `Esp32At24cRecordStore` 需要统一、明确的错误码，例如 `DeviceOffline`、`OutOfRange`、`AckTimeout`、`CompareFailed`。
 - 记录层需要严格控制页边界、header 不跨页、双阶段提交和写后校验流程。
-- 小容量 AT24C02/04/08/16 的地址位映射应由本库按 `At24cChipConfig` 明确控制。
+- 首版不支持需要特殊地址位映射的 AT24C02/04/08/16，避免为低价值型号增加特殊代码。
 - 本库需要在 `inspect()` 中暴露写入、校验和错误诊断，不应被第三方库的内部错误模型遮住。
 - 低层能力范围很小：在线检测、连续读、跨页写、写完成等待或 ACK polling、compare、范围检查。为了这些能力引入硬依赖，收益不一定大于适配成本。
 
@@ -51,7 +51,7 @@ At24cDevice
 - 写入必须考虑 Wire buffer 限制，不能假设一次可写整页。
 - 支持 ACK polling 或等效写完成等待，并能返回超时。
 - 支持写后回读比较。
-- 小容量地址映射只在 `At24cDevice` 内部处理。
+- 首版只要求 2 字节地址 AT24C 型号；如未来支持小容量特殊寻址，差异只能在 `At24cDevice` 内部处理。
 - 不在低层设备类中理解 recordType、CRC、schema 或业务 payload。
 
 ## 与成熟库的关系
@@ -70,7 +70,7 @@ At24cDevice
 - `At24cDeviceSparkFunAdapter`。
 - `At24cDeviceRobTillaartAdapter`。
 
-只有当 adapter 经过 AT24C128 实测，并且错误码、页写、ACK polling、范围检查和小容量地址映射都能满足本库要求时，才考虑把它作为推荐后端。
+只有当 adapter 经过 AT24C128 实测，并且错误码、页写、ACK polling、范围检查和 2 字节地址型号访问都能满足本库要求时，才考虑把它作为推荐后端。
 
 ## 源码前验收
 
@@ -79,7 +79,7 @@ At24cDevice
 - 首版使用自研最小 `At24cDevice`。
 - README 说明 preset 只是常见默认值，必须核对具体芯片 datasheet。
 - examples 说明页大小、写周期、I2C 地址和 write protect 引脚都需要实物确认。
-- 测试覆盖 AT24C128 页边界、ACK polling、写后比较、小容量地址映射公式和越界访问。
+- 测试覆盖 AT24C128 页边界、ACK polling、写后比较、2 字节地址访问和越界访问。
 
 ## 参考资料
 

@@ -168,18 +168,6 @@ examples 应验证公共库独立可用，不包含具体应用业务语义。
 - 使用测试桩或示例开关模拟提交中断。
 - 展示 header CRC、payload CRC 和 flags 的判断结果。
 
-### `small_chip_addressing`
-
-目标：
-
-- 演示 AT24C02/04/08/16 小容量寻址配置。
-
-覆盖：
-
-- `addressBytes=1`。
-- `smallDeviceAddressBits`。
-- 逻辑地址到 I2C device address + word address 的映射。
-
 ## examples 进入源码前检查
 
 - 每个 example 都有 README。
