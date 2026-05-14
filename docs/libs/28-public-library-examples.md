@@ -67,6 +67,20 @@ examples 应验证公共库独立可用，不包含具体应用业务语义。
 - `FaultActive`。
 - event sink。
 
+### `trace_points`
+
+目标：
+
+- 演示 `MotorTracePoint` 输出。
+- 演示上层如何维护固定容量 ring buffer 用于位置、速度和状态图表。
+
+要求：
+
+- ring buffer 属于 example 中的上层维护示例，不是电机核心类的必需依赖。
+- ring buffer 必须固定容量。
+- 不动态扩容。
+- 不生成 Web 图表，只输出可序列化数据。
+
 ## Esp32MotorCurrentGuard
 
 ### `ina240a2_basic`
@@ -106,6 +120,7 @@ examples 应验证公共库独立可用，不包含具体应用业务语义。
 
 要求：
 
+- ring buffer 属于 example 中的上层维护示例，不是保护核心类的必需依赖。
 - ring buffer 必须固定容量。
 - 不动态扩容。
 - 不生成 Web 图表，只输出可序列化数据。
@@ -173,4 +188,3 @@ examples 应验证公共库独立可用，不包含具体应用业务语义。
 - 不出现具体应用业务词。
 - 不要求修改 Esp32Base。
 - 不依赖 old_prj。
-

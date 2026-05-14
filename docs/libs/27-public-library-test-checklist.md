@@ -22,6 +22,11 @@
 硬件在环：
 
 - LEDC channel、频率、分辨率配置生效。
+- Arduino-ESP32 Core 2.0.14 编译和基本运行通过。
+- Arduino-ESP32 Core 3.x 编译和基本运行通过。
+- LEDC 后端隔离 Core 2.x/3.x API 差异。
+- 目标芯片 PCNT 单元或通道不足时，能给出明确配置错误。
+- ESP32、ESP32-S3 等目标芯片的 PCNT 资源差异有记录。
 - AT8236 双 PWM H 桥正反转输出正确。
 - 编码器后端可持续返回 `int64_t` 位置。
 - 编码器断线或无脉冲时触发故障。
@@ -72,6 +77,8 @@
 
 - AT24C128 在线检测。
 - ACK polling 或写周期等待可靠。
+- RobTillaart I2C_EEPROM 与 SparkFun External EEPROM 作为低层后端候选的适配评估已完成。
+- 如果未采用成熟 EEPROM 低层库，文档已记录原因。
 - 写入中断电后能读取上一个有效记录。
 - `Writing -> Valid` 之间断电后不会误选坏记录。
 - I2C 设备离线时返回 `DeviceOffline`。

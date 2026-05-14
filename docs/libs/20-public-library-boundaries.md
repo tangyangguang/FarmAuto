@@ -174,6 +174,13 @@ FarmAuto 公共库负责具体硬件或设备部件能力：
 - FarmAuto 公共库的价值在于把底层能力组合成可复用的设备部件能力：非阻塞控制、可靠状态机、结构化诊断、远程可观察性、断电恢复和磨损均衡。
 - 如果某个成熟库已经完整满足目标，应直接采用；如果只覆盖底层能力，则用适配层复用，不把业务或诊断要求塞给底层库。
 
+源码骨架前必须完成的依赖决策：
+
+- `Esp32EncodedDcMotor`：明确编码器后端优先使用 ESP32 PCNT/ESP32Encoder，只有目标芯片或依赖限制不满足时才自写后端。
+- `Esp32At24cRecordStore`：必须评估 RobTillaart I2C_EEPROM 和 SparkFun External EEPROM 是否可作为 `At24cDevice` 低层后端。
+- 若不采用成熟 EEPROM 低层库，必须在文档中写明原因，例如依赖体积、错误模型不匹配、页写/ACK polling 控制不足、地址范围校验不足、PlatformIO 兼容性问题或许可证/维护风险。
+- 无论低层后端是否复用，`Esp32At24cRecordStore` 的 recordType、CRC、双阶段提交、wear-levelled record ring 和 inspect 诊断仍由本库记录层负责。
+
 ## 参考资料
 
 - PlatformIO `library.json` 文档：https://docs.platformio.org/en/latest/manifests/library-json/index.html

@@ -56,6 +56,22 @@ At24cChipConfig
 - `addressBytes=2` 时，`smallDeviceAddressBits` 必须为 0，完整逻辑地址写入 2 字节 word address。
 - 所有映射后访问都必须检查 `logicalAddress + length <= capacityBytes`。
 
+常见 preset 建议：
+
+| 型号 | capacityBytes | pageSizeBytes | addressBytes | smallDeviceAddressBits |
+| --- | ---: | ---: | ---: | ---: |
+| AT24C02 | 256 | 8 | 1 | 0 |
+| AT24C04 | 512 | 16 | 1 | 1 |
+| AT24C08 | 1024 | 16 | 1 | 2 |
+| AT24C16 | 2048 | 16 | 1 | 3 |
+| AT24C32 | 4096 | 32 | 2 | 0 |
+| AT24C64 | 8192 | 32 | 2 | 0 |
+| AT24C128 | 16384 | 64 | 2 | 0 |
+| AT24C256 | 32768 | 64 | 2 | 0 |
+| AT24C512 | 65536 | 128 | 2 | 0 |
+
+不同厂商兼容型号可能存在页大小、写周期或地址脚解释差异。preset 是常见默认值，进入硬件实测前仍应核对具体芯片数据手册。
+
 ## 接口级设计
 
 建议分为低层设备访问和高层记录存储两层。
@@ -269,6 +285,9 @@ Hot
 - `inspect(recordType)` 应给出 `nextSlotIndex` 和 `estimatedWritesPerSlot`。
 - 上层应能远程查看 layout 是否给高频记录分配了足够槽位。
 - `inspect(recordType)` 应提供足够数据支持磨损均衡和可靠性图表。
+- `totalWrites` 不要求精确持久化计量，首版优先由最新有效 `sequence` 推算最低写入次数。
+- `estimatedLifetimePercent` 是寿命估算值，不是精密磨损计量；断电、格式化、layout 变更或 sequence 回绕都可能影响精度。
+- 如应用需要长期显示更准确的写入统计，应在应用层保存可选摘要，不能让记录库为了统计反复额外写 EEPROM。
 
 高价值诊断图表：
 
