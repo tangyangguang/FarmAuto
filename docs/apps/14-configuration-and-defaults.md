@@ -58,8 +58,9 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | motorSpeedPercent | % | 80 | 1-100 | 否 | 待实机确认 |
 | softStartMs | ms | 1000 | 0-10000 | 否 | 独立软启动 |
 | softStopMs | ms | 500 | 0-10000 | 否 | 独立软停止 |
-| openTargetTurnsX100 | 0.01 圈 | 待确认 | >0 | 否 | 开门目标 |
-| jogTurnsX100 | 0.01 圈 | 待确认 | >0 | 否 | 微调量 |
+| openTargetTurnsX100 | 0.01 圈 | 维护流程设置 | >0 | 否 | 开门目标，也可由 openTargetPulses 换算 |
+| jogMaxMs | ms | 1000 | 100-3000 | 否 | 单次维护点动最大时长 |
+| jogSpeedPercent | % | 30 | 1-50 | 否 | 维护点动速度 |
 | gearRatioX100 | 0.01 | 13100 | >0 | 否 | 131:1 |
 | motorShaftPulsesPerRev | pulses | 16 | >0 | 否 | 默认 X1 单边计数 |
 | countMode | enum | X1 | X1/X2/X4 | 否 | 默认 X1，保持与标称 16 脉冲口径一致 |
@@ -68,15 +69,15 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | currentGuardEnabled | bool | true | true/false | 否 | 可关闭 |
 | currentFaultThresholdMa | mA | 2500 | >0 | 否 | 待实机确认 |
 | rsenseMilliOhm | mΩ | 5 | >0 | 否 | 待实物确认 |
-| maxRunMs | ms | 待确认 | >0 | 否 | 安全兜底 |
-| maxRunPulses | pulses | 待确认 | >0 | 否 | 安全兜底 |
+| maxRunMs | ms | 目标运行估算 * 150% | >0 | 否 | 安全兜底，源码按端点维护结果生成初始值 |
+| maxRunPulses | pulses | openTargetPulses * 120% | >0 | 否 | 安全兜底，源码按端点维护结果生成初始值 |
 | openLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 第一版默认禁用，下一阶段优先启用开门/上限位 |
 | closeLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 关门/下限位，可选 |
 | limitDebounceMs | ms | 50 | 5-500 | 否 | 限位稳定时间 |
 | openLimitCalibrateSpeedPercent | % | 30 | 1-100 | 否 | 远程端点校准低速运行 |
-| openLimitCalibrateMaxMs | ms | 待确认 | >0 | 否 | 端点校准最大时长 |
-| openLimitCalibrateMaxPulses | pulses | 待确认 | >0 | 否 | 端点校准最大脉冲 |
-| maxCloseUnwindPulses | pulses | 待确认 | >0 | 否 | 关门最大放绳脉冲，防止过放反卷 |
+| openLimitCalibrateMaxMs | ms | maxRunMs | >0 | 否 | 下一阶段限位端点校准最大时长 |
+| openLimitCalibrateMaxPulses | pulses | maxRunPulses | >0 | 否 | 下一阶段限位端点校准最大脉冲 |
+| maxCloseUnwindPulses | pulses | openTargetPulses * 120% | >0 | 否 | 关门最大放绳脉冲，防止过放反卷 |
 | faultEmergencyOutputMode | enum | Coast | Coast/Brake | 否 | 故障停机默认倾向滑行，需实测确认 |
 
 Esp32FarmDoor 维护/运行数据，不放在 App Config：

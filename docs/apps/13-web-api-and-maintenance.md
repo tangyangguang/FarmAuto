@@ -106,17 +106,24 @@ handler 原则：
 - `POST /api/maintenance/jog`：远程低速点动，只允许短时运行，必须限制最大时长和最大脉冲。
 - `POST /api/maintenance/set-position`：设置当前位置，只在电机停止且二次确认后允许。
 - `POST /api/maintenance/save-endpoints`：保存开门/关门端点目标，必须二次确认。
+- `POST /api/maintenance/verify-endpoints`：发起一次低速验证流程，验证开门目标、关门目标和安全上限。
+
+推荐二次确认方式：
+
+- 请求体包含 `confirm=true` 和页面生成的短期 `confirmToken`。
+- 危险操作的响应必须返回 commandId，页面继续轮询状态。
+- `jog` 每次只允许短动作，不允许“一直按住一直走”的长阻塞 HTTP 请求。
+- `set-position`、`save-endpoints`、`format-storage`、`clear-fault` 都记录长期事件。
 
 下一阶段启用开门/上限位后：
 
 - `POST /api/maintenance/calibrate-open-limit`：远程低速开门直到触发开门/上限位。API 只发起校准流程，不在 HTTP handler 内阻塞等待完成。
 
-待确认：
+已确认与后续项：
 
-- 第一版 `jog`、`set-position`、`save-endpoints` 的二次确认方式。
 - 下一阶段启用限位后，`calibrate-open-limit` 和 `set-position` 是否都保留；建议前者为运行到开门/上限位，后者仅保留为受限维护功能。
-- 是否需要单独的微调上/下命令。
-- 是否需要导出配置或诊断信息。
+- 单独的微调上/下命令首版不做成普通控制按钮；维护页用短时 `jog` 承载。
+- 需要导出诊断信息；配置导出可后续根据 Esp32Base App Config 能力评估。
 
 ## Esp32FarmFeeder API 草案
 
@@ -149,6 +156,7 @@ handler 原则：
 
 - `POST /api/maintenance/clear-today`
 - `POST /api/maintenance/calibrate-feed-rate`
+- `POST /api/maintenance/test-channel`
 - `POST /api/maintenance/format-storage`
 - `POST /api/maintenance/clear-fault`
 
@@ -159,11 +167,11 @@ handler 原则：
 - 格式化存储。
 - 跳过今日定时投喂。
 
-待确认：
+已确认规则：
 
-- 克数模式和圈数模式的页面切换方式。
-- 是否需要一键测试单路固定小剂量。
-- 长期原始记录导出格式和分页方式。
+- 克数模式和圈数模式在页面上使用每路独立 segmented control；切换模式不删除另一个模式的已保存目标值。
+- 需要一键测试单路固定小剂量，用于方向、编码器和下料验证；必须限制最大运行时间和最大脉冲。
+- 长期原始记录使用分页查询，导出 JSON Lines 和 CSV。
 
 ## 路由预算
 
@@ -171,7 +179,7 @@ Esp32Base Web 能力进入实现前需要确认：
 
 - 可注册 route 数量。
 - 同步 handler 建议耗时。
-- Web Auth 是否启用。
+- Web Auth 首版默认启用；如果只在封闭内网临时调试，可由构建配置关闭，但正式设备不建议关闭。
 - 静态页面放置方式。
 - JSON 解析和响应大小限制。
 

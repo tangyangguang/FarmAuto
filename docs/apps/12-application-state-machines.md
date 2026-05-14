@@ -44,6 +44,14 @@ Maintenance
 - `Fault`：故障停机。
 - `Maintenance`：维护模式，允许端点校准、格式化、校准等危险操作。
 
+第一版无限位状态规则：
+
+- `PositionUnknown` 下禁止普通 `OpenRequested` / `CloseRequested`。
+- `PositionUnknown` 只允许进入 `Maintenance`，执行低速点动、设置当前位置和保存端点。
+- 端点维护完成后，如果 `openTargetPulses`、`maxRunPulses`、`maxCloseUnwindPulses` 都有效，才允许回到 `IdleClosed` / `IdleOpen` / `IdlePartial`。
+- 运行中断电后重启，除非能证明上次已经稳定停止并成功保存位置，否则进入 `PositionUnknown`。
+- 用户主动停止后进入 `Stopped`，再次开门时目标仍为开门目标，再次关门时目标为关闭点；不从当前位置重新定义端点。
+
 关键事件：
 
 ```text
@@ -68,14 +76,10 @@ FaultCleared
 ConfigChanged
 ```
 
-待确认问题：
+已确认规则：
 
-- 第一版不要求开门/上限位开关，便于直接烧录到现有设备。
+- 故障清除后默认根据位置可信度恢复：可信则回到对应 Idle 状态，不可信则回到 `PositionUnknown`。
 - 开门/上限位作为下一阶段优先增强；关门/下限位作为可选增强。
-- 断电重启后，已成功提交且与已启用传感器不冲突的保存位置应作为可信恢复依据。
-- 第一版端点维护以远程低速点动、设置当前位置、保存开门/关门目标为主；下一阶段支持“电机低速开门，直到触发开门/上限位”。
-- 用户停止后再次开/关门的目标策略。
-- 故障清除后是否回到 `PositionUnknown`，还是根据限位状态直接回到 `IdleClosed` / `IdleOpen`。
 
 ## Esp32FarmFeeder 状态机
 
@@ -158,6 +162,6 @@ ConfigChanged
 
 当前硬件没有电流检测芯片。未来如增加电流检测，推荐每个电机对应一个 INA240A2 芯片。
 
-待确认问题：
+已确认规则：
 
-- 清空当天计数是否只清统计，不影响配置和历史。
+- 清空当天计数只清当天统计和当前状态摘要，不删除配置、不删除长期原始记录；必须二次确认并写入事件。
