@@ -27,10 +27,10 @@
 | C8 | 喂食器每日计划细节 | 建议首版只做每日一次或多次固定时间，支持跳过今日，不做复杂日历 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 确认每日时间、漏执行处理、时间无效处理 |
 | C9 | 喂食器停止全部策略 | 建议普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 是否接受推荐停止策略 |
 | C10 | Web/API 与远程维护范围 | 建议先接受当前本地 Web + JSON API + 危险操作二次确认 | `docs/apps/13-web-api-and-maintenance.md` | `docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
-| C11 | 长期原始记录策略 | 多数已确认；实现前还需确认实际 flash 分区容量 | `docs/apps/18-long-term-records.md` | `docs/30-persistence-and-migration.md`、`docs/03-user-decisions.md` 的 D1-D8 | 确认实际分区容量或接受默认 1MB/2MB 策略 |
+| C11 | 长期原始记录策略 | 已采用推荐策略：ESP32 flash 文件系统，1MB 起步、空间允许用 2MB，按天分段轮转 | `docs/apps/18-long-term-records.md` | `docs/apps/14-configuration-and-defaults.md`、`docs/30-persistence-and-migration.md` | 源码前只需确认实际分区表 |
 | C12 | Web 页面原型是否作为首版页面信息架构 | 建议接受，先按状态控制、配置、维护、记录四类页面实现 | `docs/apps/19-web-page-prototypes.md` | `docs/apps/13-web-api-and-maintenance.md` | 是否接受 C12；如不接受，指出页面或信息项调整 |
-| C13 | 应用系统参数是否使用 Esp32Base App Config | 建议接受；业务系统不重复实现参数配置页和普通参数持久化 | `docs/apps/14-configuration-and-defaults.md` | Esp32Base README 的 App Config 说明 | 是否接受 C13 |
-| C14 | 饲料桶余量感知路线 | 建议第一版软件扣减估算，下一阶段每路料桶称重 | `docs/apps/20-feeder-bucket-level-sensing.md` | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | 是否接受 C14 |
+| C13 | 应用系统参数是否使用 Esp32Base App Config | 已接受原则：系统配置进 App Config；业务运行数据和维护动作进专门业务页面 | `docs/apps/14-configuration-and-defaults.md` | `docs/apps/19-web-page-prototypes.md` | 源码前按字段数确认 App Config 容量 |
+| C14 | 饲料桶余量感知路线 | 已确认：第一版软件扣减估算，不加硬件；下一阶段再评估每路料桶称重 | `docs/apps/20-feeder-bucket-level-sensing.md` | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | 暂无需回复 |
 
 ## 公共库决策
 

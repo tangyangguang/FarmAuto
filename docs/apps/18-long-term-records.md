@@ -307,10 +307,15 @@ Esp32Base 已提供 Esp32BaseFs，包括 appendBytes、readBytesAt、writeBytesA
 - 不影响现有 FileLog。
 ```
 
-## 待确认
+## 已确认与待确认
 
-- 长期原始记录首版暂定 ESP32 flash 文件系统，需确认目标分区容量。
-- 是否需要支持 Web 导出 CSV/JSON。
-- 记录容量达到上限时是停止记录、覆盖最旧记录，还是提示维护。
-- 是否需要按天分文件或按固定块分段。
+- 首版使用 ESP32 flash 文件系统，优先 LittleFS。
+- 分区容量 1MB 起步；如果 flash 容量允许，优先 2MB。
+- 支持 Web 导出 JSON Lines 和 CSV。
+- 记录容量达到上限时告警并覆盖最旧记录，不停止设备运行。
+- 按天分段，单日超过大小上限时再切分。
+
+源码前仍需确认：
+
+- 实际分区表和可用 flash 容量。
 - 是否需要整理 Esp32Base 文件流式下载能力提示词。
