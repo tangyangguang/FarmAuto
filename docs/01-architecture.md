@@ -18,6 +18,7 @@ FarmAuto/
       12-application-state-machines.md
       13-web-api-and-maintenance.md
       14-configuration-and-defaults.md
+      18-long-term-records.md
     libs/
       20-public-library-boundaries.md
       21-esp32-encoded-dc-motor.md

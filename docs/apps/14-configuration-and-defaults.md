@@ -38,6 +38,7 @@
 | homingSpeedPercent | % | 30 | 1-100 | 否 | 远程归零低速运行 |
 | homingMaxMs | ms | 待确认 | >0 | 否 | 归零最大时长 |
 | homingMaxPulses | pulses | 待确认 | >0 | 否 | 归零最大脉冲 |
+| faultEmergencyOutputMode | enum | Coast | Coast/Brake | 否 | 故障停机默认倾向滑行，需实测确认 |
 
 ## Esp32FarmFeeder 配置草案
 
@@ -59,6 +60,10 @@
 | stopAllIntervalMs | ms | 200 | >=0 | 否 | 是否需要待确认 |
 | maxRunMs | ms | 300000 | >0 | 否 | 默认 5 分钟 |
 | maxRunPulses | pulses | 432000 | >0 | 否 | 默认 100 圈 |
+| dailyScheduleEnabled | bool | true | true/false | 否 | 每天定时投喂 |
+| dailyScheduleTimeMinutes | min/day | 待确认 | 0-1439 | 否 | 每日执行时间 |
+| skipToday | bool | false | true/false | 可改 | 只影响当天，日期切换后自动清除 |
+| longTermRecordRetentionDays | days | 待确认 | >0 | 否 | 多年原始记录目标，存储介质待定 |
 
 当前硬件没有电流检测。未来如增加，每电机一个 INA240 芯片，对应配置再加入每路电流阈值和校准参数。
 
@@ -69,3 +74,4 @@
 - 喂食器目标配置是否最终以克数为主。
 - 三路喂食器是否需要每路独立速度、软启动、软停止。
 - 日期来源失败时是否允许喂食和记录历史。
+- 长期原始记录使用的存储介质和容量策略。

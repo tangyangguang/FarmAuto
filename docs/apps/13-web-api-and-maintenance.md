@@ -104,6 +104,7 @@ handler 原则：
 - `GET /api/status`
 - `GET /api/config`
 - `GET /api/history`
+- `GET /api/records`
 - `GET /api/logs`
 
 控制：
@@ -116,6 +117,8 @@ handler 原则：
 - `POST /api/feeders/3/stop`
 - `POST /api/feeders/start-all`
 - `POST /api/feeders/stop-all`
+- `POST /api/feeders/skip-today`
+- `POST /api/feeders/cancel-skip-today`
 
 配置：
 
@@ -133,12 +136,13 @@ handler 原则：
 - 清空当天计数。
 - 标定每圈下料量。
 - 格式化存储。
+- 跳过今日定时投喂。
 
 待确认：
 
 - 配置主要使用克数还是圈数。
 - 是否需要一键测试单路固定小剂量。
-- 是否需要历史记录导出。
+- 长期原始记录导出格式和分页方式。
 
 ## 路由预算
 
