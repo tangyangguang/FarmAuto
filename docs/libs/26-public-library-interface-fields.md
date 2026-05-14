@@ -225,6 +225,7 @@ RecordRegion
   startAddress
   slotSize
   slotCount
+  writeClass
 
 StoreLayout
   magic
@@ -263,6 +264,8 @@ RecordInspect
   validSlotCount
   latestSequence
   latestSchemaVersion
+  nextSlotIndex
+  estimatedWritesPerSlot
   lastError
   slots[]
 
@@ -288,4 +291,3 @@ RecordStoreEvent
   sequence
   address
 ```
-

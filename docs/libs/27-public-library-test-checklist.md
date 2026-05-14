@@ -64,6 +64,9 @@
 - sequence 回绕时仍能选择最新记录。
 - 写前比较相同内容返回 `Unchanged`。
 - `inspect(recordType)` 能列出每个 slot 的状态。
+- 同一 recordType 连续写入时按槽位轮转，不反复覆盖同一地址。
+- `nextSlotIndex` 与最新 sequence 一致。
+- `estimatedWritesPerSlot` 能反映写入分散情况。
 
 硬件在环：
 
@@ -73,6 +76,7 @@
 - `Writing -> Valid` 之间断电后不会误选坏记录。
 - I2C 设备离线时返回 `DeviceOffline`。
 - 页边界和容量边界访问不越界。
+- 高频写入模拟下，写入分布符合 slotCount 预期。
 
 ## 发布前检查
 
@@ -82,4 +86,3 @@
 - event sink 不分配大对象、不做长耗时操作。
 - snapshot 字段足够支撑远程诊断。
 - 未修改 Esp32Base。
-

@@ -2,7 +2,7 @@
 
 ## 定位
 
-Esp32At24cRecordStore 是 AT24C/24LC/24AA 系列 I2C EEPROM 上的可靠记录存储库。它提供页写入、记录校验、版本和最新记录选择能力。
+Esp32At24cRecordStore 是 AT24C/24LC/24AA 系列 I2C EEPROM 上的可靠、磨损均衡记录存储库。它提供页写入、记录校验、版本、最新记录选择和按槽轮转写入能力。
 
 它不绑定任何具体应用项目的业务字段。
 
@@ -86,7 +86,7 @@ Esp32At24cRecordStore
 
 ## 布局设计
 
-首版采用固定记录区，避免做复杂文件系统。
+首版采用 wear-levelled record ring，不做复杂文件系统。
 
 建议概念模型：
 
@@ -96,6 +96,7 @@ RecordRegion
   startAddress
   slotSize
   slotCount
+  writeClass
 
 StoreLayout
   magic
@@ -103,21 +104,25 @@ StoreLayout
   regions[]
 ```
 
-每个 `recordType` 对应一个记录区。记录区内使用多个固定大小槽位，写入时选择下一个槽位。读取时选择 sequence 最大且 CRC 有效的槽位。
+每个 `recordType` 对应一个磨损均衡记录环。记录环内包含多个固定大小槽位，写入时按 sequence 选择下一个槽位，读取时选择 sequence 最大且 CRC 有效的槽位。
 
-固定槽位的好处：
+这种设计独立于旧项目存储格式，采用小型 EEPROM 常见的 circular buffer / rolling slot 思路：把同一类数据的重复写入分散到多个物理槽位上，并用 sequence 和 CRC 在重启后恢复最新有效记录。
+
+固定槽位记录环的好处：
 
 - 实现简单。
 - 断电恢复逻辑清晰。
 - 不需要动态分配。
 - 容量预算可提前计算。
+- 天然提供 recordType 内的磨损均衡。
 
 代价：
 
 - 空间利用率不如文件系统。
 - 每类记录需要预留最大 payload 大小。
+- 不自动在不同 recordType 之间迁移容量。
 
-这个取舍符合当前设备配置、状态和小型历史记录的需求。
+这个取舍比动态文件系统和全局日志结构简单，也更适合 ESP32 小型无人值守设备远程维护。容量和磨损均衡能力由 `slotCount` 和写入频率共同决定。
 
 ## 基础能力
 
@@ -209,23 +214,70 @@ sequence 规则：
 
 建议：
 
-- 每类记录使用一个固定记录区。
-- 每个记录区保留两个或多个槽位。
+- 每类记录使用一个磨损均衡记录环。
+- 每个记录环保留两个或多个槽位，高频写入记录必须分配更多槽位。
 - 写入新槽位成功且 CRC 校验通过后，作为最新记录。
 - 读取时选择 sequence 最大且 CRC 有效的记录。
 - 内容未变化时不写入。
 - 格式化必须由应用显式触发，库不能静默清空。
 - 设备离线时返回 `DeviceOffline`，不能伪造默认成功。
 
+## 磨损均衡策略
+
+Esp32At24cRecordStore 首版必须具备明确的静态磨损均衡策略。
+
+核心策略：
+
+- 每个 `recordType` 使用独立记录环。
+- 每次写入同一 `recordType` 时，不覆盖原槽位，而是写入下一个槽位。
+- 下一个槽位由最新有效 `sequence` 和 `slotCount` 计算得到。
+- 重启后通过扫描该记录环，选择最新有效 `sequence`。
+- 写入前比较 payload，相同内容返回 `Unchanged`，不消耗 EEPROM 写周期。
+- 高频记录通过更大的 `slotCount` 获得更高寿命。
+
+寿命估算：
+
+```text
+expectedDays = endurancePerCell * slotCount / writesPerDay
+```
+
+其中 `endurancePerCell` 使用芯片数据手册的保守值。应用项目在分配 layout 时，应按每类记录的预计写入频率选择 `slotCount`，而不是所有记录平均分配。
+
+`writeClass` 用于表达写入频率建议：
+
+```text
+Rare
+Normal
+Frequent
+Hot
+```
+
+推荐含义：
+
+- `Rare`：安装、标定或固件升级时才写。
+- `Normal`：用户配置偶尔变化。
+- `Frequent`：设备运行状态、计数、统计等会周期性更新。
+- `Hot`：可能频繁变化的数据；如需要每天大量写入，应优先考虑 FRAM 或减少保存频率。
+
+首版不做全局动态 wear leveling，也不做垃圾回收。原因是 AT24C 容量小、应用数据结构明确，静态记录环更容易验证、恢复和远程诊断。只有当真实设备出现多个高频 recordType、容量利用率不足或写入寿命预算不够时，才评估全局日志式布局。
+
+诊断要求：
+
+- `inspect(recordType)` 必须能看到每个槽位状态。
+- `inspect(recordType)` 应给出 `nextSlotIndex` 和 `estimatedWritesPerSlot`。
+- 上层应能远程查看 layout 是否给高频记录分配了足够槽位。
+
 暂不做：
 
 - 通用数据库。
 - 动态文件系统。
 - 任意长度日志。
+- 全局动态 wear leveling。
+- 垃圾回收。
 - 复杂坏块管理。
-- 老项目格式迁移。
+- 既有私有格式迁移。
 
-如果实测出现 EEPROM 页面损坏或频繁断电损坏，再评估是否增加坏块标记或更复杂的磨损均衡。
+如果实测出现 EEPROM 页面损坏或频繁断电损坏，再评估是否增加坏块标记。坏块管理不应在首版预先复杂化。
 
 ## 与 I2C FRAM 的关系
 
@@ -284,6 +336,8 @@ RecordInspect
   validSlotCount
   latestSequence
   latestSchemaVersion
+  nextSlotIndex
+  estimatedWritesPerSlot
   lastError
   slots[]
 
@@ -327,7 +381,7 @@ At24cPreset
 - 可配置容量、页大小、地址字节数。
 - 跨页读写。
 - 写前比较。
-- 固定记录区。
+- 磨损均衡记录环。
 - 多槽最新记录选择。
 - CRC 校验。
 
