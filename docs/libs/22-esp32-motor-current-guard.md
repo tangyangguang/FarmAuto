@@ -29,6 +29,7 @@ CurrentGuard
   startup grace
   over-current confirmation
   sensor fault detection
+  trace data output
 ```
 
 首版只实现 INA240A2 后端。ACS712 和 INA226 先保留接口和文档设计，不实现代码。
@@ -151,6 +152,7 @@ CurrentGuard
   reset()
   update(sample, motorRunning, nowMs)
   snapshot()
+  latestTracePoint()
 ```
 
 `CurrentGuard` 不主动读取硬件，方便后续接入不同芯片后端，也方便测试。
@@ -211,6 +213,32 @@ CurrentGuardSnapshot
   sensorStatus
   faultReason
 ```
+
+## 电流变化图表支持
+
+公共库不生成 Web 图表、不输出 HTML/JS，也不依赖任何页面框架。
+
+为了支持上层项目生成电流变化图表，公共库应提供稳定的时间序列数据来源：
+
+```text
+CurrentTracePoint
+  timestampMs
+  rawCurrentMa
+  filteredCurrentMa
+  peakCurrentMa
+  state
+  sensorStatus
+```
+
+推荐策略：
+
+- `CurrentSensor` 提供原始采样。
+- `CurrentGuard` 提供滤波后采样和状态。
+- 上层项目负责保存最近一段时间的 ring buffer，并通过自己的 API 输出 JSON。
+- 公共库可以提供一个可选的小型 `CurrentTraceBuffer` 工具类，但不作为保护判定的必需依赖。
+- `CurrentTraceBuffer` 必须固定容量、非阻塞、无动态扩容，避免影响实时保护。
+
+这样既能支持远程诊断图表，又不会把 Web、历史存储或业务展示塞进公共库。
 
 ## 故障原因
 
@@ -275,3 +303,16 @@ Esp32MotorCurrentGuard 不直接停止电机，也不保存配置。上层项目
 - 过流后停止哪台电机。
 - 如何记录事件。
 - 如何在上层诊断界面显示。
+
+## 日志与事件
+
+公共库不直接依赖 Esp32Base 日志。
+
+推荐提供可选事件回调：
+
+```text
+CurrentGuardEventSink
+  onCurrentGuardEvent(event)
+```
+
+事件只表达通用保护语义，例如进入 warning、进入 over-current、传感器异常、故障清除。上层项目负责把事件接入 Esp32Base 日志、远程诊断页面或其他输出。
