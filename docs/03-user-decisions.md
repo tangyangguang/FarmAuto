@@ -28,6 +28,7 @@
 | C9 | 喂食器停止全部策略 | 建议普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 是否接受推荐停止策略 |
 | C10 | Web/API 与远程维护范围 | 建议先接受当前本地 Web + JSON API + 危险操作二次确认 | `docs/apps/13-web-api-and-maintenance.md` | `docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
 | C11 | 长期原始记录策略 | 多数已确认；实现前还需确认实际 flash 分区容量 | `docs/apps/18-long-term-records.md` | `docs/30-persistence-and-migration.md`、`docs/03-user-decisions.md` 的 D1-D8 | 确认实际分区容量或接受默认 1MB/2MB 策略 |
+| C12 | Web 页面原型是否作为首版页面信息架构 | 建议接受，先按状态控制、配置、维护、记录四类页面实现 | `docs/apps/19-web-page-prototypes.md` | `docs/apps/13-web-api-and-maintenance.md` | 是否接受 C12；如不接受，指出页面或信息项调整 |
 
 ## 公共库决策
 
@@ -101,6 +102,7 @@
 | --- | --- | --- |
 | 开门/上限位是否作为首版硬件必选项 | 是，必须加 | 防止过度卷绳损坏结构，并用于开门端点校准 |
 | 关门/下限位是否作为首版硬件必选项 | 否，可选预留 | 关门首版依赖编码器目标、最大放绳脉冲和最大运行时间防止过放 |
+| 开门/上限位型号和安装 | 推荐工业滚轮摆杆限位开关，门框顶部或卷线盘凸轮触发，预留 5mm 到 10mm 行程 | 首选 OMRON D4N/D4B-N；空间受限可用 OMRON D4CC；不推荐裸微动开关外露 |
 | 故障时 `Brake` 还是 `Coast` | 倾向 `Coast` | 避免故障瞬间机械冲击；仍需实机验证 |
 | 断电恢复后保存位置是否可信 | 存储提交成功且限位状态不冲突时应可信 | 重新上电后应能正常工作；若限位冲突或状态不一致，进入远程维护/故障 |
 | 原始记录保存 | 尽量完整、尽量长，目标按多年考虑 | 首版优先考虑 ESP32 flash 文件系统，AT24C128 不作为多年原始日志主存储 |
@@ -131,6 +133,7 @@
 - 喂食器每日计划默认时间、漏执行处理、时间无效处理：看 `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` 和 `docs/apps/14-configuration-and-defaults.md`。
 - 喂食器停止全部策略：看 `docs/apps/11-esp32-farmfeeder-rewrite-plan.md`。
 - Web/API 首版范围和危险操作二次确认方式：看 `docs/apps/13-web-api-and-maintenance.md`。
+- Web 页面原型和信息架构：看 `docs/apps/19-web-page-prototypes.md`。
 
 ## 已确认的长期记录决策
 

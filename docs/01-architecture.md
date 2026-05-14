@@ -19,6 +19,7 @@ FarmAuto/
       13-web-api-and-maintenance.md
       14-configuration-and-defaults.md
       18-long-term-records.md
+      19-web-page-prototypes.md
     libs/
       20-public-library-boundaries.md
       21-esp32-encoded-dc-motor.md
@@ -78,6 +79,7 @@ Esp32FarmDoor 负责自动门业务：
 - 开门、关门、停止。
 - 物理按钮。
 - Web 状态与配置。
+- Web 页面原型、控制 API 和远程维护流程。
 - 编码器位置、开门/上限位、远程端点校准。
 - 关门/下限位作为可选增强，不作为首版必需条件。
 - INA240A2 电流保护。
@@ -87,6 +89,7 @@ Esp32FarmFeeder 负责三路喂食业务：
 
 - 三路独立启动/停止。
 - 启动全部、停止全部。
+- Web 页面原型、控制 API 和远程维护流程。
 - 单次喂食目标配置。
 - 每路今日累计、长期原始记录和多年历史查询。
 - 每路饲料桶容量配置和余量估算。
