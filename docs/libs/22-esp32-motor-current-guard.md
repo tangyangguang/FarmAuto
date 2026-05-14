@@ -10,21 +10,20 @@ Esp32MotorCurrentGuard 是电机电流采样与保护判定库。它面向电机
 - ACS712。
 - INA226。
 
-三类芯片用途相近，但读取方式和噪声模型不同。因此库名不绑定具体芯片，内部通过传感器后端适配。
+三类芯片用途相近，但读取方式和噪声模型不同。因此库名不绑定具体芯片，内部通过具体芯片采样类适配。
 
-首版真实实现 INA240A2。未来增加其他芯片时，应新增后端，不改变 `CurrentGuard` 的保护判定层。
+首版真实实现 INA240A2。未来增加其他芯片时，应新增具体芯片采样类，不改变 `MotorCurrentGuard` 的保护判定层。
 
 公共库不定义某个设备是否默认启用电流保护，也不提供固定业务阈值。是否启用、阈值是多少、故障后如何处理，都由上层应用根据硬件和实测参数配置。
 
 ## 分层设计
 
 ```text
-CurrentSensor
-  Ina240A2AnalogSensor
-  Acs712AnalogSensor
-  Ina226I2cSensor
+Ina240A2AnalogSensor
+Acs712AnalogSensor
+Ina226I2cSensor
 
-CurrentGuard
+MotorCurrentGuard
   filter
   startup grace
   over-current confirmation
@@ -32,9 +31,11 @@ CurrentGuard
   trace data output
 ```
 
-首版只实现 INA240A2 后端。ACS712 和 INA226 先保留接口和文档设计，不实现代码。
+首版只实现 `Ina240A2AnalogSensor`。ACS712 和 INA226 只保留芯片类命名和设计方向，不实现代码。
 
-## INA240A2 后端
+首版不抽正式 `CurrentSensor` 虚接口，也不要求继承层次。各芯片采样类只需要能产出相同的 `CurrentSample` 结构；`MotorCurrentGuard` 只消费 `CurrentSample`。
+
+## INA240A2 采样类
 
 INA240A2 是模拟输出电流检测放大器，适合 PWM 电机电流检测。
 
@@ -66,7 +67,7 @@ I = Vshunt / Rsense
 - 零点异常检测。
 - 传感器读取失败检测。
 
-## ACS712 未来后端
+## ACS712 未来采样类
 
 ACS712 是霍尔模拟电流传感器，输出模拟电压。
 
@@ -80,7 +81,7 @@ ACS712 是霍尔模拟电流传感器，输出模拟电压。
 
 ACS712 噪声和温漂通常比 INA240 更需要校准和滤波。它适合隔离测量，但不应假设和 INA240 拥有相同精度。
 
-## INA226 未来后端
+## INA226 未来采样类
 
 INA226 是 I2C 数字电流、电压、功率监测芯片。
 
@@ -94,9 +95,9 @@ INA226 是 I2C 数字电流、电压、功率监测芯片。
 
 INA226 可直接读取 shunt voltage、bus voltage、current 和 power。它更适合电源监测和较慢保护，不应默认承担最快速的 PWM 电机瞬态堵转保护。
 
-## CurrentGuard 判定逻辑
+## MotorCurrentGuard 判定逻辑
 
-CurrentGuard 不关心底层芯片，只接收电流采样值。
+MotorCurrentGuard 不关心底层芯片，只接收电流采样值。
 
 核心能力：
 
@@ -120,12 +121,12 @@ Disabled
 
 ## 接口级设计
 
-传感器后端只负责采样和换算，保护器只负责保护判定。
+芯片采样类只负责采样和换算，保护器只负责保护判定。
 
-建议传感器接口：
+建议 INA240A2 采样类：
 
 ```text
-CurrentSensor
+Ina240A2AnalogSensor
   begin()
   readSample()
   calibrateZero(sampleCount)
@@ -147,7 +148,7 @@ CurrentSample
 建议保护器接口：
 
 ```text
-CurrentGuard
+MotorCurrentGuard
   configure(config)
   reset()
   update(sample, motorRunning, nowMs)
@@ -155,14 +156,14 @@ CurrentGuard
   latestTracePoint()
 ```
 
-`CurrentGuard` 不主动读取硬件，方便后续接入不同芯片后端，也方便测试。
+`MotorCurrentGuard` 不主动读取硬件，方便后续接入不同芯片采样类，也方便测试。
 
 ## 配置结构
 
 建议通用保护配置：
 
 ```text
-CurrentGuardConfig
+MotorCurrentGuardConfig
   enabled
   warningThresholdMa
   faultThresholdMa
@@ -181,7 +182,7 @@ CurrentGuardConfig
 - 公共库不提供固定 `warningThresholdMa` / `faultThresholdMa`，必须由上层配置。
 - `sensorFaultPolicy` 默认按故障处理，不把不可信传感器当作正常保护。
 
-INA240A2 后端配置：
+INA240A2 采样配置：
 
 ```text
 Ina240A2Config
@@ -232,8 +233,8 @@ CurrentTracePoint
 
 推荐策略：
 
-- `CurrentSensor` 提供原始采样。
-- `CurrentGuard` 提供滤波后采样和状态。
+- 具体芯片采样类提供原始采样。
+- `MotorCurrentGuard` 提供滤波后采样和状态。
 - 上层项目负责保存最近一段时间的 ring buffer，并通过自己的 API 输出 JSON。
 - 公共库可以提供一个可选的小型 `CurrentTraceBuffer` 工具类，但不作为保护判定的必需依赖。
 - `CurrentTraceBuffer` 必须固定容量、非阻塞、无动态扩容，避免影响实时保护。
@@ -270,7 +271,7 @@ ConfigInvalid
 
 首版实现：
 
-- INA240A2 模拟后端。
+- INA240A2 模拟采样类。
 - mA 换算。
 - 零点校准参数。
 - 启动宽限。
@@ -280,17 +281,17 @@ ConfigInvalid
 
 首版不实现：
 
-- ACS712 后端。
-- INA226 后端。
+- ACS712 采样类。
+- INA226 采样类。
 - 高精度电能计量。
 - 自动停止电机。
 - 配置持久化。
 
 ## 多通道使用原则
 
-Esp32MotorCurrentGuard 按“一个传感器后端实例对应一个电流检测通道”设计。
+Esp32MotorCurrentGuard 按“一个芯片采样实例对应一个电流检测通道”设计。
 
-如果一个设备有多个电机，且每个电机都有独立电流检测芯片，则上层项目创建多个传感器后端和多个保护器实例。公共库不负责判断这些通道属于哪个业务对象。
+如果一个设备有多个电机，且每个电机都有独立电流检测芯片，则上层项目创建多个芯片采样实例和多个保护器实例。公共库不负责判断这些通道属于哪个上层对象。
 
 如果多个执行器共用一个总电流检测通道，总电流异常只能作为系统级异常，公共库不推断具体异常来源。
 
