@@ -1,12 +1,39 @@
-# 需要用户确认的决策清单
+# 需要用户确认的决策入口
 
 ## 目标
 
-本文集中记录需要用户确认的设计决策，避免散落在各方案文档中。当前阶段仍只做文档和设计，不进入源码阶段。
+本文集中记录需要用户确认的设计决策，并标明应该阅读哪个文档。当前阶段仍只做文档和设计，不进入源码阶段。
+
+后续所有“需要用户确认”的内容都应先汇总到本文，再从本文链接到详细方案文档，避免散落在各方案文档中。
+
+## 确认方式
+
+- 先看本文，确认当前有哪些决策需要回复。
+- 对某一项有疑问时，再看“主文档”和“辅助文档”。
+- 如果接受推荐值，可以直接回复“接受 Cx 推荐值”。
+- 如果不接受，请说明要改哪一项，以及倾向值。
+
+## 当前最需要确认
+
+| 编号 | 确认事项 | 推荐处理 | 主文档 | 辅助文档 | 需要你回复什么 |
+| --- | --- | --- | --- | --- | --- |
+| C1 | 三个公共库是否按推荐决策进入接口冻结默认值 | 建议接受，实测项保留为后续校准 | `docs/libs/25-public-library-freeze-decisions.md` | `docs/libs/21-esp32-encoded-dc-motor.md`、`docs/libs/22-esp32-motor-current-guard.md`、`docs/libs/23-esp32-at24c-record-store.md` | 是否接受 C1；如不接受，指出具体项 |
+| C2 | 公共库字段表是否作为源码骨架前的接口冻结基线 | 建议接受为语义基线，源码命名可小幅调整 | `docs/libs/26-public-library-interface-fields.md` | `docs/libs/25-public-library-freeze-decisions.md` | 是否接受 C2 |
+| C3 | 公共库测试和 examples 是否作为首版验收要求 | 建议接受，避免源码阶段只写能编译但不可验证的库 | `docs/libs/27-public-library-test-checklist.md`、`docs/libs/28-public-library-examples.md` | `docs/17-test-and-acceptance.md` | 是否接受 C3 |
+| C4 | AT24C128 record region、slotCount 和高频写入预算 | 建议先接受当前布局为草案，实机前按 writesPerDay 再算一遍 | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md` | 是否接受当前容量预算思路 |
+| C5 | 自动门故障时默认 `Coast` 的安全性 | 先按 `Coast` 写入方案，但标为必须实机验证 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 是否确认先按 `Coast` 作为默认方案 |
+| C6 | 自动门断电恢复后位置可信的判定规则 | 建议采用“提交成功 + 限位不冲突 + 状态记录完整”才可信 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/30-persistence-and-migration.md` | 是否接受该判定规则 |
+| C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 进入硬件图或源码前必须确认 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 提供或确认硬件资源表 |
+| C8 | 喂食器每日计划细节 | 建议首版只做每日一次或多次固定时间，支持跳过今日，不做复杂日历 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 确认每日时间、漏执行处理、时间无效处理 |
+| C9 | 喂食器停止全部策略 | 建议按小间隔依次请求停止，故障通道不影响其他通道记录 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 是否接受推荐停止策略 |
+| C10 | Web/API 与远程维护范围 | 建议先接受当前本地 Web + JSON API + 危险操作二次确认 | `docs/apps/13-web-api-and-maintenance.md` | `docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
+| C11 | 长期原始记录策略 | 多数已确认；实现前还需确认实际 flash 分区容量 | `docs/apps/18-long-term-records.md` | `docs/30-persistence-and-migration.md`、`docs/03-user-decisions.md` 的 D1-D8 | 确认实际分区容量或接受默认 1MB/2MB 策略 |
 
 ## 公共库决策
 
 ### Esp32EncodedDcMotor
+
+详细设计看 `docs/libs/21-esp32-encoded-dc-motor.md`，冻结前推荐决策看 `docs/libs/25-public-library-freeze-decisions.md`。
 
 | 决策 | 推荐值 | 为什么需要确认 |
 | --- | --- | --- |
@@ -15,9 +42,11 @@
 | `softStopMs` 默认值 | 500ms | 不同机械负载可能不同，后续可实测覆盖 |
 | `minEffectiveSpeedPercent` 默认值 | 15% | 需要实测验证低速是否有力 |
 | `normalStopMode` 默认值 | `SoftStopThenBrake` | 无人值守默认停稳，但机械冲击需实测 |
-| `emergencyOutputMode` 默认值 | 暂不固定，按设备确认 `Brake` 或 `Coast` | 故障刹车可能造成机械冲击 |
+| `emergencyOutputMode` 默认值 | 公共库不固定，设备配置 `Brake` 或 `Coast` | 故障刹车可能造成机械冲击 |
 
 ### Esp32MotorCurrentGuard
+
+详细设计看 `docs/libs/22-esp32-motor-current-guard.md`，冻结前推荐决策看 `docs/libs/25-public-library-freeze-decisions.md`。
 
 | 决策 | 推荐值 | 为什么需要确认 |
 | --- | --- | --- |
@@ -28,6 +57,8 @@
 | 传感器故障策略 | 默认按故障处理 | 无人值守场景下传感器不可信不能当正常 |
 
 ### Esp32At24cRecordStore
+
+详细设计看 `docs/libs/23-esp32-at24c-record-store.md`，容量预算看 `docs/16-at24c-layout-budget.md`，冻结前推荐决策看 `docs/libs/25-public-library-freeze-decisions.md`。
 
 | 决策 | 推荐值 | 为什么需要确认 |
 | --- | --- | --- |
@@ -51,6 +82,8 @@
 
 ### 两个应用共同原则
 
+长期记录看 `docs/apps/18-long-term-records.md`，持久化和迁移原则看 `docs/30-persistence-and-migration.md`。
+
 | 决策 | 当前结论 | 备注 |
 | --- | --- | --- |
 | 关键小状态存储 | AT24C128 优先 | 外置、可更换；使用 wear-levelled record ring |
@@ -62,6 +95,8 @@
 
 ### Esp32FarmDoor
 
+详细需求看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md`，状态机看 `docs/apps/12-application-state-machines.md`，配置默认值看 `docs/apps/14-configuration-and-defaults.md`。
+
 | 决策 | 当前结论 | 备注 |
 | --- | --- | --- |
 | 上/下限位是否作为首版硬件必选项 | 是，必须加 | 用于无人值守到位确认、远程归零和故障诊断 |
@@ -71,6 +106,8 @@
 
 ### Esp32FarmFeeder
 
+详细需求看 `docs/apps/11-esp32-farmfeeder-rewrite-plan.md`，状态机看 `docs/apps/12-application-state-machines.md`，配置默认值看 `docs/apps/14-configuration-and-defaults.md`。
+
 | 决策 | 当前结论 | 备注 |
 | --- | --- | --- |
 | 是否需要定时投喂 | 需要 | 首版只支持每天执行 |
@@ -79,10 +116,14 @@
 | 单路故障时其他路是否继续 | 继续 | 故障通道停止并记录，其他通道按计划继续 |
 | 历史记录保存粒度 | 原始记录尽量完整，时间尽量长，目标按多年考虑 | 首版优先考虑 ESP32 flash 文件系统；不能按旧方案只保留少量历史 |
 
-## 尚需继续确认
+## 尚需继续确认的应用细节
 
-- 自动门故障 `Coast` 的实机安全性。
-- 自动门保存位置可信的判定条件和限位交叉校验规则。
+- 自动门故障 `Coast` 的实机安全性：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md`。
+- 自动门保存位置可信的判定条件和限位交叉校验规则：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md` 和 `docs/apps/12-application-state-machines.md`。
+- 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`。
+- 喂食器每日计划默认时间、漏执行处理、时间无效处理：看 `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` 和 `docs/apps/14-configuration-and-defaults.md`。
+- 喂食器停止全部策略：看 `docs/apps/11-esp32-farmfeeder-rewrite-plan.md`。
+- Web/API 首版范围和危险操作二次确认方式：看 `docs/apps/13-web-api-and-maintenance.md`。
 
 ## 已确认的长期记录决策
 
