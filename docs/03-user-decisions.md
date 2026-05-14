@@ -23,7 +23,7 @@
 | C4 | AT24C128 record region、slotCount、高频写入预算和低层后端策略 | 建议接受两个应用各自独立 AT24C128 的预算草案，实机前按 writesPerDay 再算一遍；低层后端首版使用自研最小 `At24cDevice` | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md`、`docs/libs/29-at24c-low-level-driver-evaluation.md` | 是否接受当前容量预算和低层后端策略 |
 | C5 | 自动门故障时默认 `Coast` 的安全性 | 先按 `Coast` 写入方案，但标为必须实机验证 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 是否确认先按 `Coast` 作为默认方案 |
 | C6 | 自动门断电恢复后位置可信的判定规则 | 建议采用“提交成功 + 限位不冲突 + 状态记录完整”才可信 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/30-persistence-and-migration.md` | 是否接受该判定规则 |
-| C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 进入硬件图或源码前必须确认 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 提供或确认硬件资源表 |
+| C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 已给首版推荐值；源码前只需确认目标芯片资源、ADC 衰减和最终 PCB 引脚 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 源码前确认硬件资源表 |
 | C8 | 喂食器每日计划细节 | 建议首版只做每日一次或多次固定时间，支持跳过今日，不做复杂日历 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 确认每日时间、漏执行处理、时间无效处理 |
 | C9 | 喂食器停止全部策略 | 建议普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 是否接受推荐停止策略 |
 | C10 | Web/API 与远程维护范围 | 建议先接受当前本地 Web + JSON API + 危险操作二次确认 | `docs/apps/13-web-api-and-maintenance.md` | `docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
@@ -132,11 +132,7 @@
 ## 尚需继续确认的应用细节
 
 - 自动门故障 `Coast` 的实机安全性：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md`。
-- 自动门保存位置可信的判定条件和限位交叉校验规则：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md` 和 `docs/apps/12-application-state-machines.md`。
-- 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`。
-- 喂食器每日计划默认时间、漏执行处理、时间无效处理：看 `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` 和 `docs/apps/14-configuration-and-defaults.md`。
-- 喂食器停止全部策略：看 `docs/apps/11-esp32-farmfeeder-rewrite-plan.md`。
-- Web/API 首版范围和危险操作二次确认方式：看 `docs/apps/13-web-api-and-maintenance.md`。
+- 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`，源码前按目标 PCB/芯片确认。
 - Web 页面原型和信息架构：看 `docs/apps/19-web-page-prototypes.md`。
 
 ## 已确认的长期记录决策
