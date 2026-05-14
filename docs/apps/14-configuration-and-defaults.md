@@ -11,9 +11,12 @@
 - 所有配置必须有单位。
 - 所有配置必须有合法范围。
 - Web 保存前必须校验。
-- 配置变更时写入持久化。
+- 应用系统参数优先注册到 Esp32Base App Config，由 Esp32Base 内置配置页面负责显示、校验、保存和只写变化字段。
+- 业务系统不重复实现参数配置页和参数持久化；只实现运行控制页、状态页、维护动作和诊断记录。
 - 运行状态只在停止、故障、端点校准、清计数、日期切换等关键点保存。
 - 运行中是否允许修改配置必须逐项定义。
+- AT24C128 主要保存关键可靠状态、校准快照、今日计数摘要和恢复所需记录，不作为普通系统参数配置页的唯一承载。
+- Esp32Base App Config 的 groups/fields 容量需要在源码前按两个应用字段数设置构建宏；如果字段组织能力不足，先整理 Esp32Base 提示词，不在 FarmAuto 内另做配置系统。
 
 ## Esp32FarmDoor 配置草案
 
@@ -33,7 +36,7 @@
 | ina240ZeroOffsetMv | mV | 待校准 | ADC 范围内 | 否 | 维护流程写入 |
 | maxRunMs | ms | 待确认 | >0 | 否 | 安全兜底 |
 | maxRunPulses | pulses | 待确认 | >0 | 否 | 安全兜底 |
-| openLimitSwitchMode | enum | NormallyClosed | NormallyClosed/NormallyOpen | 否 | 开门/上限位，首版必需 |
+| openLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 第一版默认禁用，下一阶段优先启用开门/上限位 |
 | closeLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 关门/下限位，可选 |
 | limitDebounceMs | ms | 50 | 5-500 | 否 | 限位稳定时间 |
 | openLimitCalibrateSpeedPercent | % | 30 | 1-100 | 否 | 远程端点校准低速运行 |

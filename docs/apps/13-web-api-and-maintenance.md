@@ -58,6 +58,12 @@ handler 原则：
 - 保存配置前先校验范围。
 - 危险操作需要确认 token 或二次确认参数。
 
+配置页面原则：
+
+- 普通系统参数优先使用 Esp32Base App Config 内置页面。
+- 应用自定义 Web 页面只负责状态、控制、维护动作、记录查询和诊断展示。
+- 如果 App Config 的字段容量、页面组织或校验能力不足，不在 FarmAuto 中临时绕开，应整理提示词到 Esp32Base 项目处理。
+
 ## Esp32FarmDoor API 草案
 
 状态：
@@ -78,8 +84,10 @@ handler 原则：
 
 维护：
 
-- `POST /api/maintenance/calibrate-open-limit`
+- `POST /api/maintenance/jog`
 - `POST /api/maintenance/set-position`
+- `POST /api/maintenance/save-endpoints`
+- `POST /api/maintenance/calibrate-open-limit`
 - `POST /api/maintenance/calibrate`
 - `POST /api/maintenance/format-storage`
 - `POST /api/maintenance/clear-fault`
@@ -91,11 +99,22 @@ handler 原则：
 - 格式化存储。
 - 清除故障后恢复运行。
 
-`GET /api/status` 应包含开门/上限位、可选关门/下限位、当前位置可信度、最近一次端点校准结果和是否需要现场处理。`POST /api/maintenance/calibrate-open-limit` 建议语义为远程低速开门直到触发开门/上限位：API 只发起校准流程，不在 HTTP handler 内阻塞等待完成。
+`GET /api/status` 应包含是否启用开门/上限位、可选关门/下限位、当前位置可信度、最近一次端点维护结果和是否需要现场处理。
+
+第一版不要求限位开关：
+
+- `POST /api/maintenance/jog`：远程低速点动，只允许短时运行，必须限制最大时长和最大脉冲。
+- `POST /api/maintenance/set-position`：设置当前位置，只在电机停止且二次确认后允许。
+- `POST /api/maintenance/save-endpoints`：保存开门/关门端点目标，必须二次确认。
+
+下一阶段启用开门/上限位后：
+
+- `POST /api/maintenance/calibrate-open-limit`：远程低速开门直到触发开门/上限位。API 只发起校准流程，不在 HTTP handler 内阻塞等待完成。
 
 待确认：
 
-- `calibrate-open-limit` 和 `set-position` 是否都需要；建议前者为运行到开门/上限位，后者仅保留为受限维护功能。
+- 第一版 `jog`、`set-position`、`save-endpoints` 的二次确认方式。
+- 下一阶段启用限位后，`calibrate-open-limit` 和 `set-position` 是否都保留；建议前者为运行到开门/上限位，后者仅保留为受限维护功能。
 - 是否需要单独的微调上/下命令。
 - 是否需要导出配置或诊断信息。
 
