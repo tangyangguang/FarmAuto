@@ -28,6 +28,7 @@ FarmAuto/
       25-public-library-freeze-decisions.md
       26-public-library-interface-fields.md
       27-public-library-test-checklist.md
+      28-public-library-examples.md
     15-hardware-resource-budget.md
     16-at24c-layout-budget.md
     17-test-and-acceptance.md

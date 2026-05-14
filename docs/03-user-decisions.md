@@ -94,5 +94,5 @@
 | D4 | 导出格式 | JSON 分页 + CSV 导出 | JSON 适合 Web/API，CSV 适合人工分析 |
 | D5 | 普通记录 flush 策略 | 条数或时间批量，关键事件立即 | 平衡掉电丢失风险和 flash 磨损 |
 | D6 | AT24C 写入寿命告警阈值 | 70% warning，90% maintenance | 提前维护，避免等到不可恢复 |
-| D7 | Flash 容量告警阈值 | 20% warning，10% maintenance | 给远程导出和维护留时间 |
+| D7 | Flash 容量告警阈值 | 30% warning，10% maintenance | 更早提醒远程导出和维护，给无人值守设备留足处理时间 |
 | D8 | 长期记录是否压缩 | 首版不压缩，使用紧凑二进制记录 | 降低实现和恢复复杂度；需要时再加导出侧压缩 |
