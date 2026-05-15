@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder Records</title>
+  <title>Esp32FarmFeeder 业务记录</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,16 +11,16 @@
     <aside class="sidebar">
       <div class="brand">Esp32FarmFeeder</div>
       <nav class="nav-section">
-        <a class="nav-link" href="feeder-dashboard.html">Dashboard</a>
-        <a class="nav-link" href="feeder-schedule.html">Schedule</a>
-        <a class="nav-link" href="feeder-buckets.html">Buckets</a>
-        <a class="nav-link" href="feeder-calibration.html">Calibration</a>
-        <a class="nav-link active" href="feeder-records.html">Records</a>
-        <a class="nav-link" href="feeder-diagnostics.html">Diagnostics</a>
+        <a class="nav-link" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
+        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link active" href="feeder-records.html">业务记录</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>Records</h1><div class="subtle">业务原始记录分页展示，不预设“最近 7 天”。</div></div></div>
+      <div class="topbar"><div class="title-block"><h1>业务记录</h1><div class="subtle">业务原始记录分页展示，不预设“最近 7 天”。</div></div></div>
       <section class="section">
         <div class="section-header"><h2>分页查询</h2></div>
         <div class="section-body">
@@ -38,8 +38,8 @@
           <table class="data-table">
             <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>通道</th><th>结果</th><th>原始字段</th></tr></thead>
             <tbody>
-              <tr><td data-label="序号">2001</td><td data-label="时间">07:32</td><td data-label="事件">FeederPowerLossAborted</td><td data-label="通道">1,2</td><td data-label="结果">BlockedResume</td><td data-label="原始字段">actualPulses=[2590,0]</td></tr>
-              <tr><td data-label="序号">2000</td><td data-label="时间">07:30</td><td data-label="事件">FeederScheduleTriggered</td><td data-label="通道">1,2,3</td><td data-label="结果">Partial</td><td data-label="原始字段">mask=7</td></tr>
+              <tr><td data-label="序号">2001</td><td data-label="时间">07:32</td><td data-label="事件">投喂断电中断</td><td data-label="通道">1,2</td><td data-label="结果">阻止自动续喂</td><td data-label="原始字段">实际脉冲=[2590,0]</td></tr>
+              <tr><td data-label="序号">2000</td><td data-label="时间">07:30</td><td data-label="事件">每日计划触发</td><td data-label="通道">1,2,3</td><td data-label="结果">部分完成</td><td data-label="原始字段">通道掩码=7</td></tr>
             </tbody>
           </table>
         </div>

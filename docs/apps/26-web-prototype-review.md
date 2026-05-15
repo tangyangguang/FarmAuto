@@ -10,7 +10,7 @@
 - `docs/prototypes/web/esp32-farmdoor.html`
 - `docs/prototypes/web/esp32-farmfeeder.html`
 
-当前已拆成最终独立页面文件：
+当前已拆成最终独立页面文件，并使用顶部导航展示最终页面结构：
 
 - 自动门：`farmdoor-dashboard.html`、`farmdoor-maintenance.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
 - 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-buckets.html`、`feeder-calibration.html`、`feeder-records.html`、`feeder-diagnostics.html`
@@ -30,14 +30,14 @@
 
 | 页面 | 自动门 | 喂食器 | 说明 |
 | --- | --- | --- | --- |
-| `/` | Dashboard | Dashboard | 首屏状态和常用控制 |
-| `/control` | Control | Control | 可选；如果首页已经承载控制，首版可不单独做 |
-| `/maintenance` | Maintenance | Maintenance | 危险维护、校准、诊断入口 |
-| `/records` | Records | Records | 长期业务记录网页查询；导出作为后续增强 |
-| `/diagnostics` | Diagnostics | Diagnostics | 业务诊断包、存储健康、最近事件 |
-| `/schedule` | 不使用 | Schedule | 喂食器每日计划 |
-| `/buckets` | 不使用 | Buckets | 喂食器饲料桶管理 |
-| `/calibration` | 不使用 | Calibration | 喂食器下料标定 |
+| `/` | 首页 | 首页 | 首屏状态和常用控制 |
+| `/control` | 合并到首页 | 合并到通道操作 | 如果首页已经承载控制，首版不单独做 |
+| `/maintenance` | 维护 | 维护 | 危险维护、校准、诊断入口 |
+| `/records` | 业务记录 | 业务记录 | 长期业务记录网页查询；导出作为后续增强 |
+| `/diagnostics` | 诊断 | 诊断 | 业务诊断包、存储健康、最近事件 |
+| `/schedule` | 不使用 | 每日计划 | 喂食器每日计划 |
+| `/buckets` | 不使用 | 饲料桶 | 喂食器饲料桶管理 |
+| `/calibration` | 不使用 | 下料标定 | 喂食器下料标定 |
 
 系统导航：
 
@@ -60,7 +60,7 @@
 ┌────────────────────────────────────────────────────┐
 │ 应用名称        在线/离线  时间状态  存储状态       │
 ├────────────────────────────────────────────────────┤
-│ 关键告警条：故障 / 断电恢复 / 存储 warning / 低余量 │
+│ 关键告警条：故障 / 断电恢复 / 存储告警 / 低余量 │
 ├────────────────────────────────────────────────────┤
 │ 当前状态摘要                                      │
 ├────────────────────────────────────────────────────┤
@@ -104,14 +104,14 @@
 | 开门 | 位置可信且未运行 | 发起开门命令 |
 | 关门 | 位置可信且未运行 | 发起关门命令 |
 | 停止 | 运行中 | 立即停止当前动作 |
-| 清除故障 | Fault | 进入故障清除流程 |
+| 清除故障 | 故障状态 | 进入故障清除流程 |
 | 进入维护 | 始终可见，运行中只读 | 进入维护页 |
 
 保护停止展示：
 
 - 达到最大运行圈数或最大运行时间时，页面显示“保护停止”告警。
 - 保护停止不直接等同故障。
-- 连续重复保护停止、编码器异常、电流异常、方向异常或限位冲突时显示 Fault。
+- 连续重复保护停止、编码器异常、电流异常、方向异常或限位冲突时显示“故障”。
 
 ## Esp32FarmDoor 维护页
 
@@ -162,7 +162,7 @@
 | 今日计划 | enabled、timeConfigured、timeMinutes、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday |
 | 通道表 | channel、enabled、installed、motorState、targetMode、target、todayGrams、remainPercent、faultReason |
 | 存储 | AT24C、flash、记录范围、最近错误 |
-| 告警 | PowerLossAborted、低余量、存储 warning、通道故障 |
+| 告警 | 断电中断、低余量、存储告警、通道故障 |
 
 运行中展示：
 
@@ -182,7 +182,7 @@
 
 断电中断展示：
 
-- 投喂运行中断电后显示 `PowerLossAborted`。
+- 投喂运行中断电后显示“断电中断”。
 - 页面必须显示被中断通道、已可靠记录脉冲、目标脉冲和“自动续喂已阻止”。
 - 不提供“继续未完成投喂”按钮。
 - 用户如需投喂，只能重新发起新的手动投喂。
@@ -252,5 +252,5 @@
 | W2 | 自动门首页是否合并控制页 | 已确认：合并 |
 | W3 | 喂食器首页使用表格还是卡片 | 不预设；以展示合理、手机查看和操作体验好为准 |
 | W4 | 业务记录导出是否首版必须做 | 已确认：不是必须；网页查看是基本能力，导出后续再做 |
-| W5 | 危险操作 confirm token | 已确认：首版应用内实现短期 token，不要求 Esp32Base 先增强 |
-| W6 | 原型是否拆成最终独立页面 | 已完成：下一步逐页确认最终页面效果 |
+| W5 | 危险操作二次确认令牌 | 已确认：首版应用内实现短期令牌，不要求 Esp32Base 先增强 |
+| W6 | 原型是否拆成最终独立页面 | 已完成：使用顶部导航展示最终页面结构，下一步逐页确认最终页面效果 |

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder Diagnostics</title>
+  <title>Esp32FarmFeeder 诊断</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,16 +11,16 @@
     <aside class="sidebar">
       <div class="brand">Esp32FarmFeeder</div>
       <nav class="nav-section">
-        <a class="nav-link" href="feeder-dashboard.html">Dashboard</a>
-        <a class="nav-link" href="feeder-schedule.html">Schedule</a>
-        <a class="nav-link" href="feeder-buckets.html">Buckets</a>
-        <a class="nav-link" href="feeder-calibration.html">Calibration</a>
-        <a class="nav-link" href="feeder-records.html">Records</a>
-        <a class="nav-link active" href="feeder-diagnostics.html">Diagnostics</a>
+        <a class="nav-link" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
+        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-records.html">业务记录</a>
+        <a class="nav-link active" href="feeder-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>Diagnostics</h1><div class="subtle">喂食器也需要硬件、存储和业务诊断。</div></div><a class="button" href="#base">Esp32Base 系统日志</a></div>
+      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">喂食器也需要硬件、存储和业务诊断。</div></div><a class="button" href="#base">Esp32Base 系统日志</a></div>
       <section class="section">
         <div class="section-header"><h2>硬件与存储</h2></div>
         <div class="section-body">
@@ -28,7 +28,7 @@
             <div class="metric"><div class="metric-label">AT24C</div><div class="metric-value">在线</div></div>
             <div class="metric"><div class="metric-label">AT24C 寿命估算</div><div class="metric-value">3%</div></div>
             <div class="metric"><div class="metric-label">Flash 剩余</div><div class="metric-value">28%</div></div>
-            <div class="metric"><div class="metric-label">Flash 写入健康</div><div class="metric-value">warning</div></div>
+            <div class="metric"><div class="metric-label">Flash 写入健康</div><div class="metric-value">告警</div></div>
           </div>
         </div>
       </section>
@@ -38,9 +38,9 @@
           <table class="data-table">
             <thead><tr><th>通道</th><th>电机</th><th>编码器</th><th>电流</th><th>最近故障</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="电机">Idle</td><td data-label="编码器">正常</td><td data-label="电流">未安装</td><td data-label="最近故障">PowerLossAborted</td></tr>
-              <tr><td data-label="通道">2</td><td data-label="电机">Running</td><td data-label="编码器">正在计数</td><td data-label="电流">未安装</td><td data-label="最近故障">无</td></tr>
-              <tr><td data-label="通道">3</td><td data-label="电机">Fault</td><td data-label="编码器">无脉冲</td><td data-label="电流">未安装</td><td data-label="最近故障">NoEncoderPulse</td></tr>
+              <tr><td data-label="通道">1</td><td data-label="电机">待机</td><td data-label="编码器">正常</td><td data-label="电流">未安装</td><td data-label="最近故障">断电中断</td></tr>
+              <tr><td data-label="通道">2</td><td data-label="电机">下料中</td><td data-label="编码器">正在计数</td><td data-label="电流">未安装</td><td data-label="最近故障">无</td></tr>
+              <tr><td data-label="通道">3</td><td data-label="电机">故障</td><td data-label="编码器">无脉冲</td><td data-label="电流">未安装</td><td data-label="最近故障">无编码器脉冲</td></tr>
             </tbody>
           </table>
         </div>

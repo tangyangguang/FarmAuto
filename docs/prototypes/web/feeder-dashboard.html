@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder Dashboard</title>
+  <title>Esp32FarmFeeder 首页</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,18 +12,18 @@
       <div class="brand">Esp32FarmFeeder</div>
       <div class="subtle">三路喂食器</div>
       <nav class="nav-section">
-        <a class="nav-link active" href="feeder-dashboard.html">Dashboard</a>
-        <a class="nav-link" href="feeder-schedule.html">Schedule</a>
-        <a class="nav-link" href="feeder-buckets.html">Buckets</a>
-        <a class="nav-link" href="feeder-calibration.html">Calibration</a>
-        <a class="nav-link" href="feeder-records.html">Records</a>
-        <a class="nav-link" href="feeder-diagnostics.html">Diagnostics</a>
+        <a class="nav-link active" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
+        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-records.html">业务记录</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
       <div class="topbar">
         <div class="title-block">
-          <h1>Dashboard</h1>
+          <h1>首页</h1>
           <div class="subtle">三路状态、正在下料、常用控制。</div>
         </div>
         <div class="status-strip">
@@ -53,15 +53,15 @@
           <table class="data-table">
             <thead><tr><th>通道</th><th>状态</th><th>目标</th><th>今日</th><th>桶余量</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="状态"><span class="pill warn">PowerLossAborted</span></td><td data-label="目标">70g</td><td data-label="今日">42g</td><td data-label="桶余量"><div class="progress"><span style="width:82%"></span></div></td><td data-label="操作"><button class="button">重新手动投喂</button></td></tr>
-              <tr><td data-label="通道">2</td><td data-label="状态"><span class="pill ok">Running</span></td><td data-label="目标">1.00 圈</td><td data-label="今日">29g</td><td data-label="桶余量"><div class="progress"><span style="width:61%"></span></div></td><td data-label="操作"><button class="button danger">停止</button></td></tr>
-              <tr><td data-label="通道">3</td><td data-label="状态"><span class="pill danger">Fault</span></td><td data-label="目标">70g</td><td data-label="今日">0g</td><td data-label="桶余量"><div class="progress warn"><span style="width:16%"></span></div></td><td data-label="操作"><button class="button">详情</button></td></tr>
+              <tr><td data-label="通道">1</td><td data-label="状态"><span class="pill warn">断电中断</span></td><td data-label="目标">70g</td><td data-label="今日">42g</td><td data-label="桶余量"><div class="progress"><span style="width:82%"></span></div></td><td data-label="操作"><button class="button">重新手动投喂</button></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="状态"><span class="pill ok">下料中</span></td><td data-label="目标">1.00 圈</td><td data-label="今日">29g</td><td data-label="桶余量"><div class="progress"><span style="width:61%"></span></div></td><td data-label="操作"><button class="button danger">停止</button></td></tr>
+              <tr><td data-label="通道">3</td><td data-label="状态"><span class="pill danger">故障</span></td><td data-label="目标">70g</td><td data-label="今日">0g</td><td data-label="桶余量"><div class="progress warn"><span style="width:16%"></span></div></td><td data-label="操作"><button class="button">详情</button></td></tr>
             </tbody>
           </table>
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>正在下料</h2><span class="pill ok">通道 2 Running</span></div>
+        <div class="section-header"><h2>正在下料</h2><span class="pill ok">通道 2 下料中</span></div>
         <div class="section-body">
           <div class="metric-grid">
             <div class="metric"><div class="metric-label">目标</div><div class="metric-value">1.00 圈</div></div>
@@ -76,8 +76,8 @@
         <div class="section-header"><h2>最近事件</h2></div>
         <div class="section-body">
           <ul class="event-list">
-            <li><span>07:32 FeederPowerLossAborted</span><span class="subtle">通道 1,2</span></li>
-            <li><span>07:30 FeederScheduleTriggered</span><span class="subtle">mask=7</span></li>
+            <li><span>07:32 投喂断电中断</span><span class="subtle">通道 1,2</span></li>
+            <li><span>07:30 每日计划触发</span><span class="subtle">通道 1,2,3</span></li>
           </ul>
         </div>
       </section>

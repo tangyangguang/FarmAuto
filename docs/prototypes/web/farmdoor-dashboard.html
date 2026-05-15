@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmDoor Dashboard</title>
+  <title>Esp32FarmDoor 首页</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,39 +12,39 @@
       <div class="brand">Esp32FarmDoor</div>
       <div class="subtle">自动门</div>
       <nav class="nav-section">
-        <a class="nav-link active" href="farmdoor-dashboard.html">Dashboard</a>
-        <a class="nav-link" href="farmdoor-maintenance.html">Maintenance</a>
-        <a class="nav-link" href="farmdoor-records.html">Records</a>
-        <a class="nav-link" href="farmdoor-diagnostics.html">Diagnostics</a>
+        <a class="nav-link active" href="farmdoor-dashboard.html">首页</a>
+        <a class="nav-link" href="farmdoor-maintenance.html">维护</a>
+        <a class="nav-link" href="farmdoor-records.html">业务记录</a>
+        <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
       </nav>
       <nav class="nav-section">
         <div class="nav-title">Esp32Base</div>
-        <a class="nav-link" href="#base">App Config</a>
-        <a class="nav-link" href="#base">System Logs</a>
-        <a class="nav-link" href="#base">OTA / WiFi</a>
+        <a class="nav-link" href="#base">系统参数</a>
+        <a class="nav-link" href="#base">系统日志</a>
+        <a class="nav-link" href="#base">OTA / 无线网络</a>
       </nav>
     </aside>
     <main class="content">
       <div class="topbar">
         <div class="title-block">
-          <h1>Dashboard</h1>
+          <h1>首页</h1>
           <div class="subtle">状态和常用控制合并在首页。</div>
         </div>
         <div class="status-strip">
           <span class="pill ok">在线</span>
           <span class="pill ok">时间同步</span>
-          <span class="pill warn">存储 warning</span>
+          <span class="pill warn">存储告警</span>
         </div>
       </div>
       <div class="alert info">断电后已可信恢复。首次动作自动限速和限幅，不需要 Web 确认。</div>
       <section class="section">
-        <div class="section-header"><h2>当前门状态</h2><span class="pill ok">IdleClosed</span></div>
+        <div class="section-header"><h2>当前门状态</h2><span class="pill ok">关闭待机</span></div>
         <div class="section-body">
           <div class="metric-grid">
             <div class="metric"><div class="metric-label">当前位置</div><div class="metric-value">0.00 圈</div></div>
             <div class="metric"><div class="metric-label">开门目标</div><div class="metric-value">5.00 圈</div></div>
-            <div class="metric"><div class="metric-label">最大运行</div><div class="metric-value">7.50 圈</div></div>
-            <div class="metric"><div class="metric-label">最大时长</div><div class="metric-value">25 秒</div></div>
+            <div class="metric"><div class="metric-label">上次动作</div><div class="metric-value">关门完成</div></div>
+            <div class="metric"><div class="metric-label">保护状态</div><div class="metric-value">正常</div></div>
           </div>
         </div>
       </section>
@@ -61,8 +61,32 @@
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>运行状态</h2><span class="subtle">自动门保留运行曲线</span></div>
-        <div class="section-body"><div class="chart">位置 / 速度 / 电流 / 限位事件 / 保护停止</div></div>
+        <div class="section-header"><h2>运行状态</h2><span class="subtle">示例：一次开门过程</span></div>
+        <div class="section-body">
+          <div class="trend-chart" aria-label="自动门运行曲线示例">
+            <svg viewBox="0 0 720 220" role="img">
+              <line class="axis" x1="40" y1="180" x2="690" y2="180"></line>
+              <line class="axis" x1="40" y1="30" x2="40" y2="180"></line>
+              <line class="axis" x1="40" y1="130" x2="690" y2="130"></line>
+              <line class="axis" x1="40" y1="80" x2="690" y2="80"></line>
+              <polyline class="position-line" points="45,176 100,172 160,150 230,112 310,78 390,56 470,45 560,42 670,42"></polyline>
+              <polyline class="speed-line" points="45,178 90,142 150,92 230,82 330,100 460,130 560,164 670,178"></polyline>
+              <polyline class="current-line" points="45,160 100,112 150,125 230,132 330,138 460,145 560,150 670,154"></polyline>
+              <line class="marker-line" x1="610" y1="30" x2="610" y2="180"></line>
+              <text x="42" y="202" fill="#62706d" font-size="12">0s</text>
+              <text x="610" y="202" fill="#62706d" font-size="12">开门完成</text>
+              <text x="54" y="48" fill="#0f766e" font-size="12">位置</text>
+              <text x="168" y="74" fill="#1d4ed8" font-size="12">速度</text>
+              <text x="92" y="108" fill="#b54708" font-size="12">电流</text>
+            </svg>
+          </div>
+          <div class="chart-legend">
+            <span><i class="legend-dot" style="background:#0f766e"></i>位置</span>
+            <span><i class="legend-dot" style="background:#1d4ed8"></i>速度</span>
+            <span><i class="legend-dot" style="background:#b54708"></i>电流</span>
+            <span><i class="legend-dot" style="background:#b42318"></i>保护或限位事件</span>
+          </div>
+        </div>
       </section>
       <section class="section">
         <div class="section-header"><h2>最近事件</h2></div>
