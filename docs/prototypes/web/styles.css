@@ -373,6 +373,54 @@ a {
   font-size: 12px;
 }
 
+.inline-progress {
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.inline-progress .meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.page-number {
+  min-width: 40px;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  font-weight: 650;
+}
+
+.page-number.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.compact-input {
+  width: 76px;
+}
+
 .legend-dot {
   display: inline-block;
   width: 10px;

@@ -22,10 +22,9 @@
     <main class="content">
       <div class="topbar"><div class="title-block"><h1>业务记录</h1><div class="subtle">业务原始记录分页展示，不预设“最近 7 天”。</div></div></div>
       <section class="section">
-        <div class="section-header"><h2>分页查询</h2></div>
+        <div class="section-header"><h2>筛选</h2></div>
         <div class="section-body">
           <div class="form-grid">
-            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
             <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>通道</label><select class="select"><option>全部</option><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
             <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>投喂</option><option>故障</option><option>补料</option><option>计划</option></select></div>
@@ -33,7 +32,7 @@
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>记录</h2></div>
+        <div class="section-header"><h2>记录</h2><span class="subtle">共 2,001 条</span></div>
         <div class="section-body">
           <table class="data-table">
             <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>通道</th><th>结果</th><th>原始字段</th></tr></thead>
@@ -42,6 +41,18 @@
               <tr><td data-label="序号">2000</td><td data-label="时间">07:30</td><td data-label="事件">每日计划触发</td><td data-label="通道">1,2,3</td><td data-label="结果">部分完成</td><td data-label="原始字段">通道掩码=7</td></tr>
             </tbody>
           </table>
+          <div class="pagination">
+            <span class="subtle">第 1 页 / 共 41 页</span>
+            <div class="pagination-controls">
+              <button class="button" disabled>上一页</button>
+              <button class="page-number active">1</button>
+              <button class="page-number">2</button>
+              <button class="page-number">3</button>
+              <button class="button">下一页</button>
+              <input class="input compact-input" value="1">
+              <button class="button">跳转</button>
+            </div>
+          </div>
         </div>
       </section>
     </main>

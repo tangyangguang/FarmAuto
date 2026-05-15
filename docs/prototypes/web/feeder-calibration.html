@@ -20,16 +20,18 @@
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>下料标定</h1><div class="subtle">只手工输入每圈下料克数，不做实际运转测试。</div></div></div>
+      <div class="topbar"><div class="title-block"><h1>下料标定</h1><div class="subtle">每一路独立设置电机每圈信号数，以及每圈对应的下料克数。</div></div></div>
       <section class="section">
         <div class="section-header"><h2>下料参数</h2></div>
         <div class="section-body">
-          <div class="form-grid">
-            <div class="field"><label>通道</label><select class="select"><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
-            <div class="field"><label>每圈下料克数</label><input class="input" value="70.0 g/圈"></div>
-            <div class="field"><label>来源</label><select class="select"><option>手工输入</option><option>历史实测</option></select></div>
-            <div class="field"><label>备注</label><input class="input" value="当前使用 70g/圈"></div>
-          </div>
+          <table class="data-table">
+            <thead><tr><th>通道</th><th>是否启用</th><th>电机每圈信号数</th><th>每圈下料克数</th><th>备注</th></tr></thead>
+            <tbody>
+              <tr><td data-label="通道">1</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" value="4192"></td><td data-label="每圈下料克数"><input class="input" value="70.0g"></td><td data-label="备注">手工输入</td></tr>
+              <tr><td data-label="通道">2</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" value="4192"></td><td data-label="每圈下料克数"><input class="input" value="68.0g"></td><td data-label="备注">减速比不同</td></tr>
+              <tr><td data-label="通道">3</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" value="4192"></td><td data-label="每圈下料克数"><input class="input" value="70.0g"></td><td data-label="备注">手工输入</td></tr>
+            </tbody>
+          </table>
           <div class="actions"><button class="button primary">保存参数</button></div>
         </div>
       </section>

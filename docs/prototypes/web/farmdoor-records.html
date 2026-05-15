@@ -20,10 +20,9 @@
     <main class="content">
       <div class="topbar"><div class="title-block"><h1>业务记录</h1><div class="subtle">业务原始记录分页查看，导出后续增强。</div></div></div>
       <section class="section">
-        <div class="section-header"><h2>查询</h2></div>
+        <div class="section-header"><h2>筛选</h2></div>
         <div class="section-body">
           <div class="form-grid">
-            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
             <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>开门</option><option>关门</option><option>保护停止</option><option>故障</option></select></div>
             <div class="field"><label>结果</label><select class="select"><option>全部</option><option>正常</option><option>告警</option><option>故障</option></select></div>
@@ -31,7 +30,7 @@
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>记录</h2></div>
+        <div class="section-header"><h2>记录</h2><span class="subtle">共 1,052 条</span></div>
         <div class="section-body">
           <table class="data-table">
             <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>结果</th><th>原始字段</th></tr></thead>
@@ -40,6 +39,18 @@
               <tr><td data-label="序号">1051</td><td data-label="时间">02:13</td><td data-label="事件">断电恢复</td><td data-label="结果">可信</td><td data-label="原始字段">来源=检查点，序号=884</td></tr>
             </tbody>
           </table>
+          <div class="pagination">
+            <span class="subtle">第 1 页 / 共 22 页</span>
+            <div class="pagination-controls">
+              <button class="button" disabled>上一页</button>
+              <button class="page-number active">1</button>
+              <button class="page-number">2</button>
+              <button class="page-number">3</button>
+              <button class="button">下一页</button>
+              <input class="input compact-input" value="1">
+              <button class="button">跳转</button>
+            </div>
+          </div>
         </div>
       </section>
     </main>

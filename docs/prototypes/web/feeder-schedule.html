@@ -20,29 +20,31 @@
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>每日计划</h1><div class="subtle">默认不开启。启用前必须设置时间、通道和每路目标。</div></div><span class="pill">默认关闭</span></div>
+      <div class="topbar"><div class="title-block"><h1>每日计划</h1><div class="subtle">支持一天多个计划。每个计划独立设置时间、参与通道和每路投喂量。</div></div><span class="pill">默认无计划</span></div>
       <section class="section">
-        <div class="section-header"><h2>每日计划</h2></div>
+        <div class="section-header"><h2>计划列表</h2><button class="button primary">新增计划</button></div>
         <div class="section-body">
-          <div class="form-grid">
-            <div class="field"><label>启用</label><select class="select"><option>关闭</option><option>启用</option></select></div>
-            <div class="field"><label>执行时间</label><input class="input" value="07:30"></div>
-            <div class="field"><label>参与通道</label><input class="input" value="1, 2, 3"></div>
-            <div class="field"><label>跳过今日</label><select class="select"><option>否</option><option>是</option></select></div>
-          </div>
+          <table class="data-table">
+            <thead><tr><th>启用</th><th>时间</th><th>通道 1</th><th>通道 2</th><th>通道 3</th><th>今日状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td data-label="启用">是</td><td data-label="时间">07:30</td><td data-label="通道 1">70g</td><td data-label="通道 2">1.00 圈</td><td data-label="通道 3">70g</td><td data-label="今日状态">已中断</td><td data-label="操作"><button class="button">编辑</button></td></tr>
+              <tr><td data-label="启用">是</td><td data-label="时间">12:30</td><td data-label="通道 1">50g</td><td data-label="通道 2">50g</td><td data-label="通道 3">不参与</td><td data-label="今日状态">待执行</td><td data-label="操作"><button class="button">编辑</button></td></tr>
+              <tr><td data-label="启用">否</td><td data-label="时间">17:30</td><td data-label="通道 1">70g</td><td data-label="通道 2">70g</td><td data-label="通道 3">70g</td><td data-label="今日状态">未启用</td><td data-label="操作"><button class="button">编辑</button></td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>每路目标</h2></div>
+        <div class="section-header"><h2>编辑计划示例</h2></div>
         <div class="section-body">
-          <table class="data-table">
-            <thead><tr><th>通道</th><th>是否参与</th><th>单位</th><th>目标</th><th>参数状态</th></tr></thead>
-            <tbody>
-              <tr><td data-label="通道">1</td><td data-label="是否参与">是</td><td data-label="单位">克数</td><td data-label="目标">70g</td><td data-label="参数状态">70g/圈</td></tr>
-              <tr><td data-label="通道">2</td><td data-label="是否参与">是</td><td data-label="单位">圈数</td><td data-label="目标">1.00 圈</td><td data-label="参数状态">68g/圈</td></tr>
-              <tr><td data-label="通道">3</td><td data-label="是否参与">是</td><td data-label="单位">克数</td><td data-label="目标">70g</td><td data-label="参数状态">70g/圈</td></tr>
-            </tbody>
-          </table>
+          <div class="form-grid">
+            <div class="field"><label>执行时间</label><input class="input" value="12:30"></div>
+            <div class="field"><label>跳过今日</label><select class="select"><option>否</option><option>是</option></select></div>
+            <div class="field"><label>通道 1</label><input class="input" value="参与，50g"></div>
+            <div class="field"><label>通道 2</label><input class="input" value="参与，50g"></div>
+            <div class="field"><label>通道 3</label><input class="input" value="不参与"></div>
+          </div>
+          <div class="actions"><button class="button primary">保存计划</button><button class="button danger">删除计划</button></div>
         </div>
       </section>
     </main>

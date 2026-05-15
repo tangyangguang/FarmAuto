@@ -30,7 +30,7 @@ Fault
 状态说明：
 
 - `Booting`：启动中，加载配置、状态和硬件自检。
-- `PositionUnknown`：当前位置不可信；第一版允许远程低速点动、设置当前位置和重新保存端点；下一阶段有上限位后优先允许远程低速开门直到触发上限位完成端点校准。
+- `PositionUnknown`：当前位置不可信；第一版允许远程按指定圈数试运行、标定当前位置和重新保存端点；下一阶段有上限位后优先允许远程低速开门直到触发上限位完成端点校准。
 - `IdleClosed`：门处于已关闭位置。
 - `IdleOpen`：门处于已打开位置。
 - `IdlePartial`：门停在中间位置。
@@ -39,7 +39,7 @@ Fault
 - `Stopping`：正在按停止策略停机。普通停止可软停止，故障停止可直接按设备配置 `Coast` 或 `Brake` 输出。
 - `Stopped`：用户主动停止后的稳定状态。
 - `Maintenance`：维护模式，允许端点校准、格式化、校准等危险操作。
-- `EndpointTeaching`：第一版无限位端点示教中，通过低速点动、设置关闭点、保存开门目标建立位置基准。
+- `EndpointTeaching`：第一版无限位端点示教中，通过指定圈数试运行、标定关门状态、标定开门状态建立位置基准。
 - `EndpointVerifying`：端点低速验证中，验证关闭点、开门目标、安全上限和保护参数。
 - `LimitHoming`：下一阶段启用开门/上限位后，低速寻找上限位并建立开门端点。
 - `Fault`：故障停机。限位断线、异常方向触发、上下限位冲突等下一阶段限位问题，都进入 `Fault`，通过 `faultReason=LimitFault/...` 区分；不单独设置长期业务主状态。
@@ -149,7 +149,7 @@ Maintenance
 - 如果被中断的是手动投喂，只显示中断结果和实际已完成计数，用户需要重新发起新的手动投喂。
 - 今日累计和饲料桶余量只按已可靠提交的实际脉冲或圈数更新；存在不确定计数时，对应通道标记 `estimateConfidence=Low`。
 
-`skipToday`、`timeValid`、`scheduleEnabled`、`todayExecuted`、`scheduleAttemptedToday` 是计划状态标志，不作为设备主状态。原因是它们可能与 `Idle`、`Running`、`Degraded` 同时存在；如果做成主状态，会掩盖真实运行状态。
+`skipToday`、`timeValid`、`planEnabled`、`todayExecuted`、`scheduleAttemptedToday` 是单计划状态标志，不作为设备主状态。原因是它们可能与 `Idle`、`Running`、`Degraded` 同时存在；如果做成主状态，会掩盖真实运行状态。
 
 状态说明：
 
@@ -185,24 +185,27 @@ Maintenance
 
 计划状态标志：
 
+喂食器支持一天多个自动计划。以下标志按单个计划保存和展示，不能再按“全局一天一次”理解。
+
 | 标志 | 说明 |
 | --- | --- |
-| `scheduleEnabled` | 每日计划已启用 |
-| `scheduleTimeConfigured` | 已配置每日执行时间；未配置时不自动投喂 |
+| `planEnabled` | 该计划已启用 |
+| `planTimeConfigured` | 该计划已配置每日执行时间；未配置时不自动投喂 |
 | `timeValid` | 当前日期/时间可信；不可信时暂停自动定时 |
-| `skipToday` | 今日定时已跳过；日期切换后自动清除 |
-| `todayExecuted` | 今日计划已成功完成，或所有计划通道都得到明确最终结果；不用于表达断电中断 |
-| `scheduleAttemptedToday` | 今日计划已经开始过；即使被断电中断，也不自动再次触发 |
-| `scheduleMissedToday` | 今日计划错过且不补投喂，仅记录事件 |
+| `skipToday` | 该计划今日已跳过；日期切换后自动清除 |
+| `todayExecuted` | 该计划今日已成功完成，或所有计划通道都得到明确最终结果；不用于表达断电中断 |
+| `scheduleAttemptedToday` | 该计划今日已经开始过；即使被断电中断，也不自动再次触发 |
+| `scheduleMissedToday` | 该计划今日错过且不补投喂，仅记录事件 |
 
 计划标志组合规则：
 
-首版默认不开启每日自动投喂；启用前必须配置执行时间、参与通道和每个参与通道的投喂目标。
+首版默认没有自动投喂计划；新增计划并启用前，必须配置执行时间、参与通道和每个参与通道的投喂目标。
 
 1. `skipToday=true`：今日自动计划不触发，手动投喂不受影响。
-2. `scheduleAttemptedToday=true`：今日计划已经启动过；无论成功、部分成功还是断电中断，都不再次自动触发。
+2. `scheduleAttemptedToday=true`：该计划今日已经启动过；无论成功、部分成功还是断电中断，该计划都不再次自动触发。
 3. `todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `todayExecuted=false`。
 4. `scheduleMissedToday=true` 表示计划时间已错过且未触发；它不应与 `scheduleAttemptedToday=true` 同时出现。
+5. 一个计划断电中断，不影响其他尚未到时间的计划按自身状态触发。
 
 关键事件：
 

@@ -20,7 +20,7 @@
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">喂食器也需要硬件、存储和业务诊断。</div></div><a class="button" href="#base">Esp32Base 系统日志</a></div>
+      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">硬件、存储、通道和业务诊断集中在这里。</div></div><a class="button" href="#base">Esp32Base 系统日志</a></div>
       <section class="section">
         <div class="section-header"><h2>硬件与存储</h2></div>
         <div class="section-body">
@@ -43,6 +43,16 @@
               <tr><td data-label="通道">3</td><td data-label="电机">故障</td><td data-label="编码器">无脉冲</td><td data-label="电流">未安装</td><td data-label="最近故障">无编码器脉冲</td></tr>
             </tbody>
           </table>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>维护工具</h2></div>
+        <div class="section-body actions">
+          <button class="button">AT24C 检查</button>
+          <button class="button">Flash 检查</button>
+          <button class="button">编码器计数检查</button>
+          <button class="button" disabled>INA240A2 零点校准</button>
+          <button class="button danger">格式化业务存储</button>
         </div>
       </section>
       <section id="base" class="page-note">系统日志、WiFi、OTA、系统工具仍进入 Esp32Base 页面。业务诊断和业务记录留在应用页面。</section>

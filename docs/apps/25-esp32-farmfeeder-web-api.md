@@ -10,14 +10,13 @@
 
 Esp32FarmFeeder 页面：
 
-- `/`：喂食器总览，显示全局状态、每日计划、三路状态、今日累计、桶余量和最近事件。
+- `/`：喂食器总览，显示全局状态、多个每日计划摘要、三路状态、今日累计、桶余量和最近事件。
 - `/control`：单路启动/停止、启动全部、停止全部、跳过今日。
-- `/schedule`：每日计划、执行时间、启用状态、跳过今日和下次执行预览。
+- `/schedule`：多个每日计划、每个计划的执行时间、参与通道、每路目标、跳过今日和下次执行预览。
 - `/buckets`：每路饲料桶容量、估算余量、补料、低余量阈值。
 - `/calibration`：每路下料参数，手工输入每圈下料克数。
-- `/maintenance`：清空今日计数、清除故障、存储检查、格式化应用业务存储。
 - `/records`：喂食器长期业务记录查询和导出。
-- `/diagnostics`：喂食器业务诊断包，含状态 snapshot、三路电机 snapshot、计划状态、桶余量、AT24C inspect、flash 记录范围。
+- `/diagnostics`：喂食器业务诊断包和维护工具，含状态 snapshot、三路电机 snapshot、计划状态、桶余量、AT24C inspect、flash 记录范围、存储检查和故障处理入口。
 
 系统参数使用 `/esp32base/app-config`，系统日志使用 `/esp32base/logs`。
 
@@ -40,10 +39,12 @@ Esp32FarmFeeder 页面：
 
 计划：
 
-- `GET /api/app/schedule`
-- `POST /api/app/schedule`
-- `POST /api/app/schedule/skip-today`
-- `POST /api/app/schedule/cancel-skip-today`
+- `GET /api/app/schedules`
+- `POST /api/app/schedules`
+- `PUT /api/app/schedules/{planId}`
+- `DELETE /api/app/schedules/{planId}`
+- `POST /api/app/schedules/{planId}/skip-today`
+- `POST /api/app/schedules/{planId}/cancel-skip-today`
 
 投喂目标：
 
@@ -70,7 +71,7 @@ Esp32FarmFeeder 页面：
 `GET /api/app/status` 应只包含喂食器字段：
 
 - 全局状态：`Idle`、`Starting`、`Running`、`Stopping`、`RollingDay`、`Degraded`、`Fault`、`Maintenance`。
-- 计划状态：scheduleEnabled、scheduleTimeConfigured、scheduleTimeMinutes、timeValid、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
+- 计划状态：planCount、nextPlanId、nextPlanTimeMinutes、timeValid，以及每个计划的 enabled、timeMinutes、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
 - 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
 - 通道状态：channel、enabled、installed、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
 - 饲料桶：capacityGrams、remainGrams、remainPercent、lowWarningPercent、criticalWarningPercent、estimatedFeedCount、estimatedDays。
@@ -81,44 +82,56 @@ Esp32FarmFeeder 页面：
 
 ## 计划字段
 
-`GET /api/app/schedule` 返回：
+`GET /api/app/schedules` 返回：
 
 ```json
 {
-  "enabled": true,
-  "timeConfigured": true,
-  "timeMinutes": 450,
-  "channelMask": 7,
-  "skipToday": false,
-  "scheduleAttemptedToday": false,
-  "todayExecuted": false,
-  "scheduleMissedToday": false,
   "timeValid": true,
-  "nextRunUnixTime": 1778801400
+  "nextPlanId": 2,
+  "nextRunUnixTime": 1778801400,
+  "plans": [
+    {
+      "planId": 1,
+      "enabled": true,
+      "timeConfigured": true,
+      "timeMinutes": 450,
+      "channelMask": 7,
+      "targets": [
+        {"channel": 1, "targetMode": "Grams", "targetGramsX100": 7000},
+        {"channel": 2, "targetMode": "Revolutions", "targetRevolutionsX100": 100}
+      ],
+      "skipToday": false,
+      "scheduleAttemptedToday": true,
+      "todayExecuted": false,
+      "scheduleMissedToday": false
+    }
+  ]
 }
 ```
 
 计划状态语义：
 
-- `scheduleAttemptedToday`：今日计划已经开始过。即使运行中断电中断，也保持 true，用于阻止晚些时候来电后再次自动触发。
-- `todayExecuted`：今日计划已成功完成，或所有计划通道都得到明确最终结果；不用于表达断电中断。
-- `scheduleMissedToday`：计划时间已错过且未触发，且不会补投喂。
+- `scheduleAttemptedToday`：该计划今日已经开始过。即使运行中断电中断，也保持 true，用于阻止晚些时候来电后该计划再次自动触发。
+- `todayExecuted`：该计划今日已成功完成，或所有计划通道都得到明确最终结果；不用于表达断电中断。
+- `scheduleMissedToday`：该计划时间已错过且未触发，且不会补投喂。
 - 组合规则：`todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `scheduleAttemptedToday=true` 且 `todayExecuted=false`；`scheduleMissedToday=true` 不应与 `scheduleAttemptedToday=true` 同时出现。
+- 一个计划断电中断，不影响其他尚未到时间的计划按自身状态触发。
 
-`POST /api/app/schedule` 可修改：
+`POST /api/app/schedules` 新增计划，`PUT /api/app/schedules/{planId}` 修改计划：
 
 - `enabled`：是否启用每日计划。
 - `timeMinutes`：当天 0..1439 分钟；未提供或显式清空表示不配置时间。
 - `channelMask`：计划包含哪些通道，只能包含已安装且已启用通道。
-- 每日自动投喂默认关闭。启用时必须同时满足：`enabled=true`、`timeMinutes` 已配置、`channelMask` 非 0，且参与通道都有有效投喂目标。
+- `targets`：该计划每个参与通道的目标，可以是克数或圈数。
+- 自动投喂默认无计划。启用计划时必须同时满足：`enabled=true`、`timeMinutes` 已配置、`channelMask` 非 0，且参与通道都有有效投喂目标。
 
 规则：
 
-- 未配置时间时，自动计划视为未启用。
+- 未配置时间时，该计划视为未启用。
 - `channelMask=0` 时不执行计划。
 - 修改计划不清除长期记录。
 - 修改计划应写入 `ConfigChanged` 或计划变更业务事件。
-- `skipToday` 是当天运行状态，不通过 `POST /api/app/schedule` 设置，只通过专用 skip/cancel API。
+- `skipToday` 是单个计划的当天运行状态，不通过新增/修改计划接口设置，只通过专用 skip/cancel API。
 
 ## 投喂目标字段
 
