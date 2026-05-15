@@ -129,7 +129,16 @@ Fault
 Maintenance
 ```
 
-每日定时投喂和手动投喂互相独立，但不能同时发起。只要任意通道正在运行，新的手动或定时启动请求应返回 `Busy`；首版不排队、不自动补执行。
+每日定时投喂和手动投喂按通道独立仲裁，不做全局互斥。
+
+通道级并发规则：
+
+- 同一通道正在运行、启动或停止时，该通道新的手动或定时启动请求返回 `Busy`。
+- 其他空闲、已安装、已启用且无故障的通道仍可手动启动。
+- 定时计划触发时，只启动当时空闲、已安装、已启用且无故障的计划通道。
+- 定时计划中已经运行的通道不排队、不补执行，应记录该通道本次计划 `BusySkipped` 或等价结果。
+- 手动启动多个通道或启动全部时，已忙通道跳过，空闲可用通道可以继续启动；响应中必须返回 successMask、busyMask、faultMask 和 skippedMask。
+- 如果请求的所有通道都不可启动，整体返回 `Busy`、`NotConfigured` 或 `Fault`，具体按原因决定。
 
 `skipToday`、`timeValid`、`scheduleEnabled`、`todayExecuted` 是计划状态标志，不作为设备主状态。原因是它们可能与 `Idle`、`Running`、`Degraded` 同时存在；如果做成主状态，会掩盖真实运行状态。
 
@@ -190,6 +199,7 @@ DateChanged
 HistorySaved
 TodayCountersCleared
 DailyScheduleTriggered
+ScheduleChannelSkipped
 SkipTodayRequested
 SkipTodayCleared
 ScheduleMissed
@@ -211,4 +221,4 @@ ConfigChanged
 
 - 清空当天计数只清当天统计和当前状态摘要，不删除配置、不删除长期原始记录；必须二次确认并写入事件。
 - 跳过今日只影响自动定时投喂，不影响手动投喂。
-- 时间无效时暂停自动定时投喂，但允许手动投喂；手动投喂仍受 Busy 和维护状态限制。
+- 时间无效时暂停自动定时投喂，但允许手动投喂；手动投喂受通道级 Busy、故障和维护状态限制。

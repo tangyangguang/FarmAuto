@@ -110,12 +110,13 @@
 | `FeederManualRequested` | 手动投喂请求 | channelMask、targetMode、targetPulses |
 | `FeederScheduleTriggered` | 每日计划触发 | scheduleTimeMinutes、channelMask |
 | `FeederScheduleMissed` | 错过计划且不补投 | scheduleTimeMinutes、reason |
+| `FeederScheduleChannelSkipped` | 计划触发时跳过单路 | channel、reason、runningCommandId |
 | `FeederStartAllRequested` | 启动全部请求 | channelMask、startIntervalMs |
 | `FeederChannelStarted` | 单路开始 | channel、targetPulses、speedPercent |
 | `FeederChannelCompleted` | 单路完成 | channel、actualPulses、durationMs、gramsX100 |
 | `FeederChannelStopped` | 单路停止 | channel、stopReason、actualPulses、durationMs |
 | `FeederChannelFault` | 单路故障 | channel、faultReason、actualPulses、durationMs |
-| `FeederBatchCompleted` | 一次全部/计划完成 | requestedMask、successMask、faultMask、durationMs |
+| `FeederBatchCompleted` | 一次全部/计划完成 | requestedMask、successMask、busyMask、faultMask、skippedMask、durationMs |
 
 字段说明：
 
