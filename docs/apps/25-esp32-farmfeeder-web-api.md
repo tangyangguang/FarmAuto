@@ -79,6 +79,127 @@ Esp32FarmFeeder 页面：
 
 不得包含自动门位置、端点、限位、开门目标等字段。
 
+## 计划字段
+
+`GET /api/app/schedule` 返回：
+
+```json
+{
+  "enabled": true,
+  "timeConfigured": true,
+  "timeMinutes": 450,
+  "channelMask": 7,
+  "skipToday": false,
+  "todayExecuted": false,
+  "scheduleMissedToday": false,
+  "timeValid": true,
+  "nextRunUnixTime": 1778801400
+}
+```
+
+`POST /api/app/schedule` 可修改：
+
+- `enabled`：是否启用每日计划。
+- `timeMinutes`：当天 0..1439 分钟；未提供或显式清空表示不配置时间。
+- `channelMask`：计划包含哪些通道，只能包含已安装且已启用通道。
+
+规则：
+
+- 未配置时间时，自动计划视为未启用。
+- `channelMask=0` 时不执行计划。
+- 修改计划不清除长期记录。
+- 修改计划应写入 `ConfigChanged` 或计划变更业务事件。
+- `skipToday` 是当天运行状态，不通过 `POST /api/app/schedule` 设置，只通过专用 skip/cancel API。
+
+## 投喂目标字段
+
+`GET /api/app/feeders/targets` 返回每路目标：
+
+```json
+{
+  "channels": [
+    {
+      "channel": 1,
+      "enabled": true,
+      "targetMode": "Grams",
+      "targetGramsX100": 7000,
+      "targetRevolutionsX100": 100,
+      "targetPulses": 4320,
+      "gramsPerRevX100": 7000,
+      "calibrated": true
+    }
+  ]
+}
+```
+
+`POST /api/app/feeders/{channel}/target` 可修改：
+
+- `targetMode`：`Grams` 或 `Revolutions`。
+- `targetGramsX100`：克数模式目标，单位 0.01g。
+- `targetRevolutionsX100`：圈数模式目标，单位 0.01 圈。
+
+规则：
+
+- 切换模式不删除另一个模式的已保存目标值。
+- 克数模式要求该通道已完成 `gramsPerRevX100` 标定；未标定返回 `NotConfigured`。
+- 最终执行目标必须换算为 `targetPulses`。
+- 保存目标时不改变今日计数、桶余量或长期记录正文。
+
+## 饲料桶字段
+
+`GET /api/app/buckets` 返回：
+
+```json
+{
+  "channels": [
+    {
+      "channel": 1,
+      "capacityGrams": 5000,
+      "remainGrams": 3200,
+      "remainPercent": 64,
+      "lowWarningPercent": 20,
+      "criticalWarningPercent": 10,
+      "estimatedFeedCount": 45,
+      "estimatedDays": 15,
+      "lastRefillUnixTime": 1778790000
+    }
+  ]
+}
+```
+
+饲料桶写入 API：
+
+- `set-remaining`：直接设置 `remainGrams`，必须二次确认。
+- `add-feed`：增加 `addedGrams`，结果不得超过 `capacityGrams`。
+- `mark-full`：把 `remainGrams` 设置为 `capacityGrams`。
+
+规则：
+
+- `capacityGrams`、低余量阈值和严重低余量阈值属于饲料桶页面的业务配置，不放 Esp32Base App Config。
+- 修改容量时默认不改变当前余量；如需要同步填满，使用 `mark-full`。
+- 每次补料、设置余量、投喂扣减和低余量告警都写入长期业务记录。
+- 余量不得扣成负数；扣减后小于 0 时显示 0，并记录 underflow。
+
+## 标定字段
+
+`POST /api/app/maintenance/calibrate-feed-rate` 输入：
+
+```json
+{
+  "channel": 1,
+  "actualPulses": 4320,
+  "actualWeightGramsX100": 7050
+}
+```
+
+规则：
+
+- 标定运行和称重输入分两步：先通过 test/calibration run 得到 actualPulses，再由用户输入实测重量。
+- `gramsPerRevX100 = actualWeightGramsX100 / actualRevolutions`，使用定点数保存。
+- `actualWeightGramsX100 <= 0` 或 `actualPulses <= 0` 时拒绝保存。
+- 标定失败不覆盖旧标定值。
+- 保存成功后，克数模式可用，并写入 `FeederCalibrationSaved`。
+
 ## 运行规则
 
 - 手动投喂和定时投喂按通道独立仲裁，不做全局互斥。

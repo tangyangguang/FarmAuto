@@ -100,7 +100,7 @@ Esp32FarmDoor 页面：
 
 - 通过 motion journal 和最近位置检查点恢复当前位置。
 - 检查点有效且在安全范围内时，恢复为 `IdlePartial` 或可判断的端点状态。
-- 恢复后的第一次动作使用保守速度和正常安全上限。
+- 恢复后的第一次动作需要 Web 确认，使用 `recoveredFirstMoveSpeedPercent`，最大脉冲和最大时间按剩余距离保守计算。
 - 检查点无效、越界或与限位冲突时，才进入 `PositionUnknown` 或 `Fault`。
 
 ## 下一阶段限位增强

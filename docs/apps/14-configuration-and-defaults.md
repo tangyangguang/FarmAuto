@@ -82,6 +82,7 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | faultEmergencyOutputMode | enum | Coast | Coast/Brake | 否 | 故障停机默认倾向滑行，需实测确认 |
 | motionCheckpointMinIntervalMs | ms | 2000 | 1000-10000 | 否 | 运行中断电恢复检查点最小时间间隔 |
 | motionCheckpointMinTravelPercent | % | 5 | 1-20 | 否 | 运行中断电恢复检查点最小行程变化 |
+| recoveredFirstMoveSpeedPercent | % | 50 | 1-100 | 否 | 断电恢复后第一次动作速度，不高于正常速度 |
 
 Esp32FarmDoor 维护/运行数据，不放在 App Config：
 
