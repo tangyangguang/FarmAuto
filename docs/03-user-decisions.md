@@ -138,6 +138,8 @@
 
 - 自动门故障 `Coast` 的实机安全性：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md`。
 - 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`，源码前按目标 PCB/芯片确认。
+- 喂食器计划状态字段语义：推荐 `scheduleAttemptedToday` 表达“今日计划已开始过”、`todayExecuted` 表达“今日计划明确完成”、`scheduleMissedToday` 表达“错过未触发”，看 `docs/apps/12-application-state-machines.md` 和 `docs/apps/25-esp32-farmfeeder-web-api.md`。
+- 喂食器启动全部间隔默认值：推荐 `startAllIntervalMs=1000ms`，实机确认浪涌足够低后可调小，看 `docs/apps/14-configuration-and-defaults.md`。
 - Web 页面原型和信息架构：看 `docs/apps/19-web-page-prototypes.md`。
 - Esp32Base 系统页面、系统日志、App Config 和 FarmAuto 业务 API/记录边界：看 `docs/apps/23-esp32base-web-integration.md`。
 - 两个应用独立 Web/API：自动门看 `docs/apps/24-esp32-farmdoor-web-api.md`，喂食器看 `docs/apps/25-esp32-farmfeeder-web-api.md`。

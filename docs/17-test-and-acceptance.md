@@ -80,6 +80,7 @@ Esp32FarmFeeder：
 - 错过每日计划时间后不补投喂。
 - 投喂运行中断电后重启，不自动续喂、不自动补喂，并记录 `PowerLossAborted`。
 - 定时投喂中断后晚些时候来电，当天不再次自动触发该计划。
+- `scheduleAttemptedToday`、`todayExecuted`、`scheduleMissedToday` 在成功完成、错过计划、运行中断电三类场景下符合定义，且 status 和 schedule API 表达一致。
 - 每路饲料桶容量和估算余量可配置。
 - 第一版补料后可通过 Web 设置当前余量或记录加料量。
 - 投喂完成后按实际圈数和每圈克数扣减估算余量。
@@ -107,6 +108,7 @@ Web 与 Esp32Base 集成：
 - 应用业务记录页面使用 `/records`，不使用 `/logs`。
 - 应用业务记录不写入 Esp32Base Runtime FileLog `/logs/eb_app.log`。
 - 应用诊断页能清楚区分系统日志入口和业务记录入口。
+- 源码前完成 App Config 字段容量、应用 route 数量、响应 JSON 大小和长期记录导出 Watchdog 行为的验收。
 
 ## 硬件在环测试
 

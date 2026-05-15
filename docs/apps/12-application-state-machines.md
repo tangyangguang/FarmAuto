@@ -191,9 +191,16 @@ Maintenance
 | `scheduleTimeConfigured` | 已配置每日执行时间；未配置时不自动投喂 |
 | `timeValid` | 当前日期/时间可信；不可信时暂停自动定时 |
 | `skipToday` | 今日定时已跳过；日期切换后自动清除 |
-| `todayExecuted` | 今日计划已执行 |
+| `todayExecuted` | 今日计划已成功完成，或所有计划通道都得到明确最终结果；不用于表达断电中断 |
 | `scheduleAttemptedToday` | 今日计划已经开始过；即使被断电中断，也不自动再次触发 |
 | `scheduleMissedToday` | 今日计划错过且不补投喂，仅记录事件 |
+
+计划标志组合规则：
+
+1. `skipToday=true`：今日自动计划不触发，手动投喂不受影响。
+2. `scheduleAttemptedToday=true`：今日计划已经启动过；无论成功、部分成功还是断电中断，都不再次自动触发。
+3. `todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `todayExecuted=false`。
+4. `scheduleMissedToday=true` 表示计划时间已错过且未触发；它不应与 `scheduleAttemptedToday=true` 同时出现。
 
 关键事件：
 

@@ -70,7 +70,7 @@ Esp32FarmFeeder 页面：
 `GET /api/app/status` 应只包含喂食器字段：
 
 - 全局状态：`Idle`、`Starting`、`Running`、`Stopping`、`RollingDay`、`Degraded`、`Fault`、`Maintenance`。
-- 计划状态：scheduleEnabled、scheduleTimeConfigured、scheduleTimeMinutes、timeValid、skipToday、todayExecuted、scheduleMissedToday。
+- 计划状态：scheduleEnabled、scheduleTimeConfigured、scheduleTimeMinutes、timeValid、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
 - 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
 - 通道状态：channel、enabled、installed、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
 - 饲料桶：capacityGrams、remainGrams、remainPercent、lowWarningPercent、criticalWarningPercent、estimatedFeedCount、estimatedDays。
@@ -90,12 +90,20 @@ Esp32FarmFeeder 页面：
   "timeMinutes": 450,
   "channelMask": 7,
   "skipToday": false,
+  "scheduleAttemptedToday": false,
   "todayExecuted": false,
   "scheduleMissedToday": false,
   "timeValid": true,
   "nextRunUnixTime": 1778801400
 }
 ```
+
+计划状态语义：
+
+- `scheduleAttemptedToday`：今日计划已经开始过。即使运行中断电中断，也保持 true，用于阻止晚些时候来电后再次自动触发。
+- `todayExecuted`：今日计划已成功完成，或所有计划通道都得到明确最终结果；不用于表达断电中断。
+- `scheduleMissedToday`：计划时间已错过且未触发，且不会补投喂。
+- 组合规则：`todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `scheduleAttemptedToday=true` 且 `todayExecuted=false`；`scheduleMissedToday=true` 不应与 `scheduleAttemptedToday=true` 同时出现。
 
 `POST /api/app/schedule` 可修改：
 
