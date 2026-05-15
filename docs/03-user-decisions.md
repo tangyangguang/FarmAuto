@@ -23,16 +23,16 @@
 | C2 | 公共库字段表是否作为源码骨架前的接口冻结基线 | 已基本接受为语义基线，源码命名可小幅调整 | `docs/libs/26-public-library-interface-fields.md` | `docs/libs/25-public-library-freeze-decisions.md` | 暂无需逐字段回复；重大变化再提示确认 |
 | C3 | 公共库测试和 examples 是否作为首版验收要求 | 已基本接受，避免源码阶段只写能编译但不可验证的库 | `docs/libs/27-public-library-test-checklist.md`、`docs/libs/28-public-library-examples.md` | `docs/17-test-and-acceptance.md` | 暂无需回复 |
 | C4 | AT24C128 record region、slotCount、高频写入预算和低层后端策略 | 已基本接受两个应用各自独立 AT24C128 的预算草案，实机前按 writesPerDay 再算一遍；低层后端首版使用自研最小 `At24cDevice` | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md`、`docs/libs/29-at24c-low-level-driver-evaluation.md` | 暂无需回复；源码前复核容量和寿命预算 |
-| C5 | 自动门故障时默认 `Coast` 的安全性 | 先按 `Coast` 写入方案，但标为必须实机验证 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 是否确认先按 `Coast` 作为默认方案 |
-| C6 | 自动门断电恢复后位置可信的判定规则 | 建议采用“提交成功 + 限位不冲突 + 状态记录完整”才可信 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/30-persistence-and-migration.md` | 是否接受该判定规则 |
+| C5 | 自动门故障时默认 `Coast` 的安全性 | 已确认：先按 `Coast` 写入方案，保留实机验证项 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 暂无需回复；实机阶段复核滑行距离 |
+| C6 | 自动门断电恢复后位置可信的判定规则 | 已确认：采用“提交成功 + 限位不冲突 + 状态记录完整”才可信 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/30-persistence-and-migration.md` | 暂无需回复 |
 | C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 已给首版推荐值；源码前只需确认目标芯片资源、ADC 衰减和最终 PCB 引脚 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 源码前确认硬件资源表 |
-| C8 | 喂食器每日计划细节 | 建议首版只做每日一次或多次固定时间，支持跳过今日，不做复杂日历 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 确认每日时间、漏执行处理、时间无效处理 |
-| C9 | 喂食器停止全部策略 | 建议普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 是否接受推荐停止策略 |
+| C8 | 喂食器每日计划细节 | 已确认：默认不开启；必须显式启用、设置时间、选择参与通道，并配置每路投喂量 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 暂无需回复 |
+| C9 | 喂食器停止全部策略 | 已确认：普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 暂无需回复 |
 | C10 | Web/API 与远程维护范围 | 建议接受公共约定 + 两个应用独立 Web/API 文档；两个固件内可同名使用 `/api/app/*`，但 payload 和业务字段必须分开 | `docs/apps/13-web-api-and-maintenance.md` | `docs/apps/24-esp32-farmdoor-web-api.md`、`docs/apps/25-esp32-farmfeeder-web-api.md`、`docs/apps/23-esp32base-web-integration.md`、`docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
 | C11 | 长期原始记录策略 | 已采用推荐策略：ESP32 flash 文件系统，1MB 起步、空间允许用 2MB，按天分段轮转 | `docs/apps/18-long-term-records.md` | `docs/apps/14-configuration-and-defaults.md`、`docs/30-persistence-and-migration.md` | 源码前只需确认实际分区表 |
-| C12 | Web 页面原型是否作为首版页面信息架构 | 建议接受，先按状态控制、维护、记录、诊断和领域业务页面实现；系统参数使用 Esp32Base App Config | `docs/apps/19-web-page-prototypes.md` | `docs/apps/13-web-api-and-maintenance.md`、`docs/apps/23-esp32base-web-integration.md` | 是否接受 C12；如不接受，指出页面或信息项调整 |
+| C12 | Web 页面原型是否作为首版页面信息架构 | 基本接受方向；需要做成原型页面后再最终确认交互细节 | `docs/apps/19-web-page-prototypes.md` | `docs/apps/13-web-api-and-maintenance.md`、`docs/apps/23-esp32base-web-integration.md` | 原型页面阶段确认 |
 | C13 | 应用系统参数是否使用 Esp32Base App Config | 已接受原则：系统配置进 App Config；业务运行数据和维护动作进专门业务页面 | `docs/apps/14-configuration-and-defaults.md` | `docs/apps/19-web-page-prototypes.md` | 源码前按字段数确认 App Config 容量 |
-| C14 | 饲料桶余量感知路线 | 已确认：第一版软件扣减估算，不加硬件；下一阶段再评估每路料桶称重 | `docs/apps/20-feeder-bucket-level-sensing.md` | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | 暂无需回复 |
+| C14 | 饲料桶余量感知路线 | 已确认：第一版软件扣减估算，不加硬件；下一阶段优先评估低成本红外/光电低料位告警，称重作为更准确但更复杂的连续余量方案 | `docs/apps/20-feeder-bucket-level-sensing.md` | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | 暂无需回复 |
 
 ## 公共库决策
 
@@ -131,7 +131,7 @@
 | 单路故障时其他路是否继续 | 继续 | 故障通道停止并记录，其他通道按计划继续 |
 | 投喂目标配置 | 同时支持克数模式和圈数模式 | 克数贴近投喂目标，圈数适合标定前和调试 |
 | 饲料桶容量 | 每路独立配置 | 每路饲料桶大小可能不同 |
-| 饲料桶余量感知 | 第一版软件扣减估算，下一阶段每路独立称重 | 称重直接测重量，比超声/光电更适合“还剩多少饲料” |
+| 饲料桶余量感知 | 第一版软件扣减估算，下一阶段优先评估低成本红外/光电低料位告警；称重作为更准确但更复杂的连续余量方案 | 红外/光电更便宜、结构简单，但只能做点位告警；称重能直接测重量，但安装、成本、标定和结构要求更高 |
 | 历史记录保存粒度 | 原始记录尽量完整，时间尽量长，目标按多年考虑 | 首版优先考虑 ESP32 flash 文件系统；不能按旧方案只保留少量历史 |
 
 ## 尚需继续确认的应用细节

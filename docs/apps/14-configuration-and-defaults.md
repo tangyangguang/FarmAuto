@@ -86,6 +86,8 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 
 Esp32FarmDoor 维护/运行数据，不放在 App Config：
 
+行程类参数在 Web 页面上优先用圈数展示和输入，内部按 `outputPulsesPerRev` 换算为脉冲保存。最大运行圈数和最大运行时间是保底保护边界，触发时默认记录保护停止或告警；只有连续重复触发或伴随电流、编码器、方向、限位冲突等异常时，才升级为故障。
+
 - `ina240ZeroOffsetMv`：INA240A2 零点校准结果，由维护页写入。
 - `currentPositionPulses`：当前位置，由运行停止、故障或端点维护后保存。
 - `openEndpointSnapshot` / `closeEndpointSnapshot`：端点快照，由维护流程保存。

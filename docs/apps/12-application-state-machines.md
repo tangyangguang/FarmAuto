@@ -197,6 +197,8 @@ Maintenance
 
 计划标志组合规则：
 
+首版默认不开启每日自动投喂；启用前必须配置执行时间、参与通道和每个参与通道的投喂目标。
+
 1. `skipToday=true`：今日自动计划不触发，手动投喂不受影响。
 2. `scheduleAttemptedToday=true`：今日计划已经启动过；无论成功、部分成功还是断电中断，都不再次自动触发。
 3. `todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `todayExecuted=false`。

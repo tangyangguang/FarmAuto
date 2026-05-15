@@ -110,6 +110,7 @@ Esp32FarmFeeder 页面：
 - `enabled`：是否启用每日计划。
 - `timeMinutes`：当天 0..1439 分钟；未提供或显式清空表示不配置时间。
 - `channelMask`：计划包含哪些通道，只能包含已安装且已启用通道。
+- 每日自动投喂默认关闭。启用时必须同时满足：`enabled=true`、`timeMinutes` 已配置、`channelMask` 非 0，且参与通道都有有效投喂目标。
 
 规则：
 
