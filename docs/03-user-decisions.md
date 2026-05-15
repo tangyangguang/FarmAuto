@@ -30,7 +30,7 @@
 | C9 | 喂食器停止全部策略 | 已确认：普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 暂无需回复 |
 | C10 | Web/API 与远程维护范围 | 建议接受公共约定 + 两个应用独立 Web/API 文档；两个固件内可同名使用 `/api/app/*`，但 payload 和业务字段必须分开 | `docs/apps/13-web-api-and-maintenance.md` | `docs/apps/24-esp32-farmdoor-web-api.md`、`docs/apps/25-esp32-farmfeeder-web-api.md`、`docs/apps/23-esp32base-web-integration.md`、`docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
 | C11 | 长期原始记录策略 | 已采用推荐策略：ESP32 flash 文件系统，1MB 起步、空间允许用 2MB，按天分段轮转 | `docs/apps/18-long-term-records.md` | `docs/apps/14-configuration-and-defaults.md`、`docs/30-persistence-and-migration.md` | 源码前只需确认实际分区表 |
-| C12 | Web 页面原型是否作为首版页面信息架构 | 已确认：先按当前拆分推进；自动门首页合并控制页；喂食器展示形式以手机体验和操作合理性为准；HTML 原型阶段再逐页确认 | `docs/apps/26-web-prototype-review.md` | `docs/apps/19-web-page-prototypes.md`、`docs/apps/13-web-api-and-maintenance.md`、`docs/apps/23-esp32base-web-integration.md` | HTML 原型阶段确认具体页面内容 |
+| C12 | Web 页面原型是否作为首版页面信息架构 | 已确认：先按当前拆分推进；自动门首页合并控制页；喂食器展示形式以手机体验和操作合理性为准；静态 HTML 原型已生成，下一步逐页确认 | `docs/apps/26-web-prototype-review.md` | `docs/prototypes/web/index.html`、`docs/apps/19-web-page-prototypes.md`、`docs/apps/23-esp32base-web-integration.md` | 确认静态页面内容 |
 | C13 | 应用系统参数是否使用 Esp32Base App Config | 已接受原则：系统配置进 App Config；业务运行数据和维护动作进专门业务页面 | `docs/apps/14-configuration-and-defaults.md` | `docs/apps/19-web-page-prototypes.md` | 源码前按字段数确认 App Config 容量 |
 | C14 | 饲料桶余量感知路线 | 已确认：第一版软件扣减估算，不加硬件；下一阶段优先评估低成本红外/光电低料位告警，称重作为更准确但更复杂的连续余量方案 | `docs/apps/20-feeder-bucket-level-sensing.md` | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | 暂无需回复 |
 

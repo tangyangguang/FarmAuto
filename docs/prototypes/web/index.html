@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FarmAuto Web 原型</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="content">
+    <div class="topbar">
+      <div class="title-block">
+        <h1>FarmAuto Web 原型</h1>
+        <div class="subtle">静态页面，仅用于确认页面结构和交互内容，不代表固件实现。</div>
+      </div>
+      <div class="status-strip">
+        <span class="pill ok">文档阶段</span>
+        <span class="pill warn">非应用代码</span>
+      </div>
+    </div>
+
+    <div class="page-note">
+      确认完这些页面后，再进入架构编码。业务页面和 Esp32Base 系统页面保持独立：系统参数、系统日志、OTA、WiFi 等仍归 Esp32Base。
+    </div>
+
+    <section class="prototype-grid">
+      <article class="prototype-tile">
+        <h2>Esp32FarmDoor</h2>
+        <p>自动门页面原型：状态控制、端点维护、业务记录、诊断摘要。</p>
+        <a class="button primary" href="esp32-farmdoor.html">查看自动门原型</a>
+      </article>
+      <article class="prototype-tile">
+        <h2>Esp32FarmFeeder</h2>
+        <p>喂食器页面原型：三路状态、投喂计划、饲料桶、标定、业务记录。</p>
+        <a class="button primary" href="esp32-farmfeeder.html">查看喂食器原型</a>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
