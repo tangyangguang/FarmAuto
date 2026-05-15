@@ -26,7 +26,7 @@
 | --- | --- | --- |
 | 系统配置 | Esp32Base App Config + Esp32Base 持久化 | 电机速度、软启动、减速比、最大运行时间、安全阈值、是否启用某硬件 |
 | 业务配置 | 应用业务页面 + 应用持久化服务 | 喂食目标、每日计划、饲料桶容量、低余量阈值 |
-| 维护/校准数据 | 应用维护页面 + AT24C128 关键记录 | INA240 零点、每圈克数标定、端点快照、当前位置基准 |
+| 维护/校准数据 | 应用校准/诊断页面 + AT24C128 关键记录 | INA240 零点、每圈克数标定、端点快照、当前位置基准 |
 | 运行状态 | 应用状态机 + AT24C128/flash | 当前位置、跳过今日、今日计数、当前估算余量、最近故障、长期原始记录 |
 
 ## 编码器计数口径
@@ -58,20 +58,20 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | motorSpeedPercent | % | 80 | 1-100 | 否 | 待实机确认 |
 | softStartMs | ms | 1000 | 0-10000 | 否 | 独立软启动 |
 | softStopMs | ms | 500 | 0-10000 | 否 | 独立软停止 |
-| openTargetTurnsX100 | 0.01 圈 | 维护流程设置 | >0 | 否 | 开门行程圈数；维护页可直接设置或微调，也可由 openTargetPulses 换算 |
-| jogMaxMs | ms | 1000 | 100-3000 | 否 | 单次维护点动最大时长 |
-| jogSpeedPercent | % | 30 | 1-50 | 否 | 维护点动速度 |
+| openTargetTurnsX100 | 0.01 圈 | 行程校准生成 | >0 | 否 | 开门行程圈数；可在 Esp32Base App Config 直接修改，也可由行程校准页“用当前位置更新开门目标”自动生成 |
+| jogMaxMs | ms | 1000 | 100-3000 | 否 | 单次手动运行最大时长 |
+| jogSpeedPercent | % | 30 | 10-100 | 否 | 行程校准手动运行速度 |
 | gearRatioX100 | 0.01 | 13100 | >0 | 否 | 131:1 |
 | motorShaftPulsesPerRev | pulses | 16 | >0 | 否 | 默认 X1 单边计数 |
 | countMode | enum | X1 | X1/X2/X4 | 否 | 默认 X1，保持与标称 16 脉冲口径一致 |
 | outputPulsesPerRev | pulses | 2096 | >0 | 否 | 可由参数计算，也允许手动覆盖 |
 | outputPulsesPerRevOverrideEnabled | bool | false | true/false | 否 | true 时使用手动值 |
-| travelAdjustStepTurnsX100 | 0.01 圈 | 10 | >0 | 否 | 维护页微调行程默认步长，0.10 圈 |
+| travelAdjustStepTurnsX100 | 0.01 圈 | 25 | >0 | 否 | 行程校准手动运行默认步长，0.25 圈 |
 | currentGuardEnabled | bool | true | true/false | 否 | 可关闭 |
 | currentFaultThresholdMa | mA | 2500 | >0 | 否 | 待实机确认 |
 | rsenseMilliOhm | mΩ | 5 | >0 | 否 | 待实物确认 |
-| maxRunMs | ms | 目标运行估算 * 150% | >0 | 否 | 安全兜底，源码按端点维护结果生成初始值 |
-| maxRunPulses | pulses | openTargetPulses * 120% | >0 | 否 | 安全兜底，源码按端点维护结果生成初始值 |
+| maxRunMs | ms | 目标运行估算 * 150% | >0 | 否 | 安全兜底，源码按行程校准结果生成初始值 |
+| maxRunPulses | pulses | openTargetPulses * 120% | >0 | 否 | 安全兜底，源码按行程校准结果生成初始值 |
 | openLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 第一版默认禁用，下一阶段优先启用开门/上限位 |
 | closeLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 关门/下限位，可选 |
 | limitDebounceMs | ms | 50 | 5-500 | 否 | 限位稳定时间 |
@@ -84,13 +84,13 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | motionCheckpointMinTravelPercent | % | 5 | 1-20 | 否 | 运行中断电恢复检查点最小行程变化 |
 | recoveredFirstMoveSpeedPercent | % | 50 | 1-100 | 否 | 断电恢复后第一次动作速度，不高于正常速度 |
 
-Esp32FarmDoor 维护/运行数据，不放在 App Config：
+Esp32FarmDoor 校准/运行数据，不放在 App Config：
 
 行程类参数在 Web 页面上优先用圈数展示和输入，内部按 `outputPulsesPerRev` 换算为脉冲保存。最大运行圈数和最大运行时间是保底保护边界，触发时默认记录保护停止或告警；只有连续重复触发或伴随电流、编码器、方向、限位冲突等异常时，才升级为故障。
 
-- `ina240ZeroOffsetMv`：INA240A2 零点校准结果，由维护页写入。
-- `currentPositionPulses`：当前位置，由运行停止、故障或端点维护后保存。
-- `openEndpointSnapshot` / `closeEndpointSnapshot`：端点快照，由维护流程保存。
+- `ina240ZeroOffsetMv`：INA240A2 零点校准结果，由诊断页写入。
+- `currentPositionPulses`：当前位置，由运行停止、故障或行程校准后保存。
+- `openEndpointSnapshot` / `closeEndpointSnapshot`：端点快照，由行程校准流程保存。
 - 最近故障、最近停止原因、长期原始记录索引。
 
 ## Esp32FarmFeeder 系统配置草案
