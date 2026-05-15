@@ -87,6 +87,7 @@ Esp32FarmFeeder 页面：
 ```json
 {
   "timeValid": true,
+  "maxPlans": 6,
   "nextPlanId": 2,
   "nextRunUnixTime": 1778801400,
   "plans": [
@@ -127,6 +128,7 @@ Esp32FarmFeeder 页面：
 
 规则：
 
+- 首版最多 6 条计划；新增第 7 条返回 `InvalidState` 或 `StorageError` 中更合适的业务错误码，推荐 `InvalidState`。
 - 未配置时间时，该计划视为未启用。
 - `channelMask=0` 时不执行计划。
 - 修改计划不清除长期记录。

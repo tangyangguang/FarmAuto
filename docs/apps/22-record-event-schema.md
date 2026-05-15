@@ -76,6 +76,7 @@
 
 | eventType | 触发时机 | payload 字段 |
 | --- | --- | --- |
+| `MaintenanceFlowRequested` | 进入维护子流程 | flowName、entryReason、positionTrustLevel |
 | `DoorManualMove` | 手动运行完成 | direction、durationMs、deltaPulses、stopReason |
 | `DoorPositionSet` | 设置当前位置 | oldPositionPulses、newPositionPulses、reason |
 | `DoorTravelSet` | 直接设置行程 | oldTravelPulses、newTravelPulses、travelTurnsX100、source |
