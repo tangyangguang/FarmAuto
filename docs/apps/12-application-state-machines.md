@@ -51,6 +51,7 @@ Fault
 - 端点维护完成后，如果 `openTargetPulses`、`maxRunPulses`、`maxCloseUnwindPulses` 都有效，才允许回到 `IdleClosed` / `IdleOpen` / `IdlePartial`。
 - 维护模式支持直接设置开关门行程圈数或脉冲数，并支持小步微调。直接设置后建议进入 `EndpointVerifying`；若跳过验证，位置来源应标记为低可信。
 - 运行中断电后重启，应优先通过 motion journal 和最近位置检查点恢复到 `IdlePartial` 或可判断的端点状态；只有记录无效、越界或与限位冲突时才进入 `PositionUnknown`。
+- 可信断电恢复不要求用户确认；恢复后的首次动作由系统自动套用保守速度和剩余距离限制。低可信恢复才要求远程确认或维护处理。
 - 用户主动停止后进入 `Stopped`，再次开门时目标仍为开门目标，再次关门时目标为关闭点；不从当前位置重新定义端点。
 - `Stopped` 不是故障状态。它表达“用户主动停止后位置可信但不一定在端点”，通常可转入 `IdlePartial` 或继续执行用户下一条开/关命令。
 - 第一版无限位端点示教需要远程视频、现场观察或明确机械标记辅助判断；如果无法确认位置，系统应保持 `PositionUnknown`，不开放普通开关门。
