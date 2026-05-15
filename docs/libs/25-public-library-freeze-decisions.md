@@ -92,7 +92,7 @@
 | 写前比较 | 默认开启，相同内容返回 `Unchanged` | 降低 EEPROM 写入次数 |
 | 记录状态 | 首版使用 `Empty` / `Writing` / `Valid`，不主动写 `Retired` | 少一次写入，降低寿命消耗，读取时按 sequence 选最新即可 |
 | 写入原子性 | 先写 `Writing` 完整记录，校验后再更新为 `Valid` | 断电时可忽略未完成记录，保留上一个有效记录 |
-| CRC | header CRC 排除自身字段，payload CRC 单独计算 | 容易实现和排错 |
+| CRC | CRC-32/ISO-HDLC；header CRC 排除自身字段，payload CRC 单独计算 | 算法明确后持久化格式可稳定，容易实现和排错 |
 | 字节序 | 固定小端 | ESP32 原生友好，文档明确后跨版本可维护 |
 | sequence | `uint32_t` 递增，回绕用半区间比较 | 简单够用，避免回绕时误选旧记录 |
 | payload 大小 | 每个 region 固定 `slotSize`，超长返回 `PayloadTooLarge` | 不做动态分配，容量预算可控 |

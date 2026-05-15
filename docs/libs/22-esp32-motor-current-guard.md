@@ -60,6 +60,7 @@ I = Vshunt / Rsense
 需要支持：
 
 - 零点校准。
+- ESP32 ADC 校准曲线或 eFuse 校准数据接入。
 - ADC 原始值读取。
 - 电压换算。
 - mA 换算。
@@ -254,8 +255,7 @@ CurrentTracePoint
 - 具体芯片采样类提供原始采样。
 - `MotorCurrentGuard` 提供滤波后采样和状态。
 - 上层项目负责保存最近一段时间的 ring buffer，并通过自己的 API 输出 JSON。
-- 公共库可以提供一个可选的小型 `CurrentTraceBuffer` 工具类，但不作为保护判定的必需依赖。
-- `CurrentTraceBuffer` 必须固定容量、非阻塞、无动态扩容，避免影响实时保护。
+- 首版公共库只提供 `latestTracePoint()` 单点接口，不实现 `CurrentTraceBuffer` 工具类。
 
 这样既能支持远程诊断图表，又不会把 Web、历史存储或业务展示塞进公共库。
 
@@ -308,6 +308,9 @@ INA240A2 的 ADC 配置必须由最大输出电压范围反推，不能写死。
 建议原则：
 
 - `adcAttenuation` 由 `adcReferenceMv`、INA240A2 输出范围和 ESP32 ADC 可测范围决定。
+- 必须使用 Arduino ESP32 / ESP-IDF 可用的 ADC 校准能力，例如 eFuse Vref/two-point 校准或等效校准曲线；不能只用理想 0..4095 线性换算作为保护阈值依据。
+- 如果目标芯片或 Core 版本无法提供可靠 ADC 校准，应用必须把电流保护标记为“需实测确认”，并提高阈值裕量，避免误触发或漏触发。
+- 阈值设置页面应保留零点、实测空载电流、实测堵转/过载电流和 ADC 饱和计数，便于远程判断保护是否可信。
 - 零点校准应在被测电机无电流或断电状态下执行。
 - 校准结果只保存零点偏移，不在传感器类中自行持久化。
 - PWM 噪声明显时，上层应固定采样周期，并通过实测决定是否避开 PWM 边沿。

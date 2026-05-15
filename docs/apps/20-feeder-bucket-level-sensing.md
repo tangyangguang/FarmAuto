@@ -33,16 +33,16 @@
 
 每路配置：
 
-- `bucketCapacityGrams`：料桶容量。
-- `bucketRemainGrams`：当前估算余量。
+- `bucketCapacityGramsX100`：料桶容量，单位 0.01g。
+- `bucketRemainGramsX100`：当前估算余量，单位 0.01g。
 - `lowBucketWarningPercent`：低余量告警阈值，默认 20%。
 - `criticalBucketWarningPercent`：严重低余量阈值，默认 10%。
-- `gramsPerRevolution`：每圈下料克数，每路独立标定。
+- `gramsPerRevX100`：每圈下料克数，每路独立标定，单位 0.01g。
 
 每次投喂完成后：
 
 - 保存本次实际运行脉冲、换算圈数、估算克数。
-- 从 `bucketRemainGrams` 扣减估算克数。
+- 从 `bucketRemainGramsX100` 扣减估算克数。
 - 余量低于阈值时产生告警和长期记录。
 - 余量不得扣成负数；低于 0 时显示为 0，并记录估算溢出事件。
 
@@ -50,7 +50,7 @@
 
 - Web 维护页提供“设置当前余量”和“记录加料量”两种方式。
 - 补料记录进入长期原始记录。
-- 如果用户选择“已加满”，则当前余量设置为该路 `bucketCapacityGrams`。
+- 如果用户选择“已加满”，则当前余量设置为该路 `bucketCapacityGramsX100`。
 
 显示建议：
 

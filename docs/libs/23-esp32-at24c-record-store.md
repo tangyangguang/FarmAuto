@@ -198,7 +198,8 @@ CRC 和字节序规则：
 - 固定使用小端字节序。
 - `payloadCrc` 覆盖 payload 全部字节。
 - `headerCrc` 覆盖 record header 中除 `headerCrc` 自身以外的字段。
-- CRC 算法进入源码前必须固定，后续变更需要提升 layout 或 schema version。
+- CRC 算法首版固定为 CRC-32/ISO-HDLC；后续变更需要提升 layout version 或 schema version，并提供迁移/兼容读取方案。
+- 所有 header 和 payload 字段必须字段级显式序列化，禁止直接把 C++ 结构体内存写入 EEPROM；结构体对齐、padding 和编译器差异不能进入持久化格式。
 - header 必须保证不跨 EEPROM 页，避免提交 `Valid` 时出现跨页半写。
 
 sequence 规则：

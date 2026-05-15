@@ -74,7 +74,7 @@ Esp32FarmFeeder 页面：
 - 计划状态：planCount、nextPlanId、nextPlanTimeMinutes、timeValid，以及每个计划的 enabled、timeMinutes、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
 - 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
 - 通道状态：channel、enabled、installed、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
-- 饲料桶：capacityGrams、remainGrams、remainPercent、lowWarningPercent、criticalWarningPercent、estimatedFeedCount、estimatedDays。
+- 饲料桶：capacityGramsX100、remainGramsX100、remainPercent、lowWarningPercent、criticalWarningPercent、estimatedFeedCount、estimatedDays。
 - 存储：AT24C 在线状态、flash 剩余空间、最近写入错误、记录范围。
 - 最近命令：commandId、source、channelMask、startedAt、result。
 
@@ -176,8 +176,8 @@ Esp32FarmFeeder 页面：
   "channels": [
     {
       "channel": 1,
-      "capacityGrams": 5000,
-      "remainGrams": 3200,
+      "capacityGramsX100": 500000,
+      "remainGramsX100": 320000,
       "remainPercent": 64,
       "lowWarningPercent": 20,
       "criticalWarningPercent": 10,
@@ -191,13 +191,13 @@ Esp32FarmFeeder 页面：
 
 饲料桶写入 API：
 
-- `set-remaining`：直接设置 `remainGrams`，必须二次确认。
-- `add-feed`：增加 `addedGrams`，结果不得超过 `capacityGrams`。
-- `mark-full`：把 `remainGrams` 设置为 `capacityGrams`。
+- `set-remaining`：直接设置 `remainGramsX100`，必须二次确认。
+- `add-feed`：增加 `addedGramsX100`，结果不得超过 `capacityGramsX100`。
+- `mark-full`：把 `remainGramsX100` 设置为 `capacityGramsX100`。
 
 规则：
 
-- `capacityGrams`、低余量阈值和严重低余量阈值属于饲料桶页面的业务配置，不放 Esp32Base App Config。
+- `capacityGramsX100`、低余量阈值和严重低余量阈值属于饲料桶页面的业务配置，不放 Esp32Base App Config。
 - 修改容量时默认不改变当前余量；如需要同步填满，使用 `mark-full`。
 - 每次补料、设置余量、投喂扣减和低余量告警都写入长期业务记录。
 - 余量不得扣成负数；扣减后小于 0 时显示 0，并记录 underflow。

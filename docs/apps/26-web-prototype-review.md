@@ -91,7 +91,7 @@
 
 | 区域 | 字段 |
 | --- | --- |
-| 状态 | doorState、positionTrusted、positionSource、lastSavedAt |
+| 状态 | doorState、positionTrustLevel、positionSource、lastSavedAt |
 | 位置 | currentPositionTurns、currentPositionPulses、openTargetTurns、closeTargetTurns |
 | 保护 | maxRunTurns、maxRunMs、lastStopReason |
 | 电机 | motorState、speed、outputPercent、remainingTurns |
@@ -158,7 +158,7 @@
 | --- | --- |
 | 全局 | feederState、runningCount、enabledChannelMask、faultChannelMask |
 | 今日计划 | enabled、timeConfigured、timeMinutes、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday |
-| 通道表 | channel、enabled、installed、motorState、targetMode、target、todayGrams、remainPercent、faultReason |
+| 通道表 | channel、enabled、installed、motorState、targetMode、target、todayGramsX100、remainPercent、faultReason |
 | 存储 | AT24C、flash、记录范围、最近错误 |
 | 告警 | 断电中断、低余量、存储告警、通道故障 |
 
@@ -240,7 +240,7 @@
 1. 选择通道。
 2. 手工输入每圈下料克数。
 3. 选择参数来源，例如手工输入或历史实测。
-4. 保存 `gramsPerRevolution`。
+4. 保存 `gramsPerRevX100`。
 
 标定页不做实际运转测试。若后续需要电机试运行，应作为维护测试功能单独确认，不混入参数标定页。
 

@@ -258,8 +258,8 @@ MotorTracePoint
 - `snapshot()` 提供当前状态。
 - `latestTracePoint()` 提供适合上层采样的轻量时间序列点。
 - 上层项目维护固定容量 ring buffer，并通过自己的 Web/API 输出 JSON。
-- 电机库可以提供可选的小型 `MotorTraceBuffer` 工具类，但不作为运动控制必需依赖。
-- trace buffer 必须固定容量、非阻塞、无动态扩容，避免影响电机控制实时性。
+- 首版公共库只提供 `latestTracePoint()` 单点接口，不实现 `MotorTraceBuffer` 工具类。
+- 上层应用如果需要曲线展示，应在应用层维护固定容量缓冲并降采样，避免把 Web 图表需求塞进运动控制核心。
 
 ## 故障原因
 

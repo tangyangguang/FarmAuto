@@ -19,11 +19,7 @@ IdlePartial
 Opening
 Closing
 Stopping
-Stopped
 Maintenance
-EndpointTeaching
-EndpointVerifying
-LimitHoming
 Fault
 ```
 
@@ -37,23 +33,19 @@ Fault
 - `Opening`：正在开门。
 - `Closing`：正在关门。
 - `Stopping`：正在按停止策略停机。普通停止可软停止，故障停止可直接按设备配置 `Coast` 或 `Brake` 输出。
-- `Stopped`：用户主动停止后的稳定状态。
-- `Maintenance`：维护模式，允许端点校准、格式化、校准等危险操作。
-- `EndpointTeaching`：第一版无限位端点示教中，通过指定圈数试运行、标定关门状态、标定开门状态建立位置基准。
-- `EndpointVerifying`：端点低速验证中，验证关闭点、开门目标、安全上限和保护参数。
-- `LimitHoming`：下一阶段启用开门/上限位后，低速寻找上限位并建立开门端点。
+- `Maintenance`：维护模式，允许端点校准、格式化、校准等危险操作。端点示教、端点验证、下一阶段上限位寻零都作为 `activeFlow` 表达，不再提升为长期主状态。
 - `Fault`：故障停机。限位断线、异常方向触发、上下限位冲突等下一阶段限位问题，都进入 `Fault`，通过 `faultReason=LimitFault/...` 区分；不单独设置长期业务主状态。
 
 第一版无限位状态规则：
 
 - `PositionUnknown` 下禁止普通 `OpenRequested` / `CloseRequested`。
-- `PositionUnknown` 只允许进入 `Maintenance`，再进入 `EndpointTeaching` 或下一阶段 `LimitHoming`。
+- `PositionUnknown` 只允许进入 `Maintenance`，再通过 `activeFlow=EndpointTeaching` 或下一阶段 `activeFlow=LimitHoming` 处理。
 - 端点维护完成后，如果 `openTargetPulses`、`maxRunPulses`、`maxCloseUnwindPulses` 都有效，才允许回到 `IdleClosed` / `IdleOpen` / `IdlePartial`。
 - 维护模式支持直接设置开关门行程圈数或脉冲数，并支持小步微调。直接设置后建议进入 `EndpointVerifying`；若跳过验证，位置来源应标记为低可信。
 - 运行中断电后重启，应优先通过 motion journal 和最近位置检查点恢复到 `IdlePartial` 或可判断的端点状态；只有记录无效、越界或与限位冲突时才进入 `PositionUnknown`。
 - 可信断电恢复不要求用户确认；恢复后的首次动作由系统自动套用保守速度和剩余距离限制。低可信恢复才要求远程确认或维护处理。
-- 用户主动停止后进入 `Stopped`，再次开门时目标仍为开门目标，再次关门时目标为关闭点；不从当前位置重新定义端点。
-- `Stopped` 不是故障状态。它表达“用户主动停止后位置可信但不一定在端点”，通常可转入 `IdlePartial` 或继续执行用户下一条开/关命令。
+- 用户主动停止完成后，如果位置可信但不在端点，进入 `IdlePartial`，并通过 `lastStopReason=UserStop` 表达“用户主动停止”。不要再引入单独的 `Stopped` 主状态，避免和 `IdlePartial` 语义重叠。
+- 再次开门时目标仍为开门目标，再次关门时目标为关闭点；不从当前位置重新定义端点。
 - 第一版无限位端点示教需要远程视频、现场观察或明确机械标记辅助判断；如果无法确认位置，系统应保持 `PositionUnknown`，不开放普通开关门。
 
 关键事件：
@@ -63,9 +55,7 @@ BootCompleted
 OpenRequested
 CloseRequested
 StopRequested
-EndpointTeachingRequested
-EndpointVerifyRequested
-LimitHomingRequested
+MaintenanceFlowRequested
 TravelSetRequested
 TravelAdjusted
 TargetReached

@@ -12,7 +12,7 @@ Esp32FarmDoor 页面：
 
 - `/`：自动门总览，显示门状态、位置、端点、电机、电流、存储和最近事件。
 - `/control`：开门、关门、停止、清除故障。
-- `/maintenance`：无限位端点示教、低速点动、端点验证、INA240A2 零点校准、存储检查。
+- `/maintenance`：无限位端点示教、手动运行、端点验证、INA240A2 零点校准、存储检查。
 - `/records`：自动门长期业务记录查询和导出。
 - `/diagnostics`：自动门业务诊断包，含状态 snapshot、端点快照、最近事件、AT24C inspect、flash 记录范围、电流 trace 摘要。
 
@@ -36,7 +36,7 @@ Esp32FarmDoor 页面：
 
 维护：
 
-- `POST /api/app/maintenance/jog`
+- `POST /api/app/maintenance/manual-move`
 - `POST /api/app/maintenance/set-position`
 - `POST /api/app/maintenance/set-travel`
 - `POST /api/app/maintenance/adjust-travel`
@@ -51,15 +51,23 @@ Esp32FarmDoor 页面：
 
 `GET /api/app/status` 应只包含自动门字段：
 
-- 应用状态：`PositionUnknown`、`IdleClosed`、`IdleOpen`、`IdlePartial`、`Opening`、`Closing`、`Stopping`、`Stopped`、`Maintenance`、`EndpointTeaching`、`EndpointVerifying`、`LimitHoming`、`Fault`。
-- 当前位置：positionPulses、positionPercent、positionTrusted、positionSource、lastPositionSavedAt。
+- 应用状态：`PositionUnknown`、`IdleClosed`、`IdleOpen`、`IdlePartial`、`Opening`、`Closing`、`Stopping`、`Maintenance`、`Fault`。
+- 维护流程：activeFlow，可为空，或为 `EndpointTeaching`、`EndpointVerifying`、`LimitHoming`、`CurrentZeroCalibration`、`StorageFormat`。
+- 当前位置：positionPulses、positionPercent、positionTrustLevel、positionSource、lastPositionSavedAt。
 - 端点：closePositionPulses、openTargetPulses、maxRunPulses、maxCloseUnwindPulses。
-- 行程：travelTurnsX100、travelPulses、positionSource、positionConfidence。
+- 行程：travelTurnsX100、travelPulses、positionConfidence。
 - 限位：第一版显示禁用；下一阶段显示 openLimit/closeLimit 的启用、触发、断线和冲突状态。
 - 电机：state、speedPps、outputPercent、remainingPulses、faultReason。
 - 电流：enabled、currentMa、filteredMa、thresholdMa、guardState、faultReason。
 - 存储：AT24C 在线状态、flash 剩余空间、最近写入错误、记录范围。
 - 最近命令：commandId、command、source、startedAt、result。
+- 最近停止原因：lastStopReason，例如 TargetReached、UserStop、MaxRunTime、MaxRunPulses、OverCurrent、EncoderNoPulse。
+
+`positionTrustLevel` 固定为枚举，不再同时使用 bool 和字符串：
+
+- `Trusted`：位置记录和恢复条件可信，可正常远程开关门。
+- `Limited`：位置大致可信但未经验证；页面必须提示，首次动作自动限速和限幅。
+- `Untrusted`：位置不可用，只允许维护/行程校准流程。
 
 不得包含喂食器通道、饲料桶、每日计划、今日投喂等字段。
 
@@ -89,8 +97,8 @@ Esp32FarmDoor 页面：
 第一版不安装限位开关时：
 
 - `PositionUnknown` 下禁止普通开门和关门。
-- 允许进入维护页执行低速点动、设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程和低速端点验证。
-- `jog` 单次动作必须限制最大时长和最大脉冲。
+- 允许进入行程校准页执行手动运行、设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程和低速端点验证。
+- `manual-move` 单次动作必须限制最大时长和最大脉冲，并允许随时停止。
 - 端点验证成功前，不建议退出 `PositionUnknown` 进入普通控制；如果用户选择直接设置行程但跳过验证，必须标记为低可信恢复来源并持续提示。
 - 没有远程视频、现场观察或机械标记时，不建议远程重新示教端点。
 
@@ -110,5 +118,6 @@ Esp32FarmDoor 页面：
 
 - `POST /api/app/maintenance/calibrate-open-limit` 只发起低速寻限位流程，不在 HTTP handler 内等待完成。
 - 触发上限位后立即按到位策略停机，保存开门端点。
-- 达到最大时长或最大脉冲仍未触发上限位时，进入故障。
+- 普通开门/关门达到最大时长或最大圈数时，先保护停止并记录 warning/保护事件；是否升级为 `Fault` 取决于当时命令、位置可信度、编码器/电流状态和限位状态。
+- 只有在“明确执行上限位校准/寻限位流程”且达到该流程的最大时长或最大圈数仍未触发上限位时，才按校准失败进入 `Fault`。
 - 限位断线、异常方向触发、上下限位冲突都进入 `Fault`，通过 faultReason 区分。

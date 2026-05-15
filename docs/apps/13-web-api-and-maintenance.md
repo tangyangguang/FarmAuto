@@ -34,6 +34,18 @@ FarmAuto 应用页面和 API 不复用这些路径表达业务语义：
 
 说明：`/api/app/*` 在两个应用里可以同名，因为它们运行在不同固件和不同设备上，不会部署到同一个 WebServer。文档按应用拆分，避免误解为共享业务 API。
 
+## 网络安全边界
+
+首版 Web 以本地局域网 HTTP 为默认前提，认证和会话能力复用 Esp32Base。它不是公网暴露接口，也不把 HTTP Basic/Cookie 当作互联网级安全方案。
+
+推荐部署边界：
+
+- 设备只接入可信局域网、专用 WiFi 或 VPN。
+- 不做端口映射到公网。
+- 正式设备默认启用 Esp32Base Web Auth。
+- 危险操作仍需要应用级 confirm token，即使已经登录。
+- 如果未来需要公网或跨网访问，应先评估 HTTPS、反向代理/VPN、证书、会话超时和审计，不在 FarmAuto 首版临时加简单开关。
+
 ## 系统日志与业务记录
 
 - Esp32Base 系统日志用于 WiFi、OTA、启动、文件系统、route 错误和运行时调试。
@@ -97,6 +109,46 @@ handler 原则：
 - 保存或变更参数前先校验范围。
 - 危险操作需要确认 token 或二次确认参数。
 - 命令类 API 返回 commandId 或当前业务状态，由页面轮询进度。
+- 单个同步 handler 的目标耗时不超过 200ms。
+- 预计超过 200ms 的操作必须转为命令模式：HTTP 只创建命令并返回 `commandId`，后台 `update(nowMs)` 或任务分片执行，页面轮询状态。
+- INA240 零点校准、AT24C inspect、长期记录扫描/导出、端点验证、运动控制等都不能在 HTTP handler 中长时间阻塞。
+
+## 危险操作确认 token
+
+危险操作首版由应用实现最小确认 token，不依赖 Esp32Base 新能力：
+
+- 页面先请求或触发 `ConfirmRequired`，服务端生成 `confirmToken`。
+- token 由服务端随机生成，不能是固定字符串或可预测计数。
+- token 绑定 `actionId`、目标资源和当前登录会话；不能跨动作复用。
+- token TTL 不超过 60 秒。
+- token 一次性消费，成功或失败后立即失效。
+- 危险 API 必须同时提交 `confirm=true`、`confirmToken` 和原始动作参数。
+- token 校验失败返回 `ConfirmRequired` 或 `Forbidden`，并写入业务事件或系统安全日志摘要。
+
+如果多个应用重复实现后发现需要统一，再整理提示词到 Esp32Base；首版不为此阻塞业务页面设计。
+
+## commandId 生命周期
+
+`commandId` 用于远程轮询、业务记录和断电后解释上一次动作：
+
+- 类型推荐 `uint32_t`，设备内单调递增。
+- 每个应用固件内部使用一个全局序列，不按通道单独编号；喂食器通过 `channelMask` 或 `channel` 区分通道。
+- 创建命令时立即分配，响应和长期记录都使用同一个 id。
+- `commandId=0` 表示无活动命令。
+- 重启后从持久化的最近 commandId 或长期记录 sequence 推进，不能回退到仍可能混淆近期记录的值。
+- 溢出按 uint32 回绕处理，但记录比较只用于短窗口诊断；长期唯一性依赖 unixTime/uptime/sequence 组合。
+- 自动门运行中断电恢复需要保留上次运动命令 id；喂食器运行中断电后 `FeederPowerLossAborted` 必须记录被中断 commandId。
+
+## 时间可信规则
+
+时间相关功能仅影响自动计划和按日期展示，不影响手动操作：
+
+- 未完成 NTP/RTC 同步前，`timeValid=false`，自动计划不触发。
+- 时间首次同步成功后才允许计算“今日计划是否错过”。
+- 设备启动时如果时间尚未可信，计划状态保持 `timePending` 或等价字段，不立即记为 missed。
+- 时间可信后，如果某计划时间已经过去，不补投喂，记录该计划 `scheduleMissedToday=true`，但不影响其他尚未到时间的计划。
+- 明显时间回跳、跳变过大或同步失败超过阈值时，自动计划暂停并记录 `TimeSyncChanged` 或诊断告警。
+- 手动投喂与时间可信无关，只受通道 Busy、故障和配置状态约束。
 
 通用应用 API 语义：
 
@@ -113,11 +165,12 @@ handler 原则：
 Esp32Base Web 能力进入实现前需要确认：
 
 - 可注册 route 数量。
-- 同步 handler 建议耗时。
+- 同步 handler 是否能稳定满足应用目标耗时 200ms。
 - Web Auth 首版默认启用；如果只在封闭内网临时调试，可由构建配置关闭，但正式设备不建议关闭。
 - 静态页面放置方式。
 - JSON 解析和响应大小限制。
 - App Config groups/fields 容量。
+- Esp32Base 当前 head 是否已具备 App Config、FileLog、文件系统 API、Auth、OTA/WiFi 页面和足够 route 容量；源码前必须用清单验证，不能只按未来能力设计。
 
 如果 route 数量受限，各应用可以在各自固件内合并为少量资源式 API，例如：
 

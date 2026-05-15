@@ -25,8 +25,8 @@
 | C4 | AT24C128 record region、slotCount、高频写入预算和低层后端策略 | 已基本接受两个应用各自独立 AT24C128 的预算草案，实机前按 writesPerDay 再算一遍；低层后端首版使用自研最小 `At24cDevice` | `docs/16-at24c-layout-budget.md` | `docs/libs/23-esp32-at24c-record-store.md`、`docs/libs/29-at24c-low-level-driver-evaluation.md` | 暂无需回复；源码前复核容量和寿命预算 |
 | C5 | 自动门故障时默认 `Coast` 的安全性 | 已确认：先按 `Coast` 写入方案，保留实机验证项 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 暂无需回复；实机阶段复核滑行距离 |
 | C6 | 自动门断电恢复后位置可信的判定规则 | 已确认：采用“提交成功 + 限位不冲突 + 状态记录完整”才可信 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/30-persistence-and-migration.md` | 暂无需回复 |
-| C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 已给首版推荐值；源码前只需确认目标芯片资源、ADC 衰减和最终 PCB 引脚 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 源码前确认硬件资源表 |
-| C8 | 喂食器每日计划细节 | 已确认：默认不开启；必须显式启用、设置时间、选择参与通道，并配置每路投喂量 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 暂无需回复 |
+| C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 首版文档默认目标为 ESP32-WROOM-32；源码前必须确认目标模块、ADC 衰减和最终 PCB 引脚 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 如果实际不是 ESP32-WROOM-32，需要先重排引脚表 |
+| C8 | 喂食器每日计划细节 | 已确认：默认不开启；支持多个每日计划；每个计划必须显式启用、设置时间、选择参与通道，并配置每路投喂量 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 暂无需回复 |
 | C9 | 喂食器停止全部策略 | 已确认：普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 暂无需回复 |
 | C10 | Web/API 与远程维护范围 | 建议接受公共约定 + 两个应用独立 Web/API 文档；两个固件内可同名使用 `/api/app/*`，但 payload 和业务字段必须分开 | `docs/apps/13-web-api-and-maintenance.md` | `docs/apps/24-esp32-farmdoor-web-api.md`、`docs/apps/25-esp32-farmfeeder-web-api.md`、`docs/apps/23-esp32base-web-integration.md`、`docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
 | C11 | 长期原始记录策略 | 已采用推荐策略：ESP32 flash 文件系统，1MB 起步、空间允许用 2MB，按天分段轮转 | `docs/apps/18-long-term-records.md` | `docs/apps/14-configuration-and-defaults.md`、`docs/30-persistence-and-migration.md` | 源码前只需确认实际分区表 |
@@ -56,7 +56,7 @@
 | 决策 | 推荐值 | 为什么需要确认 |
 | --- | --- | --- |
 | 首版芯片 | 只实现 INA240A2 | 目前真实使用，ACS712/INA226 暂不实现 |
-| 是否实现 `CurrentTraceBuffer` | 可选工具类，不作为首版必需 | 图表需要数据，但不一定要库内缓存 |
+| 是否实现 `CurrentTraceBuffer` | 首版不实现，只提供 `latestTracePoint()` | 图表缓冲属于应用层，避免公共库首版过重 |
 | `filterAlpha` 默认值 | 0.2 | 实测前起点，需按噪声调整 |
 | `startupGraceMs` 默认值 | 1000ms 或跟随电机软启动 | 需要和具体电机启动行为匹配 |
 | 传感器故障策略 | 默认按故障处理 | 无人值守场景下传感器不可信不能当正常 |
@@ -120,10 +120,10 @@
 
 | 决策 | 当前结论 | 备注 |
 | --- | --- | --- |
-| 是否需要定时投喂 | 需要 | 首版只支持每天执行 |
+| 是否需要定时投喂 | 需要 | 首版支持多个每日计划；每个计划每天固定时间执行一次 |
 | 是否支持跳过今日 | 需要 | 跳过今日不删除长期计划 |
 | 每日定时默认时间 | 不设置默认时间 | 未配置时间时不自动投喂 |
-| 错过计划时间是否补投喂 | 不补投喂 | 只记录 missed 事件，避免无人值守重复投喂 |
+| 错过计划时间是否补投喂 | 不补投喂 | 按单个计划记录 missed 事件，避免无人值守重复投喂；不影响其他尚未到时间的计划 |
 | 投喂运行中断电后是否续喂 | 不续喂、不补喂 | 重启后记录中断结果；定时计划标记为已尝试但中断，防止夜间来电后再次自动投喂 |
 | 日期/时间来源失败时 | 暂停自动定时，允许手动投喂 | 手动和定时按通道独立仲裁；同一通道 Busy，其他空闲通道可运行 |
 | 多路运行方式 | 顺序启动后并行运行 | 主要为降低启动电流叠加；启动间隔可配置 |
@@ -137,8 +137,8 @@
 ## 尚需继续确认的应用细节
 
 - 自动门故障 `Coast` 的实机安全性：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md`。
-- 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`，源码前按目标 PCB/芯片确认。
-- 喂食器计划状态字段语义：推荐 `scheduleAttemptedToday` 表达“今日计划已开始过”、`todayExecuted` 表达“今日计划明确完成”、`scheduleMissedToday` 表达“错过未触发”，看 `docs/apps/12-application-state-machines.md` 和 `docs/apps/25-esp32-farmfeeder-web-api.md`。
+- 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`，源码前按目标 PCB/芯片确认；如果不是 ESP32-WROOM-32，不得沿用 GPIO16/GPIO17 等默认分配。
+- 喂食器计划状态字段语义：已按单个计划定义，`scheduleAttemptedToday` 表达“该计划今日已开始过”、`todayExecuted` 表达“该计划今日明确完成”、`scheduleMissedToday` 表达“该计划错过未触发”，看 `docs/apps/12-application-state-machines.md` 和 `docs/apps/25-esp32-farmfeeder-web-api.md`。
 - 喂食器启动全部间隔默认值：推荐 `startAllIntervalMs=1000ms`，实机确认浪涌足够低后可调小，看 `docs/apps/14-configuration-and-defaults.md`。
 - Web 页面原型和信息架构：看 `docs/apps/19-web-page-prototypes.md`。
 - Web 页面原型确认稿：看 `docs/apps/26-web-prototype-review.md`。

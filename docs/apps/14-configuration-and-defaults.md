@@ -59,8 +59,8 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | softStartMs | ms | 1000 | 0-10000 | 否 | 独立软启动 |
 | softStopMs | ms | 500 | 0-10000 | 否 | 独立软停止 |
 | openTargetTurnsX100 | 0.01 圈 | 行程校准生成 | >0 | 否 | 开门行程圈数；可在 Esp32Base App Config 直接修改，也可由行程校准页“用当前位置更新开门目标”自动生成 |
-| jogMaxMs | ms | 1000 | 100-3000 | 否 | 单次手动运行最大时长 |
-| jogSpeedPercent | % | 30 | 10-100 | 否 | 行程校准手动运行速度 |
+| manualMoveMaxMs | ms | 1000 | 100-3000 | 否 | 单次手动运行最大时长 |
+| manualMoveSpeedPercent | % | 30 | 10-100 | 否 | 行程校准手动运行速度 |
 | gearRatioX100 | 0.01 | 13100 | >0 | 否 | 131:1 |
 | motorShaftPulsesPerRev | pulses | 16 | >0 | 否 | 默认 X1 单边计数 |
 | countMode | enum | X1 | X1/X2/X4 | 否 | 默认 X1，保持与标称 16 脉冲口径一致 |

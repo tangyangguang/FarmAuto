@@ -20,8 +20,9 @@
 | `sequence` | uint32 | - | 应用长期记录递增序号 |
 | `source` | enum uint8 | - | Web / Button / Schedule / Maintenance / System |
 | `channel` | uint8 | - | 0 表示全局；1..3 表示喂食器通道 |
-| `flags` | uint16 | - | 位标记，例如 timeValid、positionTrusted |
+| `flags` | uint16 | - | 位标记，例如 timeValid、positionTrustLevel |
 | `payloadLength` | uint16 | bytes | payload 长度 |
+| `headerCrc` | uint32 | - | 固定头 CRC |
 | `payloadCrc` | uint32 | - | payload CRC |
 
 记录原则：
@@ -30,6 +31,10 @@
 - 显示层再换算成圈数、百分比、文本。
 - 不记录每个编码器脉冲。
 - 高频 trace 只在 RAM 中短期保留；长期记录只保存摘要或故障窗口摘要。
+- 记录格式采用固定头 + 变长 payload，文件模型见 `docs/apps/18-long-term-records.md`。
+- CRC 算法首版统一使用 CRC-32/ISO-HDLC；后续改变算法必须提升 schemaVersion。
+- 所有字段固定 little-endian 且必须字段级显式序列化，禁止直接写 C++ 结构体内存。
+- 克数统一使用 `*GramsX100` 或 `*GramsPerRevX100`，单位为 0.01g；不再在事件 payload 中混用整数克字段。
 
 ## 通用事件类型
 
@@ -41,7 +46,7 @@
 | `StorageWarning` | 存储 warning/maintenance | medium、freeBytes、errorCount |
 | `StorageFault` | 存储错误 | medium、operation、errorCode |
 | `MaintenanceAction` | 维护动作 | action、target、result |
-| `FaultCleared` | 清除故障 | previousFault、positionTrusted |
+| `FaultCleared` | 清除故障 | previousFault、positionTrustLevel |
 
 ## Esp32FarmDoor 事件
 
@@ -71,7 +76,7 @@
 
 | eventType | 触发时机 | payload 字段 |
 | --- | --- | --- |
-| `DoorJog` | 维护点动完成 | direction、durationMs、deltaPulses、stopReason |
+| `DoorManualMove` | 手动运行完成 | direction、durationMs、deltaPulses、stopReason |
 | `DoorPositionSet` | 设置当前位置 | oldPositionPulses、newPositionPulses、reason |
 | `DoorTravelSet` | 直接设置行程 | oldTravelPulses、newTravelPulses、travelTurnsX100、source |
 | `DoorTravelAdjusted` | 微调行程 | oldTravelPulses、newTravelPulses、deltaPulses、deltaTurnsX100 |
@@ -84,7 +89,7 @@
 第一版无限位场景必须记录：
 
 - 进入端点维护。
-- 每次点动。
+- 每次手动运行。
 - 设置关闭点。
 - 保存开门目标。
 - 直接设置或微调行程。
@@ -148,11 +153,11 @@
 | `FeederCalibrationRun` | 固定圈数标定运行完成 | channel、actualPulses、revolutionsX100、durationMs |
 | `FeederCalibrationSaved` | 保存每圈下料克数 | channel、oldGramsPerRevX100、newGramsPerRevX100 |
 | `FeederTestRun` | 单路小剂量测试 | channel、actualPulses、durationMs、result |
-| `BucketRefilled` | 补料记录 | channel、oldRemainGrams、newRemainGrams、addedGrams |
-| `BucketSetRemain` | 手动设置余量 | channel、oldRemainGrams、newRemainGrams |
-| `BucketEstimateChanged` | 投喂后扣减 | channel、oldRemainGrams、newRemainGrams、usedGramsX100 |
-| `BucketLowWarning` | 低余量告警 | channel、remainGrams、thresholdPercent |
-| `BucketEstimateUnderflow` | 估算余量不足但仍投喂 | channel、remainBeforeGrams、usedGramsX100 |
+| `BucketRefilled` | 补料记录 | channel、oldRemainGramsX100、newRemainGramsX100、addedGramsX100 |
+| `BucketSetRemain` | 手动设置余量 | channel、oldRemainGramsX100、newRemainGramsX100 |
+| `BucketEstimateChanged` | 投喂后扣减 | channel、oldRemainGramsX100、newRemainGramsX100、usedGramsX100 |
+| `BucketLowWarning` | 低余量告警 | channel、remainGramsX100、thresholdPercent |
+| `BucketEstimateUnderflow` | 估算余量不足但仍投喂 | channel、remainBeforeGramsX100、usedGramsX100 |
 
 规则：
 
@@ -171,7 +176,7 @@ JSON Lines：
 CSV：
 
 - 固定列：time、uptimeMs、eventType、source、channel、result。
-- 常用值列：pulses、durationMs、grams、currentMa、faultReason。
+- 常用值列：pulses、durationMs、gramsX100、currentMa、faultReason。
 - 事件独有字段可放入 `details` JSON 字符串，避免 CSV 列无限膨胀。
 
 ## 版本和兼容
