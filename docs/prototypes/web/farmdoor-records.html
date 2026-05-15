@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmDoor 业务记录</title>
+  <title>Esp32FarmDoor 记录</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,25 +13,20 @@
       <nav class="nav-section">
         <a class="nav-link" href="farmdoor-dashboard.html">首页</a>
         <a class="nav-link" href="farmdoor-maintenance.html">维护</a>
-        <a class="nav-link active" href="farmdoor-records.html">业务记录</a>
+        <a class="nav-link active" href="farmdoor-records.html">记录</a>
         <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>业务记录</h1><div class="subtle">业务原始记录分页查看，导出后续增强。</div></div></div>
+      <div class="topbar"><div class="title-block"><h1>记录</h1><div class="subtle">业务原始记录分页查看，导出后续增强。</div></div></div>
       <section class="section">
-        <div class="section-header"><h2>筛选</h2></div>
+        <div class="section-header"><h2>记录</h2><span class="subtle">共 1,052 条</span></div>
         <div class="section-body">
           <div class="form-grid">
             <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>开门</option><option>关门</option><option>保护停止</option><option>故障</option></select></div>
             <div class="field"><label>结果</label><select class="select"><option>全部</option><option>正常</option><option>告警</option><option>故障</option></select></div>
           </div>
-        </div>
-      </section>
-      <section class="section">
-        <div class="section-header"><h2>记录</h2><span class="subtle">共 1,052 条</span></div>
-        <div class="section-body">
           <table class="data-table">
             <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>结果</th><th>原始字段</th></tr></thead>
             <tbody>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder 业务记录</title>
+  <title>Esp32FarmFeeder 记录</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,25 +15,20 @@
         <a class="nav-link" href="feeder-schedule.html">每日计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
         <a class="nav-link" href="feeder-calibration.html">下料标定</a>
-        <a class="nav-link active" href="feeder-records.html">业务记录</a>
+        <a class="nav-link active" href="feeder-records.html">记录</a>
         <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>业务记录</h1><div class="subtle">业务原始记录分页展示，不预设“最近 7 天”。</div></div></div>
+      <div class="topbar"><div class="title-block"><h1>记录</h1><div class="subtle">业务原始记录分页展示，不预设“最近 7 天”。</div></div></div>
       <section class="section">
-        <div class="section-header"><h2>筛选</h2></div>
+        <div class="section-header"><h2>记录</h2><span class="subtle">共 2,001 条</span></div>
         <div class="section-body">
           <div class="form-grid">
             <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>通道</label><select class="select"><option>全部</option><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
             <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>投喂</option><option>故障</option><option>补料</option><option>计划</option></select></div>
           </div>
-        </div>
-      </section>
-      <section class="section">
-        <div class="section-header"><h2>记录</h2><span class="subtle">共 2,001 条</span></div>
-        <div class="section-body">
           <table class="data-table">
             <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>通道</th><th>结果</th><th>原始字段</th></tr></thead>
             <tbody>

@@ -13,7 +13,7 @@
 当前已拆成最终独立页面文件，并使用顶部导航展示最终页面结构：
 
 - 自动门：`farmdoor-dashboard.html`、`farmdoor-maintenance.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
-- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-buckets.html`、`feeder-calibration.html`、`feeder-records.html`、`feeder-diagnostics.html`
+- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-buckets.html`、`feeder-calibration.html`、`feeder-records.html`、`feeder-diagnostics.html`
 - `esp32-farmdoor.html` 和 `esp32-farmfeeder.html` 仅作为页面列表入口保留。
 
 阅读顺序：
@@ -33,7 +33,7 @@
 | `/` | 首页 | 首页 | 首屏状态和常用控制 |
 | `/control` | 合并到首页 | 合并到通道操作 | 如果首页已经承载控制，首版不单独做 |
 | `/maintenance` | 维护 | 维护 | 危险维护、校准、诊断入口 |
-| `/records` | 业务记录 | 业务记录 | 长期业务记录网页查询；导出作为后续增强 |
+| `/records` | 记录 | 记录 | 长期业务记录网页查询；导出作为后续增强 |
 | `/diagnostics` | 诊断 | 诊断 | 业务诊断包、存储健康、最近事件 |
 | `/schedule` | 不使用 | 每日计划 | 喂食器每日计划 |
 | `/buckets` | 不使用 | 饲料桶 | 喂食器饲料桶管理 |
@@ -117,9 +117,9 @@
 
 | 功能 | 说明 |
 | --- | --- |
-| 指定圈数试运行 | 输入本次转动圈数，选择开门方向或关门方向执行，可随时停止 |
-| 标定当前位置为关门状态 | 把当前位置保存为关闭基准 |
-| 标定当前位置为开门状态 | 把当前位置保存为开门目标 |
+| 手动运行 | 输入本次转动圈数和速度百分比，选择开门方向或关门方向执行，可随时停止 |
+| 标定当前位置为关门状态 | 手动运行后，把当前位置保存为关闭基准 |
+| 标定当前位置为开门状态 | 手动运行后，把当前位置保存为开门目标 |
 | 保护参数 | 设置保护最大圈数和保护最大时长，作为保底停止边界 |
 | 诊断维护 | INA240A2、AT24C、Flash 检查放到诊断页，避免维护页混杂 |
 
@@ -248,6 +248,6 @@
 | W1 | 页面信息架构是否按本文拆分 | 已确认：先按当前拆分推进；HTML 原型已生成，下一步逐页确认内容 |
 | W2 | 自动门首页是否合并控制页 | 已确认：合并 |
 | W3 | 喂食器首页使用表格还是卡片 | 不预设；以展示合理、手机查看和操作体验好为准 |
-| W4 | 业务记录导出是否首版必须做 | 已确认：不是必须；网页查看是基本能力，导出后续再做 |
+| W4 | 记录导出是否首版必须做 | 已确认：不是必须；网页查看是基本能力，导出后续再做 |
 | W5 | 危险操作二次确认令牌 | 已确认：首版应用内实现短期令牌，不要求 Esp32Base 先增强 |
 | W6 | 原型是否拆成最终独立页面 | 已完成：使用顶部导航展示最终页面结构，下一步逐页确认最终页面效果 |

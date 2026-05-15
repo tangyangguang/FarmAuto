@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder 编辑计划</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Esp32FarmFeeder</div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link active" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
+        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-records.html">记录</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar">
+        <div class="title-block">
+          <h1>编辑计划</h1>
+          <div class="subtle">每个计划独立设置时间、参与通道和每路投喂量。</div>
+        </div>
+        <a class="button" href="feeder-schedule.html">返回计划列表</a>
+      </div>
+      <section class="section">
+        <div class="section-header"><h2>基础设置</h2></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>启用计划</label><select class="select"><option>启用</option><option>关闭</option></select></div>
+            <div class="field"><label>执行时间</label><input class="input" value="12:30"></div>
+            <div class="field"><label>跳过今日</label><select class="select"><option>否</option><option>是</option></select></div>
+            <div class="field"><label>今日状态</label><input class="input" value="待执行"></div>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>每路投喂量</h2></div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>通道</th><th>是否参与</th><th>单位</th><th>目标</th><th>标定状态</th></tr></thead>
+            <tbody>
+              <tr><td data-label="通道">1</td><td data-label="是否参与">是</td><td data-label="单位">克数</td><td data-label="目标"><input class="input" value="50g"></td><td data-label="标定状态">70g/圈</td></tr>
+              <tr><td data-label="通道">2</td><td data-label="是否参与">是</td><td data-label="单位">克数</td><td data-label="目标"><input class="input" value="50g"></td><td data-label="标定状态">68g/圈</td></tr>
+              <tr><td data-label="通道">3</td><td data-label="是否参与">否</td><td data-label="单位">克数</td><td data-label="目标"><input class="input" value="0g"></td><td data-label="标定状态">70g/圈</td></tr>
+            </tbody>
+          </table>
+          <div class="actions">
+            <button class="button primary">保存计划</button>
+            <button class="button danger">删除计划</button>
+            <a class="button" href="feeder-schedule.html">取消</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

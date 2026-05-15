@@ -13,24 +13,26 @@
       <nav class="nav-section">
         <a class="nav-link" href="farmdoor-dashboard.html">首页</a>
         <a class="nav-link active" href="farmdoor-maintenance.html">维护</a>
-        <a class="nav-link" href="farmdoor-records.html">业务记录</a>
+        <a class="nav-link" href="farmdoor-records.html">记录</a>
         <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>维护</h1><div class="subtle">按指定圈数试运行，并把当前位置标定为业务端点。</div></div><span class="pill warn">需要二次确认</span></div>
+      <div class="topbar"><div class="title-block"><h1>维护</h1><div class="subtle">手动运行电机并把当前位置标定为业务端点。</div></div><span class="pill warn">需要二次确认</span></div>
       <div class="alert warn">第一版无限位时，需要远程观察或机械标记辅助。危险操作必须二次确认。</div>
       <section class="section">
-        <div class="section-header"><h2>指定圈数试运行</h2><span class="subtle">用于远程微调门的位置</span></div>
+        <div class="section-header"><h2>手动运行</h2><span class="subtle">按指定圈数调整门的位置</span></div>
         <div class="section-body">
           <div class="form-grid">
             <div class="field"><label>本次转动圈数</label><input class="input" value="0.25 圈"></div>
-            <div class="field"><label>试运行速度</label><select class="select"><option>低速</option><option>中速</option></select></div>
+            <div class="field"><label>速度百分比（10-100）</label><input class="input" value="30%"></div>
           </div>
           <div class="actions">
             <button class="button">向开门方向转动</button>
             <button class="button">向关门方向转动</button>
             <button class="button danger">立即停止</button>
+            <button class="button">标定当前位置为关门状态</button>
+            <button class="button">标定当前位置为开门状态</button>
           </div>
         </div>
       </section>
@@ -44,8 +46,6 @@
             <div class="field"><label>当前位置</label><input class="input" value="0.00 圈"></div>
           </div>
           <div class="actions">
-            <button class="button">标定当前位置为关门状态</button>
-            <button class="button">标定当前位置为开门状态</button>
             <button class="button primary">保存行程参数</button>
           </div>
         </div>
