@@ -103,7 +103,7 @@ handler 原则：
 - `GET /api/app/status`：当前应用业务状态 snapshot。
 - `GET /api/app/events/recent`：最近业务事件。
 - `GET /api/app/records`：长期业务记录分页查询。
-- `GET /api/app/records/export`：长期业务记录导出。
+- `GET /api/app/records/export`：长期业务记录导出，后续增强项，首版不强制实现。
 - `GET /api/app/diagnostics`：业务诊断包摘要。
 
 这些 API 的 payload 由各应用独立定义，不能把自动门字段和喂食器字段放在同一个结构里。

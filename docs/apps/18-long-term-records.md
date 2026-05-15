@@ -192,11 +192,12 @@ RecordEvent
   crc
 ```
 
-读取与导出：
+读取与后续导出：
 
 - Web/API 必须分页读取，不一次性读取多年记录。
-- 导出优先支持按日期范围、eventType 和 offset 分页。
-- JSON 适合远程查看；CSV 适合下载分析；二进制适合完整备份。
+- 首版必须支持网页分页查看和筛选。
+- 导出不是首版必须项；后续如实现，优先支持按日期范围、eventType 和 offset 分页。
+- JSON 适合远程查看；CSV 适合下载分析；二进制适合完整备份，均作为后续增强。
 - 文件损坏时只丢弃损坏 segment 或损坏记录，不影响其他 segment。
 
 推荐默认值：
@@ -206,7 +207,7 @@ RecordEvent
 | 文件系统分区容量 | 1MB 起步，容量允许时 2MB | 多年记录需要空间，且要给 LittleFS 留余量 |
 | 分段方式 | 按天 + 单日超大小切分 | 方便远程按日期查询，避免单文件过大 |
 | 容量满策略 | 覆盖最旧 segment 并告警 | 无人值守设备应继续记录最近数据 |
-| 导出格式 | JSON 分页 + CSV 导出 | 兼顾 Web 查询和人工分析 |
+| 查看和导出 | 首版网页分页查看；JSON Lines / CSV 导出后续增强 | 网页查看是基本能力，导出不是首版必须项 |
 | 普通 flush | 条数或时间批量 | 减少 flash 写放大 |
 | 关键事件 flush | 立即 flush | 降低故障前后关键记录丢失风险 |
 
@@ -242,14 +243,14 @@ ESP32 flash 文件系统检测项：
 - 文件大小异常、segment 缺失或 sequence 不连续。
 - 剩余容量低于阈值。
 - 轮转失败或无法创建新 segment。
-- 导出读取时发现损坏记录。
+- 分页读取或后续导出时发现损坏记录。
 
 告警建议：
 
 - `StorageWarning`：容量低、少量记录 CRC 错误、部分旧 segment 损坏。
 - `StorageFault`：关键恢复状态无法读取、AT24C 离线、flash 挂载失败、无法写入新关键状态。
 - `StorageReadOnly`：仍可读取旧记录，但新记录无法可靠写入。
-- `MaintenanceRequired`：需要现场更换 AT24C、导出记录、重新格式化或检查硬件。
+- `MaintenanceRequired`：需要现场更换 AT24C、处理记录、重新格式化或检查硬件。
 
 远程状态应至少展示：
 
@@ -260,13 +261,13 @@ ESP32 flash 文件系统检测项：
 - flash 总容量、已用容量、剩余容量。
 - 长期记录最早/最新时间。
 - 最近一次记录写入错误。
-- 是否建议导出或维护。
+- 是否建议维护；如果后续实现导出，再提示导出。
 
 原则：
 
 - 原始值优先，例如脉冲数、毫安、克数估算前的原始计数。
 - 显示层再做换算。
-- 记录应可分页读取和导出。
+- 记录首版必须可分页读取；导出作为后续增强。
 - 记录文件或块必须带版本、CRC 或校验。
 - 容量接近上限时必须有远程告警。
 
@@ -285,22 +286,22 @@ ESP32 flash 文件系统检测项：
 当前不要求修改 Esp32Base。进入实现前仍需确认或实测：
 
 - 目标分区表中 LittleFS 分区容量。
-- Web/API 是否方便做大文件分页下载。
-- 长时间导出时 Watchdog 和 HTTP handler 的处理方式。
-- 是否需要 Esp32Base 提供更通用的文件流式下载 API。
+- Web/API 是否方便做记录分页读取。
+- 如果后续实现导出，再评估长时间导出时 Watchdog 和 HTTP handler 的处理方式。
+- 如果后续实现导出，再评估是否需要 Esp32Base 提供更通用的文件流式下载 API。
 
 如后续确认 Esp32Base 能力不足，应使用以下提示词到 Esp32Base 项目处理，不在 FarmAuto 内打补丁：
 
 ```text
 背景：
-FarmAuto 需要在 ESP32 flash 文件系统上保存多年原始运行记录。记录采用结构化二进制 segment，要求分页读取、远程导出、容量查询、容量告警，并且不能阻塞 Web、Watchdog 和设备主循环。
+FarmAuto 需要在 ESP32 flash 文件系统上保存多年原始运行记录。记录采用结构化二进制 segment，首版要求网页分页读取、容量查询、容量告警，并且不能阻塞 Web、Watchdog 和设备主循环。导出是后续增强项。
 
 当前已知能力：
 Esp32Base 已提供 Esp32BaseFs，包括 appendBytes、readBytesAt、writeBytesAt、fileSize、listDir、totalBytes、usedBytes、freeBytes。默认文件系统为 LittleFS。
 
 请评估并完善：
-1. 是否需要提供通用文件流式下载 API，支持按 offset/length 分块输出。
-2. 是否需要提供长文件导出时的 Watchdog 友好辅助。
+1. 是否需要提供更方便的分页读取辅助 API，支持按 offset/length 分块读取。
+2. 如果后续实现导出，是否需要提供通用文件流式下载 API 和 Watchdog 友好辅助。
 3. 是否需要文档明确 LittleFS 分区容量规划、磨损均衡边界和推荐写入模式。
 4. 是否需要提供文件系统诊断 API：分区大小、剩余容量、文件数量、最大文件、最近错误。
 
@@ -315,11 +316,11 @@ Esp32Base 已提供 Esp32BaseFs，包括 appendBytes、readBytesAt、writeBytesA
 
 - 首版使用 ESP32 flash 文件系统，优先 LittleFS。
 - 分区容量 1MB 起步；如果 flash 容量允许，优先 2MB。
-- 支持 Web 导出 JSON Lines 和 CSV。
+- 首版支持网页分页查看；JSON Lines / CSV 导出后续增强。
 - 记录容量达到上限时告警并覆盖最旧记录，不停止设备运行。
 - 按天分段，单日超过大小上限时再切分。
 
 源码前仍需确认：
 
 - 实际分区表和可用 flash 容量。
-- 是否需要整理 Esp32Base 文件流式下载能力提示词。
+- 是否需要整理 Esp32Base 分页读取能力提示词；文件流式下载提示词等后续导出需求明确后再处理。

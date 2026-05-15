@@ -95,8 +95,8 @@ Esp32FarmFeeder：
 - 自动门故障停止记录包含 faultReason、positionPulses、durationMs 和电流摘要。
 - 喂食器每次投喂完成记录 actualPulses、durationMs 和 gramsX100。
 - 喂食器补料、设置余量、低余量告警写入长期记录。
-- JSON Lines 导出保留结构化字段。
-- CSV 导出包含 time、eventType、channel、result、pulses、durationMs、grams、faultReason 等常用列。
+- 长期记录必须支持网页分页查看和筛选。
+- JSON Lines / CSV 导出不是首版必须项；若后续实现，应保留结构化字段和常用分析列。
 
 Web 与 Esp32Base 集成：
 
@@ -108,7 +108,7 @@ Web 与 Esp32Base 集成：
 - 应用业务记录页面使用 `/records`，不使用 `/logs`。
 - 应用业务记录不写入 Esp32Base Runtime FileLog `/logs/eb_app.log`。
 - 应用诊断页能清楚区分系统日志入口和业务记录入口。
-- 源码前完成 App Config 字段容量、应用 route 数量、响应 JSON 大小和长期记录导出 Watchdog 行为的验收。
+- 源码前完成 App Config 字段容量、应用 route 数量、响应 JSON 大小和长期记录分页读取行为的验收。
 
 ## 硬件在环测试
 
