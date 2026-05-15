@@ -23,6 +23,7 @@ FarmAuto/
       20-feeder-bucket-level-sensing.md
       21-web-workflows.md
       22-record-event-schema.md
+      23-esp32base-web-integration.md
     libs/
       20-public-library-boundaries.md
       21-esp32-encoded-dc-motor.md
@@ -119,12 +120,21 @@ Esp32FarmFeeder 负责三路喂食业务：
 - Web 页面/API：应用差异大，留在各自应用。
 - 业务历史统计：属于具体应用。
 - 开门/关门/投喂语义：留在应用控制器。
-- 日志展示：优先使用 Esp32Base 文件日志，应用可维护小型最近事件缓存。
+- 系统日志展示：使用 Esp32Base 文件日志和 `/esp32base/logs`。
+- 业务记录展示：应用维护最近事件缓存和长期结构化记录，不写入 Esp32Base 系统日志。
 - 物理按钮交互：不同应用语义不同，暂不抽库。
 
 ## Esp32Base 使用原则
 
-FarmAuto 应使用 Esp32Base 提供的基础能力，例如 WiFi、Web、运行时日志、I2C 总线、文件系统、Watchdog 和 OTA profile。
+FarmAuto 应使用 Esp32Base 提供的基础能力，例如 WiFi、Web、运行时日志、I2C 总线、文件系统、Watchdog、App Config 和 OTA profile。
+
+Web 集成边界见 `docs/apps/23-esp32base-web-integration.md`：
+
+- Esp32Base 系统页面和系统 API 使用 `/esp32base/*`。
+- FarmAuto 应用业务 API 使用 `/api/app/*`。
+- Esp32Base 系统日志入口为 `/esp32base/logs`，用于排查运行时和基础设施问题。
+- FarmAuto 业务长期记录入口为 `/records` 和 `/api/app/records`，用于开关门、投喂、维护、故障和配置变化回溯。
+- 普通低频系统参数优先注册到 `/esp32base/app-config`；业务运行数据不放 App Config。
 
 如果实施时发现 Esp32Base 缺少必要能力，或存在可复现 bug，不在 FarmAuto 内打补丁。应整理给 Esp32Base 项目的提示词，包含：
 

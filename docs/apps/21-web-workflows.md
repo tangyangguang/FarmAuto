@@ -4,6 +4,8 @@
 
 本文细化 Esp32FarmDoor 和 Esp32FarmFeeder 的页面工作流、状态字段、按钮启用条件和危险操作确认规则。它补充 `19-web-page-prototypes.md`，不替代 API 文档。
 
+Esp32Base 系统页面、系统日志、App Config 与应用业务页面/API 的边界见 `23-esp32base-web-integration.md`。
+
 原则：
 
 - 页面服务于远程操作和无人值守维护，不做展示型页面。
@@ -115,12 +117,13 @@
 诊断包应包含：
 
 - 当前 status snapshot。
-- 系统配置摘要。
+- 系统配置摘要，来源优先为 Esp32Base App Config。
 - 当前位置和端点快照。
 - 最近 100 条事件。
 - AT24C inspect。
 - flash 容量和长期记录范围。
 - 最近一次电流 trace 摘要。
+- Esp32Base 系统日志入口 `/esp32base/logs` 的链接和最近系统日志摘要可选，不复制为业务记录。
 
 ## Esp32FarmFeeder 首页
 
@@ -235,6 +238,7 @@
 
 - Esp32Base App Config 字段容量是否足够。
 - Esp32Base route 数量是否足够。
+- 应用页面是否避开 `/logs` 和 `/api/logs`，业务记录是否统一使用 `/records` 和 `/api/app/records`。
 - 文件导出是否需要 Esp32Base 增强流式下载能力。
 - 手机窄屏下首页表格是否改为每路折叠块。
 - 危险操作 confirm token 是否由应用实现，还是需要 Esp32Base 提供通用能力。

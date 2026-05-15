@@ -91,6 +91,14 @@ Esp32FarmFeeder：
 - JSON Lines 导出保留结构化字段。
 - CSV 导出包含 time、eventType、channel、result、pulses、durationMs、grams、faultReason 等常用列。
 
+Web 与 Esp32Base 集成：
+
+- Esp32Base 系统页面 `/esp32base`、`/esp32base/logs`、`/esp32base/app-config`、`/esp32base/tools` 可正常访问。
+- 应用业务 API 使用 `/api/app/*`，不占用 `/esp32base/api/*`。
+- 应用业务记录页面使用 `/records`，不使用 `/logs`。
+- 应用业务记录不写入 Esp32Base Runtime FileLog `/logs/eb_app.log`。
+- 应用诊断页能清楚区分系统日志入口和业务记录入口。
+
 ## 硬件在环测试
 
 - 电机空载运行。
