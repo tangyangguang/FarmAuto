@@ -4,7 +4,7 @@
 
 本文只定义 Esp32FarmDoor 和 Esp32FarmFeeder 的本地 Web 页面原型，不进入前端实现。源码阶段应先根据本文确认页面信息架构，再实现 HTML/CSS/JS。
 
-更细的页面状态字段、按钮启用条件、维护流程和确认规则见 `docs/apps/21-web-workflows.md`。具体 API 按应用拆分：自动门见 `docs/apps/24-esp32-farmdoor-web-api.md`，喂食器见 `docs/apps/25-esp32-farmfeeder-web-api.md`。
+更细的页面状态字段、按钮启用条件、维护流程和确认规则见 `docs/apps/21-web-workflows.md`。页面原型确认清单见 `docs/apps/26-web-prototype-review.md`。具体 API 按应用拆分：自动门见 `docs/apps/24-esp32-farmdoor-web-api.md`，喂食器见 `docs/apps/25-esp32-farmfeeder-web-api.md`。
 
 Esp32Base 系统页面、系统日志、App Config 与 FarmAuto 应用页面/API 的边界见 `docs/apps/23-esp32base-web-integration.md`。本文中的“配置”若属于低频系统参数，优先由 `/esp32base/app-config` 承载；应用页面只承载业务状态、维护和领域配置。
 
