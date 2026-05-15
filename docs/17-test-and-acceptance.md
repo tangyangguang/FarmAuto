@@ -95,6 +95,9 @@ Web 与 Esp32Base 集成：
 
 - Esp32Base 系统页面 `/esp32base`、`/esp32base/logs`、`/esp32base/app-config`、`/esp32base/tools` 可正常访问。
 - 应用业务 API 使用 `/api/app/*`，不占用 `/esp32base/api/*`。
+- Esp32FarmDoor 和 Esp32FarmFeeder 的 Web/API 在源码目录、payload 字段和业务处理上完全分开。
+- 自动门 status 不包含喂食器通道、饲料桶、每日计划字段。
+- 喂食器 status 不包含自动门位置、端点、限位、开门目标字段。
 - 应用业务记录页面使用 `/records`，不使用 `/logs`。
 - 应用业务记录不写入 Esp32Base Runtime FileLog `/logs/eb_app.log`。
 - 应用诊断页能清楚区分系统日志入口和业务记录入口。

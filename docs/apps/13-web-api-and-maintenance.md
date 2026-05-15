@@ -1,14 +1,18 @@
-# Web/API 与维护功能草案
+# Web/API 公共约定
 
 ## 目标
 
-本文定义两个应用的本地 Web 页面和业务 API 草案，用于后续评估 Esp32Base Web 能力、路由数量、handler 耗时和危险操作安全性。
+本文只定义两个应用共同遵守的 Web/API 规则，不定义具体业务接口。
 
-首版 Web/API 必须保持简单，同步 handler 不做长耗时操作。危险操作必须二次确认。
+两个应用项目是独立固件、独立 PCB、独立页面和独立 API 实现：
 
-设备按无人值守运行设计。Web/API 应优先支持远程查看、远程恢复和远程诊断；只有系统能明确判断继续远程操作有机械风险时，才返回需要现场处理的故障码。
+- Esp32FarmDoor 的页面和 API 见 `docs/apps/24-esp32-farmdoor-web-api.md`。
+- Esp32FarmFeeder 的页面和 API 见 `docs/apps/25-esp32-farmfeeder-web-api.md`。
 
-页面原型和信息架构见 `docs/apps/19-web-page-prototypes.md`。页面工作流细化见 `docs/apps/21-web-workflows.md`。Esp32Base Web 集成边界见 `docs/apps/23-esp32base-web-integration.md`。
+源码阶段也必须分开：
+
+- `apps/Esp32FarmDoor/` 只实现自动门页面、API、业务状态和记录。
+- `apps/Esp32FarmFeeder/` 只实现喂食器页面、API、业务状态和记录。
 
 ## Esp32Base 与应用边界
 
@@ -28,15 +32,18 @@ FarmAuto 应用页面和 API 不复用这些路径表达业务语义：
 - 业务最近事件使用 `/api/app/events/recent`。
 - 业务长期记录使用 `/api/app/records`。
 
-系统日志和业务记录的区别：
+说明：`/api/app/*` 在两个应用里可以同名，因为它们运行在不同固件和不同设备上，不会部署到同一个 WebServer。文档按应用拆分，避免误解为共享业务 API。
+
+## 系统日志与业务记录
 
 - Esp32Base 系统日志用于 WiFi、OTA、启动、文件系统、route 错误和运行时调试。
-- FarmAuto 业务记录用于开关门、投喂、维护、故障、配置变化、补料和存储告警。
+- FarmAuto 业务记录用于自动门、喂食器各自的动作、维护、故障、配置变化和业务状态变化。
 - 业务长期记录不写入 `/logs/eb_app.log`，也不通过 `/esp32base/logs` 查询。
+- 应用诊断页可以链接到 `/esp32base/logs`，但不能把系统日志复制成业务记录。
 
-## 通用页面
+## 通用页面规则
 
-通用应用页面：
+每个应用可以使用相同的基础页面路径，因为每个设备只运行一个应用：
 
 - `/`：应用总览页。
 - `/control`：控制页。
@@ -44,17 +51,12 @@ FarmAuto 应用页面和 API 不复用这些路径表达业务语义：
 - `/records`：业务记录页。
 - `/diagnostics`：业务诊断页。
 
-Esp32FarmFeeder 额外页面：
-
-- `/schedule`：投喂计划页。
-- `/buckets`：饲料桶页。
-- `/calibration`：下料标定页。
-
 配置页面原则：
 
 - 普通系统参数优先使用 Esp32Base App Config 内置页面 `/esp32base/app-config`。
 - 应用自定义页面只负责状态、控制、维护动作、业务记录查询和业务诊断展示。
-- 不建议新增应用 `/config` 页面；业务配置按领域命名，例如 `/schedule`、`/buckets`、`/calibration`。
+- 不建议新增应用 `/config` 页面。
+- 业务配置按领域命名，例如喂食器的 `/schedule`、`/buckets`、`/calibration`。
 - 如果 App Config 的字段容量、页面组织或校验能力不足，不在 FarmAuto 中临时绕开，应整理提示词到 Esp32Base 项目处理。
 
 ## 通用 API 约定
@@ -94,108 +96,17 @@ handler 原则：
 - 不在请求中执行长时间运动流程，只发起命令。
 - 保存或变更参数前先校验范围。
 - 危险操作需要确认 token 或二次确认参数。
+- 命令类 API 返回 commandId 或当前业务状态，由页面轮询进度。
 
-通用应用 API：
+通用应用 API 语义：
 
-- `GET /api/app/status`
-- `GET /api/app/events/recent`
-- `GET /api/app/records`
-- `GET /api/app/records/export`
-- `GET /api/app/diagnostics`
+- `GET /api/app/status`：当前应用业务状态 snapshot。
+- `GET /api/app/events/recent`：最近业务事件。
+- `GET /api/app/records`：长期业务记录分页查询。
+- `GET /api/app/records/export`：长期业务记录导出。
+- `GET /api/app/diagnostics`：业务诊断包摘要。
 
-## Esp32FarmDoor API 草案
-
-控制：
-
-- `POST /api/app/door/open`
-- `POST /api/app/door/close`
-- `POST /api/app/door/stop`
-
-维护：
-
-- `POST /api/app/maintenance/jog`
-- `POST /api/app/maintenance/set-position`
-- `POST /api/app/maintenance/save-endpoints`
-- `POST /api/app/maintenance/verify-endpoints`
-- `POST /api/app/maintenance/calibrate-open-limit`
-- `POST /api/app/maintenance/calibrate-current-zero`
-- `POST /api/app/maintenance/format-app-storage`
-- `POST /api/app/maintenance/clear-fault`
-
-危险操作：
-
-- 端点校准。
-- 设置当前位置。
-- INA240A2 零点校准。
-- 格式化应用业务存储。
-- 清除故障后恢复运行。
-
-`GET /api/app/status` 应包含是否启用开门/上限位、可选关门/下限位、当前位置可信度、最近一次端点维护结果、最近故障和是否需要现场处理。
-
-第一版不要求限位开关：
-
-- `POST /api/app/maintenance/jog`：远程低速点动，只允许短时运行，必须限制最大时长和最大脉冲。
-- `POST /api/app/maintenance/set-position`：设置当前位置，只在电机停止且二次确认后允许。
-- `POST /api/app/maintenance/save-endpoints`：保存开门/关门端点目标，必须二次确认。
-- `POST /api/app/maintenance/verify-endpoints`：发起一次低速验证流程，验证开门目标、关门目标和安全上限。
-
-推荐二次确认方式：
-
-- 请求体包含 `confirm=true` 和页面生成的短期 `confirmToken`。
-- 危险操作的响应必须返回 commandId，页面继续轮询状态。
-- `jog` 每次只允许短动作，不允许“一直按住一直走”的长阻塞 HTTP 请求。
-- `set-position`、`save-endpoints`、`format-app-storage`、`clear-fault` 都记录长期业务事件。
-
-下一阶段启用开门/上限位后：
-
-- `POST /api/app/maintenance/calibrate-open-limit`：远程低速开门直到触发开门/上限位。API 只发起校准流程，不在 HTTP handler 内阻塞等待完成。
-
-已确认与后续项：
-
-- 下一阶段启用限位后，`calibrate-open-limit` 和 `set-position` 是否都保留；建议前者为运行到开门/上限位，后者仅保留为受限维护功能。
-- 单独的微调上/下命令首版不做成普通控制按钮；维护页用短时 `jog` 承载。
-- 需要导出业务诊断信息；系统日志仍通过 `/esp32base/logs` 查看。
-
-## Esp32FarmFeeder API 草案
-
-控制：
-
-- `POST /api/app/feeders/{channel}/start`
-- `POST /api/app/feeders/{channel}/stop`
-- `POST /api/app/feeders/start-all`
-- `POST /api/app/feeders/stop-all`
-- `POST /api/app/schedule/skip-today`
-- `POST /api/app/schedule/cancel-skip-today`
-
-饲料桶：
-
-- `GET /api/app/buckets`
-- `POST /api/app/buckets/{channel}/set-remaining`
-- `POST /api/app/buckets/{channel}/add-feed`
-- `POST /api/app/buckets/{channel}/mark-full`
-
-维护：
-
-- `POST /api/app/maintenance/clear-today`
-- `POST /api/app/maintenance/calibrate-feed-rate`
-- `POST /api/app/maintenance/test-channel`
-- `POST /api/app/maintenance/format-app-storage`
-- `POST /api/app/maintenance/clear-fault`
-
-危险操作：
-
-- 清空当天计数。
-- 标定每圈下料量。
-- 格式化应用业务存储。
-- 跳过今日定时投喂。
-- 设置或修正当前饲料桶估算余量。
-
-已确认规则：
-
-- 克数模式和圈数模式在页面上使用每路独立 segmented control；切换模式不删除另一个模式的已保存目标值。
-- 需要一键测试单路固定小剂量，用于方向、编码器和下料验证；必须限制最大运行时间和最大脉冲。
-- 长期原始记录使用分页查询，导出 JSON Lines 和 CSV。
-- 系统日志仍通过 `/esp32base/logs` 查看，业务记录通过 `/records` 和 `/api/app/records` 查看。
+这些 API 的 payload 由各应用独立定义，不能把自动门字段和喂食器字段放在同一个结构里。
 
 ## 路由预算
 
@@ -208,7 +119,7 @@ Esp32Base Web 能力进入实现前需要确认：
 - JSON 解析和响应大小限制。
 - App Config groups/fields 容量。
 
-如果 route 数量受限，应合并为少量资源式 API，例如：
+如果 route 数量受限，各应用可以在各自固件内合并为少量资源式 API，例如：
 
 - `GET /api/app/status`
 - `POST /api/app/command`

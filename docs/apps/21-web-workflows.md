@@ -2,7 +2,7 @@
 
 ## 目标
 
-本文细化 Esp32FarmDoor 和 Esp32FarmFeeder 的页面工作流、状态字段、按钮启用条件和危险操作确认规则。它补充 `19-web-page-prototypes.md`，不替代 API 文档。
+本文细化 Esp32FarmDoor 和 Esp32FarmFeeder 的页面工作流、状态字段、按钮启用条件和危险操作确认规则。它补充 `19-web-page-prototypes.md`，不替代应用 API 文档。自动门 API 见 `24-esp32-farmdoor-web-api.md`，喂食器 API 见 `25-esp32-farmfeeder-web-api.md`。
 
 Esp32Base 系统页面、系统日志、App Config 与应用业务页面/API 的边界见 `23-esp32base-web-integration.md`。
 

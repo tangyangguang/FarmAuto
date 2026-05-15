@@ -24,6 +24,8 @@ FarmAuto/
       21-web-workflows.md
       22-record-event-schema.md
       23-esp32base-web-integration.md
+      24-esp32-farmdoor-web-api.md
+      25-esp32-farmfeeder-web-api.md
     libs/
       20-public-library-boundaries.md
       21-esp32-encoded-dc-motor.md
@@ -63,6 +65,7 @@ FarmAuto/
 - 两个应用不能互相 include 源码；只能共同依赖 `lib/` 和 Esp32Base。
 - 公共库不能 include `apps/` 内任何文件。
 - 应用独有 recordType、Web route、默认配置和业务文案必须留在对应应用目录。
+- Web/API 文档也按应用拆分：公共约定写在 `docs/apps/13-web-api-and-maintenance.md`，自动门写在 `docs/apps/24-esp32-farmdoor-web-api.md`，喂食器写在 `docs/apps/25-esp32-farmfeeder-web-api.md`。
 
 ## 依赖方向
 
@@ -83,7 +86,7 @@ Esp32FarmDoor 负责自动门业务：
 - 开门、关门、停止。
 - 物理按钮。
 - Web 状态与配置。
-- Web 页面原型、控制 API 和远程维护流程。
+- Web 页面原型、自动门控制 API 和远程维护流程。
 - 编码器位置、无限位首版远程端点维护。
 - 开门/上限位作为下一阶段优先增强；关门/下限位作为可选增强。
 - INA240A2 电流保护。
@@ -93,7 +96,7 @@ Esp32FarmFeeder 负责三路喂食业务：
 
 - 三路独立启动/停止。
 - 启动全部、停止全部。
-- Web 页面原型、控制 API 和远程维护流程。
+- Web 页面原型、喂食器控制 API 和远程维护流程。
 - 单次喂食目标配置。
 - 每路今日累计、长期原始记录和多年历史查询。
 - 每路饲料桶容量配置和余量估算；第一版软件扣减，下一阶段优先称重增强。
@@ -132,6 +135,7 @@ Web 集成边界见 `docs/apps/23-esp32base-web-integration.md`：
 
 - Esp32Base 系统页面和系统 API 使用 `/esp32base/*`。
 - FarmAuto 应用业务 API 使用 `/api/app/*`。
+- `/api/app/*` 在两个应用固件中可以同名，因为它们运行在不同设备上；具体 payload 和业务字段必须按应用独立定义。
 - Esp32Base 系统日志入口为 `/esp32base/logs`，用于排查运行时和基础设施问题。
 - FarmAuto 业务长期记录入口为 `/records` 和 `/api/app/records`，用于开关门、投喂、维护、故障和配置变化回溯。
 - 普通低频系统参数优先注册到 `/esp32base/app-config`；业务运行数据不放 App Config。

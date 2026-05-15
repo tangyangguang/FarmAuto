@@ -28,7 +28,7 @@
 | C7 | 自动门和喂食器实际 GPIO、LEDC、ADC、I2C 资源 | 已给首版推荐值；源码前只需确认目标芯片资源、ADC 衰减和最终 PCB 引脚 | `docs/15-hardware-resource-budget.md` | 两个应用文档和三个公共库文档 | 源码前确认硬件资源表 |
 | C8 | 喂食器每日计划细节 | 建议首版只做每日一次或多次固定时间，支持跳过今日，不做复杂日历 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md`、`docs/apps/14-configuration-and-defaults.md` | 确认每日时间、漏执行处理、时间无效处理 |
 | C9 | 喂食器停止全部策略 | 建议普通停止同时请求所有运行通道软停止；故障急停同时请求所有运行通道急停 | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | `docs/apps/12-application-state-machines.md` | 是否接受推荐停止策略 |
-| C10 | Web/API 与远程维护范围 | 建议先接受当前本地 Web + `/api/app/*` JSON API + 危险操作二次确认 | `docs/apps/13-web-api-and-maintenance.md` | `docs/apps/23-esp32base-web-integration.md`、`docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
+| C10 | Web/API 与远程维护范围 | 建议接受公共约定 + 两个应用独立 Web/API 文档；两个固件内可同名使用 `/api/app/*`，但 payload 和业务字段必须分开 | `docs/apps/13-web-api-and-maintenance.md` | `docs/apps/24-esp32-farmdoor-web-api.md`、`docs/apps/25-esp32-farmfeeder-web-api.md`、`docs/apps/23-esp32base-web-integration.md`、`docs/17-test-and-acceptance.md` | 是否接受首版 Web/API 范围 |
 | C11 | 长期原始记录策略 | 已采用推荐策略：ESP32 flash 文件系统，1MB 起步、空间允许用 2MB，按天分段轮转 | `docs/apps/18-long-term-records.md` | `docs/apps/14-configuration-and-defaults.md`、`docs/30-persistence-and-migration.md` | 源码前只需确认实际分区表 |
 | C12 | Web 页面原型是否作为首版页面信息架构 | 建议接受，先按状态控制、维护、记录、诊断和领域业务页面实现；系统参数使用 Esp32Base App Config | `docs/apps/19-web-page-prototypes.md` | `docs/apps/13-web-api-and-maintenance.md`、`docs/apps/23-esp32base-web-integration.md` | 是否接受 C12；如不接受，指出页面或信息项调整 |
 | C13 | 应用系统参数是否使用 Esp32Base App Config | 已接受原则：系统配置进 App Config；业务运行数据和维护动作进专门业务页面 | `docs/apps/14-configuration-and-defaults.md` | `docs/apps/19-web-page-prototypes.md` | 源码前按字段数确认 App Config 容量 |
@@ -137,6 +137,7 @@
 - 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`，源码前按目标 PCB/芯片确认。
 - Web 页面原型和信息架构：看 `docs/apps/19-web-page-prototypes.md`。
 - Esp32Base 系统页面、系统日志、App Config 和 FarmAuto 业务 API/记录边界：看 `docs/apps/23-esp32base-web-integration.md`。
+- 两个应用独立 Web/API：自动门看 `docs/apps/24-esp32-farmdoor-web-api.md`，喂食器看 `docs/apps/25-esp32-farmfeeder-web-api.md`。
 
 ## 已确认的长期记录决策
 
