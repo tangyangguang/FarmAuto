@@ -58,7 +58,7 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | motorSpeedPercent | % | 80 | 1-100 | 否 | 待实机确认 |
 | softStartMs | ms | 1000 | 0-10000 | 否 | 独立软启动 |
 | softStopMs | ms | 500 | 0-10000 | 否 | 独立软停止 |
-| openTargetTurnsX100 | 0.01 圈 | 维护流程设置 | >0 | 否 | 开门目标，也可由 openTargetPulses 换算 |
+| openTargetTurnsX100 | 0.01 圈 | 维护流程设置 | >0 | 否 | 开门行程圈数；维护页可直接设置或微调，也可由 openTargetPulses 换算 |
 | jogMaxMs | ms | 1000 | 100-3000 | 否 | 单次维护点动最大时长 |
 | jogSpeedPercent | % | 30 | 1-50 | 否 | 维护点动速度 |
 | gearRatioX100 | 0.01 | 13100 | >0 | 否 | 131:1 |
@@ -66,6 +66,7 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | countMode | enum | X1 | X1/X2/X4 | 否 | 默认 X1，保持与标称 16 脉冲口径一致 |
 | outputPulsesPerRev | pulses | 2096 | >0 | 否 | 可由参数计算，也允许手动覆盖 |
 | outputPulsesPerRevOverrideEnabled | bool | false | true/false | 否 | true 时使用手动值 |
+| travelAdjustStepTurnsX100 | 0.01 圈 | 10 | >0 | 否 | 维护页微调行程默认步长，0.10 圈 |
 | currentGuardEnabled | bool | true | true/false | 否 | 可关闭 |
 | currentFaultThresholdMa | mA | 2500 | >0 | 否 | 待实机确认 |
 | rsenseMilliOhm | mΩ | 5 | >0 | 否 | 待实物确认 |

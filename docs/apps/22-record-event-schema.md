@@ -73,9 +73,13 @@
 | --- | --- | --- |
 | `DoorJog` | 维护点动完成 | direction、durationMs、deltaPulses、stopReason |
 | `DoorPositionSet` | 设置当前位置 | oldPositionPulses、newPositionPulses、reason |
+| `DoorTravelSet` | 直接设置行程 | oldTravelPulses、newTravelPulses、travelTurnsX100、source |
+| `DoorTravelAdjusted` | 微调行程 | oldTravelPulses、newTravelPulses、deltaPulses、deltaTurnsX100 |
 | `DoorEndpointSaved` | 保存开门/关门端点 | endpointType、positionPulses、maxRunPulses |
 | `DoorEndpointVerified` | 低速端点验证完成 | openOk、closeOk、durationMs、maxObservedCurrentMa |
 | `DoorPositionTrustChanged` | 位置可信度变化 | oldTrusted、newTrusted、reason |
+| `DoorMotionCheckpoint` | 运行中低频位置检查点 | command、direction、positionPulses、targetPulses、checkpointReason |
+| `DoorPowerLossRecovered` | 断电后位置恢复 | recoveredPositionPulses、source、confidence、journalSequence |
 
 第一版无限位场景必须记录：
 
@@ -83,8 +87,10 @@
 - 每次点动。
 - 设置关闭点。
 - 保存开门目标。
+- 直接设置或微调行程。
 - 生成安全上限。
 - 低速验证结果。
+- 运行中断电后的恢复结果。
 
 ### 传感器和电流事件
 

@@ -69,9 +69,10 @@ Esp32FarmFeeder 页面：
 
 `GET /api/app/status` 应只包含喂食器字段：
 
-- 全局状态：`Idle`、`AllStarting`、`RunningOne`、`RunningTwo`、`RunningThree`、`StoppingAll`、`HistoryRolling`、`FaultPartial`、`FaultAll`、`Maintenance`。
+- 全局状态：`Idle`、`Starting`、`Running`、`Stopping`、`RollingDay`、`Degraded`、`Fault`、`Maintenance`。
 - 计划状态：scheduleEnabled、scheduleTimeConfigured、scheduleTimeMinutes、timeValid、skipToday、todayExecuted、scheduleMissedToday。
-- 三路状态：channel、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
+- 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
+- 通道状态：channel、enabled、installed、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
 - 饲料桶：capacityGrams、remainGrams、remainPercent、lowWarningPercent、criticalWarningPercent、estimatedFeedCount、estimatedDays。
 - 存储：AT24C 在线状态、flash 剩余空间、最近写入错误、记录范围。
 - 最近命令：commandId、source、channelMask、startedAt、result。
@@ -81,7 +82,7 @@ Esp32FarmFeeder 页面：
 ## 运行规则
 
 - 手动投喂和定时投喂互斥；任一路运行时，新启动请求返回 `Busy`。
-- 启动全部按 `startAllIntervalMs` 顺序启动，已启动通道可以并行运行。
+- 启动全部只启动已启用且已安装的通道，按 `startAllIntervalMs` 顺序启动，已启动通道可以并行运行。
 - 普通停止全部同时请求所有运行通道软停止。
 - 故障或急停停止全部同时请求所有运行通道急停。
 - 单路故障时，该通道停止并记录故障，其他通道继续运行。

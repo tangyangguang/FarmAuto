@@ -38,6 +38,8 @@ Esp32FarmDoor 页面：
 
 - `POST /api/app/maintenance/jog`
 - `POST /api/app/maintenance/set-position`
+- `POST /api/app/maintenance/set-travel`
+- `POST /api/app/maintenance/adjust-travel`
 - `POST /api/app/maintenance/save-endpoints`
 - `POST /api/app/maintenance/verify-endpoints`
 - `POST /api/app/maintenance/calibrate-open-limit`
@@ -52,6 +54,7 @@ Esp32FarmDoor 页面：
 - 应用状态：`PositionUnknown`、`IdleClosed`、`IdleOpen`、`IdlePartial`、`Opening`、`Closing`、`Stopping`、`Stopped`、`Maintenance`、`EndpointTeaching`、`EndpointVerifying`、`LimitHoming`、`Fault`。
 - 当前位置：positionPulses、positionPercent、positionTrusted、positionSource、lastPositionSavedAt。
 - 端点：closePositionPulses、openTargetPulses、maxRunPulses、maxCloseUnwindPulses。
+- 行程：travelTurnsX100、travelPulses、positionSource、positionConfidence。
 - 限位：第一版显示禁用；下一阶段显示 openLimit/closeLimit 的启用、触发、断线和冲突状态。
 - 电机：state、speedPps、outputPercent、remainingPulses、faultReason。
 - 电流：enabled、currentMa、filteredMa、thresholdMa、guardState、faultReason。
@@ -65,6 +68,8 @@ Esp32FarmDoor 页面：
 以下操作必须二次确认：
 
 - 设置当前位置。
+- 直接设置行程圈数或脉冲数。
+- 微调行程。
 - 保存端点。
 - 低速端点验证。
 - 下一阶段上限位校准。
@@ -84,10 +89,19 @@ Esp32FarmDoor 页面：
 第一版不安装限位开关时：
 
 - `PositionUnknown` 下禁止普通开门和关门。
-- 只允许进入维护页执行低速点动、设置关闭点、保存开门目标和低速端点验证。
+- 允许进入维护页执行低速点动、设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程和低速端点验证。
 - `jog` 单次动作必须限制最大时长和最大脉冲。
-- 端点验证成功前，不允许退出 `PositionUnknown` 进入普通控制。
+- 端点验证成功前，不建议退出 `PositionUnknown` 进入普通控制；如果用户选择直接设置行程但跳过验证，必须标记为低可信恢复来源并持续提示。
 - 没有远程视频、现场观察或机械标记时，不建议远程重新示教端点。
+
+## 断电恢复
+
+运行中断电后应尽量远程恢复：
+
+- 通过 motion journal 和最近位置检查点恢复当前位置。
+- 检查点有效且在安全范围内时，恢复为 `IdlePartial` 或可判断的端点状态。
+- 恢复后的第一次动作使用保守速度和正常安全上限。
+- 检查点无效、越界或与限位冲突时，才进入 `PositionUnknown` 或 `Fault`。
 
 ## 下一阶段限位增强
 

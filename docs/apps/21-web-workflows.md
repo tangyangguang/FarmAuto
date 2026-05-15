@@ -129,16 +129,17 @@ Esp32Base 系统页面、系统日志、App Config 与应用业务页面/API 的
 
 必须显示：
 
-- 全局状态：`Idle` / `AllStarting` / `RunningOne` / `RunningTwo` / `RunningThree` / `FaultPartial` / `FaultAll`。
+- 全局状态：`Idle` / `Starting` / `Running` / `Stopping` / `RollingDay` / `Degraded` / `Fault` / `Maintenance`。
 - 今日计划：启用状态、计划时间、今日是否已执行、是否跳过今日。
-- 三路状态表：每路运行状态、目标模式、目标量、今日累计、估算余量、故障摘要。
+- 通道状态表：每路启用状态、运行状态、目标模式、目标量、今日累计、估算余量、故障摘要。
+- 运行通道数、启用通道数、故障通道数。
 - 存储状态：AT24C、flash、记录范围。
 
 按钮启用：
 
 - 任一路运行时，禁用新的手动投喂和定时立即执行。
 - `停止全部` 在任一路运行时启用。
-- 单路故障不禁用其他正常通道。
+- 单路故障不禁用其他正常通道；页面显示 `Degraded` 告警或运行中降级提示。
 - `跳过今日` 只影响定时投喂，不影响手动投喂。
 
 ## Esp32FarmFeeder 投喂计划页
