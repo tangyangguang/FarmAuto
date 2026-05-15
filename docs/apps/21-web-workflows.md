@@ -148,6 +148,7 @@ Esp32Base 系统页面、系统日志、App Config 与应用业务页面/API 的
 - 启动全部或定时计划触发后，页面按通道显示 `Accepted`、`Running`、`Completed`、`Busy skipped`、`Fault skipped`、`Disabled skipped`。
 - 总览顶部显示“部分执行”提示，但不把部分成功当成系统级故障。
 - busy skipped 通道应显示正在运行的 commandId 或当前状态，便于用户判断是否需要停止。
+- 如果上次投喂因断电中断，首页必须显示 `PowerLossAborted` 告警、被中断通道、已可靠记录的实际脉冲和是否已阻止自动续喂；该告警不自动发起补喂。
 - `successMask`、`busyMask`、`faultMask`、`skippedMask` 必须能在诊断包和长期记录中追溯。
 
 ## Esp32FarmFeeder 投喂计划页
@@ -164,6 +165,7 @@ Esp32Base 系统页面、系统日志、App Config 与应用业务页面/API 的
 - 未设置时间时，计划自动禁用。
 - 计划页必须显示计划通道 mask，每路是否纳入每日计划可独立选择。
 - 错过计划时间不补投喂，只记录 missed 事件。
+- 定时投喂运行中断电后，当天显示“已尝试但中断”，不因晚些时候来电再次自动触发。
 - 时间无效时暂停自动定时，但手动投喂仍可用。
 
 ## Esp32FarmFeeder 饲料桶页

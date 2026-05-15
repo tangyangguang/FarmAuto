@@ -114,6 +114,7 @@
 | `FeederStartAllRequested` | 启动全部请求 | channelMask、startIntervalMs |
 | `FeederChannelStarted` | 单路开始 | channel、targetPulses、speedPercent |
 | `FeederChannelCompleted` | 单路完成 | channel、actualPulses、durationMs、gramsX100 |
+| `FeederPowerLossAborted` | 投喂运行中断电后重启 | commandId、source、channelMask、actualPulsesMask、actualPulses[]、targetPulses[]、scheduleAttemptedToday、autoResumeBlocked |
 | `FeederChannelStopped` | 单路停止 | channel、stopReason、actualPulses、durationMs |
 | `FeederChannelFault` | 单路故障 | channel、faultReason、actualPulses、durationMs |
 | `FeederBatchCompleted` | 一次全部/计划完成 | requestedMask、successMask、busyMask、faultMask、skippedMask、durationMs |

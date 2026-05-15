@@ -141,7 +141,15 @@ Maintenance
 - 手动启动多个通道或启动全部时，已忙通道跳过，空闲可用通道可以继续启动；响应中必须返回 successMask、busyMask、faultMask 和 skippedMask。
 - 如果请求的所有通道都不可启动，整体返回 `Busy`、`NotConfigured` 或 `Fault`，具体按原因决定。
 
-`skipToday`、`timeValid`、`scheduleEnabled`、`todayExecuted` 是计划状态标志，不作为设备主状态。原因是它们可能与 `Idle`、`Running`、`Degraded` 同时存在；如果做成主状态，会掩盖真实运行状态。
+断电恢复规则：
+
+- 投喂运行中断电后，重启不自动续喂，不自动补喂，也不排队继续未完成通道。
+- 启动时若发现上次存在未完成投喂命令，应先确保所有电机输出关闭，再把相关通道结果记录为 `PowerLossAborted`。
+- 如果被中断的是定时计划，该日计划标记为已尝试执行但中断，不因来电时间晚于计划时间而再次触发。
+- 如果被中断的是手动投喂，只显示中断结果和实际已完成计数，用户需要重新发起新的手动投喂。
+- 今日累计和饲料桶余量只按已可靠提交的实际脉冲或圈数更新；存在不确定计数时，对应通道标记 `estimateConfidence=Low`。
+
+`skipToday`、`timeValid`、`scheduleEnabled`、`todayExecuted`、`scheduleAttemptedToday` 是计划状态标志，不作为设备主状态。原因是它们可能与 `Idle`、`Running`、`Degraded` 同时存在；如果做成主状态，会掩盖真实运行状态。
 
 状态说明：
 
@@ -184,6 +192,7 @@ Maintenance
 | `timeValid` | 当前日期/时间可信；不可信时暂停自动定时 |
 | `skipToday` | 今日定时已跳过；日期切换后自动清除 |
 | `todayExecuted` | 今日计划已执行 |
+| `scheduleAttemptedToday` | 今日计划已经开始过；即使被断电中断，也不自动再次触发 |
 | `scheduleMissedToday` | 今日计划错过且不补投喂，仅记录事件 |
 
 关键事件：
@@ -201,6 +210,7 @@ HistorySaved
 TodayCountersCleared
 DailyScheduleTriggered
 ScheduleChannelSkipped
+FeederPowerLossAborted
 SkipTodayRequested
 SkipTodayCleared
 ScheduleMissed
