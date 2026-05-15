@@ -80,6 +80,8 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | openLimitCalibrateMaxPulses | pulses | maxRunPulses | >0 | 否 | 下一阶段限位端点校准最大脉冲 |
 | maxCloseUnwindPulses | pulses | openTargetPulses * 120% | >0 | 否 | 关门最大放绳脉冲，防止过放反卷 |
 | faultEmergencyOutputMode | enum | Coast | Coast/Brake | 否 | 故障停机默认倾向滑行，需实测确认 |
+| motionCheckpointMinIntervalMs | ms | 2000 | 1000-10000 | 否 | 运行中断电恢复检查点最小时间间隔 |
+| motionCheckpointMinTravelPercent | % | 5 | 1-20 | 否 | 运行中断电恢复检查点最小行程变化 |
 
 Esp32FarmDoor 维护/运行数据，不放在 App Config：
 

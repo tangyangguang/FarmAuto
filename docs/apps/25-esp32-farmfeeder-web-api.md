@@ -94,6 +94,47 @@ Esp32FarmFeeder 页面：
 - 日期/时间无效时暂停自动定时投喂，但允许手动投喂。
 - 错过计划时间不补投喂，只记录 missed 事件。
 
+## 部分成功响应
+
+启动全部、定时计划触发、手动多通道启动都可能部分成功。
+
+推荐 `data`：
+
+```json
+{
+  "commandId": 123,
+  "requestedMask": 7,
+  "acceptedMask": 6,
+  "successMask": 0,
+  "busyMask": 1,
+  "faultMask": 0,
+  "skippedMask": 1,
+  "pendingMask": 6,
+  "channelResults": [
+    {"channel": 1, "result": "Busy", "reason": "AlreadyRunning"},
+    {"channel": 2, "result": "Accepted", "reason": ""},
+    {"channel": 3, "result": "Accepted", "reason": ""}
+  ]
+}
+```
+
+语义：
+
+- `requestedMask`：用户或计划请求的通道。
+- `acceptedMask`：本次已接受并准备启动的通道。
+- `pendingMask`：已接受但尚未完成启动/运行的通道。
+- `successMask`：已完成且成功的通道，命令进行中可为 0。
+- `busyMask`：请求时已经忙的通道。
+- `faultMask`：因故障不可启动的通道。
+- `skippedMask`：被跳过的通道，可能由 busy、disabled、not installed、not configured 等原因造成。
+- `channelResults`：页面展示的逐通道结果来源。
+
+HTTP 层建议：
+
+- 至少一个通道 accepted 时，整体 `ok=true`，`code=PartialAccepted` 或 `Ok`，由 `channelResults` 展示部分成功。
+- 所有请求通道都不可启动时，整体 `ok=false`，`code=Busy` / `Fault` / `NotConfigured`。
+- 命令完成后，`FeederBatchCompleted` 记录最终 requested/success/busy/fault/skipped mask。
+
 ## 危险操作
 
 以下操作必须二次确认：

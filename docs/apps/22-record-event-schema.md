@@ -121,8 +121,10 @@
 字段说明：
 
 - `channelMask` 使用 bit0..bit2 表示 1..3 路。
+- `requestedMask` / `successMask` / `busyMask` / `faultMask` / `skippedMask` 使用同一 bit 口径；未来扩展 4 路时继续使用 bit3。
 - `gramsX100` 使用 0.01g 定点数。
 - `actualPulses` 永远保存原始脉冲数。
+- 部分成功不应只保存文本摘要，必须保存各 mask，方便远程统计和故障回溯。
 
 ### 计划和今日状态事件
 

@@ -143,6 +143,13 @@ Esp32Base 系统页面、系统日志、App Config 与应用业务页面/API 的
 - 单路故障不禁用其他正常通道；页面显示 `Degraded` 告警或运行中降级提示。
 - `跳过今日` 只影响定时投喂，不影响手动投喂。
 
+部分成功展示：
+
+- 启动全部或定时计划触发后，页面按通道显示 `Accepted`、`Running`、`Completed`、`Busy skipped`、`Fault skipped`、`Disabled skipped`。
+- 总览顶部显示“部分执行”提示，但不把部分成功当成系统级故障。
+- busy skipped 通道应显示正在运行的 commandId 或当前状态，便于用户判断是否需要停止。
+- `successMask`、`busyMask`、`faultMask`、`skippedMask` 必须能在诊断包和长期记录中追溯。
+
 ## Esp32FarmFeeder 投喂计划页
 
 每路目标：

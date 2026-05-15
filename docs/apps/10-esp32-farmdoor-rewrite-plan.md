@@ -214,8 +214,9 @@ DoorController
 运行中断电恢复建议：
 
 - 运动开始时写入 motion journal：command、direction、startPositionPulses、targetPulses、maxRunPulses、startedAt、sequence。
-- 运动过程中低频保存位置检查点，不按每个编码器脉冲保存。推荐初始值为每 1000ms 或每完成 2% 行程保存一次，取较慢者，实机按 AT24C 寿命预算调整。
+- 运动过程中低频保存位置检查点，不按每个编码器脉冲保存。推荐初始值为每 2000ms 或每完成 5% 行程保存一次，取更慢者，实机按 AT24C 寿命预算调整。
 - 检查点使用 Esp32At24cRecordStore 的多槽磨损均衡记录，避免反复覆盖同一地址。
+- 维护点动默认不按普通运行频率写检查点，只在动作结束写最终状态和维护事件，避免调试时消耗 EEPROM 寿命。
 - 重启后如果 motion journal 和最近检查点 CRC 有效，且检查点位置在安全范围内，则恢复当前位置为最近检查点，并标记 `positionSource=RecoveredCheckpoint`。
 - 如果检查点距目标很近，可按目标端点恢复；否则恢复为 `IdlePartial`，允许用户远程继续开门、关门或进入维护微调。
 - 如果检查点缺失、越界、CRC 错误、与限位状态冲突，或连续恢复后再次触发安全故障，才进入 `PositionUnknown` 或 `Fault`。
