@@ -21,6 +21,7 @@
 1. `docs/apps/23-esp32base-web-integration.md`：系统页和业务页边界。
 2. `docs/apps/19-web-page-prototypes.md`：页面草图和信息架构。
 3. 本文：按页面逐项确认首版需要展示和操作的内容。
+4. `docs/apps/27-web-prototype-professional-review.md`：专业评审结论和剩余改进项。
 
 ## 全局导航
 

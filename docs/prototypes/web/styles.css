@@ -472,6 +472,18 @@ a {
   background: white;
 }
 
+.range-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 10px;
+  align-items: center;
+}
+
+.range {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
 .page-note {
   background: #edf7f4;
   border: 1px solid #cde3df;
