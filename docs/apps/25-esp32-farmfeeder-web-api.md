@@ -14,7 +14,7 @@ Esp32FarmFeeder 页面：
 - `/control`：单路启动/停止、启动全部、停止全部、跳过今日。
 - `/schedule`：每日计划、执行时间、启用状态、跳过今日和下次执行预览。
 - `/buckets`：每路饲料桶容量、估算余量、补料、低余量阈值。
-- `/calibration`：每路下料标定、单路小剂量测试。
+- `/calibration`：每路下料参数，手工输入每圈下料克数。
 - `/maintenance`：清空今日计数、清除故障、存储检查、格式化应用业务存储。
 - `/records`：喂食器长期业务记录查询和导出。
 - `/diagnostics`：喂食器业务诊断包，含状态 snapshot、三路电机 snapshot、计划状态、桶余量、AT24C inspect、flash 记录范围。
@@ -189,24 +189,23 @@ Esp32FarmFeeder 页面：
 - 每次补料、设置余量、投喂扣减和低余量告警都写入长期业务记录。
 - 余量不得扣成负数；扣减后小于 0 时显示 0，并记录 underflow。
 
-## 标定字段
+## 下料参数字段
 
 `POST /api/app/maintenance/calibrate-feed-rate` 输入：
 
 ```json
 {
   "channel": 1,
-  "actualPulses": 4320,
-  "actualWeightGramsX100": 7050
+  "gramsPerRevX100": 7000,
+  "source": "Manual"
 }
 ```
 
 规则：
 
-- 标定运行和称重输入分两步：先通过 test/calibration run 得到 actualPulses，再由用户输入实测重量。
-- `gramsPerRevX100 = actualWeightGramsX100 / actualRevolutions`，使用定点数保存。
-- `actualWeightGramsX100 <= 0` 或 `actualPulses <= 0` 时拒绝保存。
-- 标定失败不覆盖旧标定值。
+- 下料参数页只手工输入每圈下料克数，不发起实际运转测试。
+- `gramsPerRevX100 <= 0` 时拒绝保存。
+- 保存失败不覆盖旧标定值。
 - 保存成功后，克数模式可用，并写入 `FeederCalibrationSaved`。
 
 ## 运行规则

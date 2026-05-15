@@ -112,6 +112,7 @@
                   <tr><td data-label="项目">上限位</td><td data-label="值">首版未安装</td></tr>
                   <tr><td data-label="项目">下限位</td><td data-label="值">未安装</td></tr>
                   <tr><td data-label="项目">AT24C</td><td data-label="值">在线，估算寿命 2%</td></tr>
+                  <tr><td data-label="项目">Flash</td><td data-label="值">LittleFS 正常，剩余 42%，写入健康正常</td></tr>
                 </tbody>
               </table>
             </div>
@@ -176,7 +177,8 @@
         </div>
         <div class="section-body">
           <div class="form-grid">
-            <div class="field"><label>时间范围</label><input class="input" value="最近 7 天"></div>
+            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
+            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>事件类型</label><select class="select"><option>全部</option><option>开门</option><option>关门</option><option>保护停止</option></select></div>
           </div>
           <table class="data-table">
@@ -196,9 +198,9 @@
         <div class="section-body">
           <div class="metric-grid">
             <div class="metric"><div class="metric-label">Flash 剩余</div><div class="metric-value">42%</div></div>
+            <div class="metric"><div class="metric-label">Flash 写入健康</div><div class="metric-value">正常</div></div>
             <div class="metric"><div class="metric-label">AT24C verify 错误</div><div class="metric-value">0</div></div>
             <div class="metric"><div class="metric-label">最近保护停止</div><div class="metric-value">0</div></div>
-            <div class="metric"><div class="metric-label">系统日志</div><div class="metric-value">Esp32Base</div></div>
           </div>
         </div>
       </section>

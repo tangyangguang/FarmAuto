@@ -10,6 +10,8 @@
 - `docs/prototypes/web/esp32-farmdoor.html`
 - `docs/prototypes/web/esp32-farmfeeder.html`
 
+当前 `esp32-farmdoor.html` 和 `esp32-farmfeeder.html` 是应用级总览原型，用于快速确认信息结构。下一步应拆成最终页面文件，例如 `farmdoor-dashboard.html`、`farmdoor-maintenance.html`、`feeder-dashboard.html`、`feeder-schedule.html` 等，逐页确认最终效果。
+
 阅读顺序：
 
 1. `docs/apps/23-esp32base-web-integration.md`：系统页和业务页边界。
@@ -158,6 +160,12 @@
 | 存储 | AT24C、flash、记录范围、最近错误 |
 | 告警 | PowerLossAborted、低余量、存储 warning、通道故障 |
 
+运行中展示：
+
+- 喂食器首页不需要运行曲线。
+- 如果某路正在下料，首页必须持续显示该路下料过程：目标、已完成圈数/脉冲、估算克数、已运行时间、剩余目标和当前电机状态。
+- 运行中数据用于远程判断“正在正常下料”，不是长期高频记录。
+
 按钮：
 
 | 按钮 | 显示条件 | 行为 |
@@ -226,12 +234,11 @@
 每路独立标定：
 
 1. 选择通道。
-2. 发起小剂量测试。
-3. 显示实际脉冲、圈数和时长。
-4. 用户输入实测重量。
-5. 保存 `gramsPerRevolution`。
+2. 手工输入每圈下料克数。
+3. 选择参数来源，例如手工输入或历史实测。
+4. 保存 `gramsPerRevolution`。
 
-标定失败不覆盖旧值。
+标定页不做实际运转测试。若后续需要电机试运行，应作为维护测试功能单独确认，不混入参数标定页。
 
 ## 待用户确认
 
@@ -242,3 +249,4 @@
 | W3 | 喂食器首页使用表格还是卡片 | 不预设；以展示合理、手机查看和操作体验好为准 |
 | W4 | 业务记录导出是否首版必须做 | 已确认：不是必须；网页查看是基本能力，导出后续再做 |
 | W5 | 危险操作 confirm token | 已确认：首版应用内实现短期 token，不要求 Esp32Base 先增强 |
+| W6 | 原型是否拆成最终独立页面 | 待执行：下一步拆成最终页面文件逐页确认 |

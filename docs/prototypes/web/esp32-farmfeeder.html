@@ -106,11 +106,20 @@
       <div class="layout">
         <section class="section">
           <div class="section-header">
-            <h2>运行曲线</h2>
-            <span class="subtle">位置 / 速度 / 未来电流 / 故障点</span>
+            <h2>正在下料</h2>
+            <span class="pill ok">通道 2 Running</span>
           </div>
           <div class="section-body">
-            <div class="chart">展示最近运行通道的降采样曲线。公共库只提供 trace 数据，图表由应用层展示。</div>
+            <div class="metric-grid">
+              <div class="metric"><div class="metric-label">目标</div><div class="metric-value">1.00 圈</div></div>
+              <div class="metric"><div class="metric-label">已完成</div><div class="metric-value">0.42 圈</div></div>
+              <div class="metric"><div class="metric-label">估算下料</div><div class="metric-value">29g</div></div>
+              <div class="metric"><div class="metric-label">已运行</div><div class="metric-value">6.3s</div></div>
+            </div>
+            <div class="page-note">
+              运行中这里持续刷新：实际脉冲、完成百分比、估算克数、剩余目标、当前电机状态、停止原因。喂食器首页不需要运行曲线。
+            </div>
+            <div class="progress"><span style="width:42%"></span></div>
           </div>
         </section>
 
@@ -170,18 +179,20 @@
 
       <section id="calibration" class="section">
         <div class="section-header">
-          <h2>下料标定</h2>
+          <h2>下料参数</h2>
         </div>
         <div class="section-body">
           <div class="form-grid">
             <div class="field"><label>通道</label><select class="select"><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
-            <div class="field"><label>测试圈数</label><input class="input" value="1.00 圈"></div>
-            <div class="field"><label>实测重量</label><input class="input" value="70.0 g"></div>
-            <div class="field"><label>结果</label><input class="input" value="70.0 g/圈"></div>
+            <div class="field"><label>每圈下料克数</label><input class="input" value="70.0 g/圈"></div>
+            <div class="field"><label>参数来源</label><select class="select"><option>手工输入</option><option>历史实测</option></select></div>
+            <div class="field"><label>备注</label><input class="input" value="当前使用 70g/圈"></div>
           </div>
           <div class="actions">
-            <button class="button">小剂量测试</button>
             <button class="button primary">保存标定</button>
+          </div>
+          <div class="page-note">
+            下料标定页只提供手工输入参数，不做实际运转测试。是否要单独做维护试运行页面，后续再确认。
           </div>
         </div>
       </section>
@@ -193,8 +204,10 @@
         </div>
         <div class="section-body">
           <div class="form-grid">
-            <div class="field"><label>时间范围</label><input class="input" value="最近 7 天"></div>
+            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
+            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>通道</label><select class="select"><option>全部</option><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
+            <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>投喂</option><option>故障</option><option>补料</option><option>计划</option></select></div>
           </div>
           <table class="data-table">
             <thead><tr><th>时间</th><th>事件</th><th>通道</th><th>结果</th><th>详情</th></tr></thead>
