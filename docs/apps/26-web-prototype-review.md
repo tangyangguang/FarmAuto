@@ -22,6 +22,7 @@
 2. `docs/apps/19-web-page-prototypes.md`：页面草图和信息架构。
 3. 本文：按页面逐项确认首版需要展示和操作的内容。
 4. `docs/apps/27-web-prototype-professional-review.md`：专业评审结论和剩余改进项。
+5. `docs/apps/28-web-prototype-audit.md`：静态页面链接、结构和表单入口自查记录。
 
 ## 全局导航
 

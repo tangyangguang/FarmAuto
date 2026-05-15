@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32Base 系统日志</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="content">
+    <div class="topbar">
+      <div class="title-block">
+        <h1>Esp32Base 系统日志</h1>
+        <div class="subtle">占位原型：WiFi、OTA、系统错误和调试日志由 Esp32Base 管理。</div>
+      </div>
+      <a class="button" href="index.html">返回原型首页</a>
+    </div>
+    <section class="section">
+      <div class="section-header"><h2>系统日志示例</h2></div>
+      <div class="section-body">
+        <table class="data-table">
+          <thead><tr><th>时间</th><th>级别</th><th>来源</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td data-label="时间">08:10:12</td><td data-label="级别">信息</td><td data-label="来源">WiFi</td><td data-label="内容">连接正常</td></tr>
+            <tr><td data-label="时间">08:05:41</td><td data-label="级别">信息</td><td data-label="来源">OTA</td><td data-label="内容">当前无升级任务</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="page-note">业务记录仍在各应用的“记录”页面，不与系统日志混合。</section>
+  </main>
+</body>
+</html>
