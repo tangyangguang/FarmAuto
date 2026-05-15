@@ -3,226 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder Web 原型</title>
+  <title>Esp32FarmFeeder 页面入口</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">Esp32FarmFeeder</div>
-      <div class="subtle">三路喂食器本地 Web 原型</div>
-      <nav class="nav-section">
-        <div class="nav-title">应用页面</div>
-        <a class="nav-link active" href="#dashboard">Dashboard</a>
-        <a class="nav-link" href="#schedule">Schedule</a>
-        <a class="nav-link" href="#buckets">Buckets</a>
-        <a class="nav-link" href="#calibration">Calibration</a>
-        <a class="nav-link" href="#records">Records</a>
-      </nav>
-      <nav class="nav-section">
-        <div class="nav-title">Esp32Base</div>
-        <a class="nav-link" href="#base">App Config</a>
-        <a class="nav-link" href="#base">System Logs</a>
-        <a class="nav-link" href="#base">OTA / WiFi</a>
-      </nav>
-    </aside>
-
-    <main class="content">
-      <section id="dashboard" class="topbar">
-        <div class="title-block">
-          <h1>喂食器状态控制</h1>
-          <div class="subtle">按通道独立仲裁。手机端展示形式以操作体验为准。</div>
-        </div>
-        <div class="status-strip">
-          <span class="pill ok">在线</span>
-          <span class="pill ok">时间同步</span>
-          <span class="pill warn">Flash 余量 28%</span>
-        </div>
-      </section>
-
-      <div class="alert danger">
-        上次定时投喂因断电中断：通道 1、2 已记录 PowerLossAborted，自动续喂已阻止。需要投喂时请重新发起手动投喂。
+  <main class="content">
+    <div class="topbar">
+      <div class="title-block">
+        <h1>Esp32FarmFeeder 页面入口</h1>
+        <div class="subtle">已拆成独立页面，后续请逐页确认。</div>
       </div>
-
-      <section class="section">
-        <div class="section-header">
-          <h2>今日计划</h2>
-          <span class="pill warn">已尝试但中断</span>
-        </div>
-        <div class="section-body">
-          <div class="metric-grid">
-            <div class="metric"><div class="metric-label">计划</div><div class="metric-value">07:30</div></div>
-            <div class="metric"><div class="metric-label">参与通道</div><div class="metric-value">1, 2, 3</div></div>
-            <div class="metric"><div class="metric-label">今日状态</div><div class="metric-value">中断</div></div>
-            <div class="metric"><div class="metric-label">跳过今日</div><div class="metric-value">否</div></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="section-header">
-          <h2>通道状态</h2>
-          <div class="actions">
-            <button class="button primary">启动全部可用通道</button>
-            <button class="button danger">停止全部</button>
-            <a class="button" href="#schedule">计划设置</a>
-          </div>
-        </div>
-        <div class="section-body">
-          <table class="data-table">
-            <thead>
-              <tr><th>通道</th><th>状态</th><th>目标</th><th>今日</th><th>桶余量</th><th>操作</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td data-label="通道">1</td>
-                <td data-label="状态"><span class="pill warn">PowerLossAborted</span></td>
-                <td data-label="目标">70g</td>
-                <td data-label="今日">42g</td>
-                <td data-label="桶余量"><div class="progress"><span style="width:82%"></span></div></td>
-                <td data-label="操作"><button class="button">重新手动投喂</button></td>
-              </tr>
-              <tr>
-                <td data-label="通道">2</td>
-                <td data-label="状态"><span class="pill ok">Idle</span></td>
-                <td data-label="目标">1.00 圈</td>
-                <td data-label="今日">0g</td>
-                <td data-label="桶余量"><div class="progress"><span style="width:61%"></span></div></td>
-                <td data-label="操作"><button class="button primary">启动</button></td>
-              </tr>
-              <tr>
-                <td data-label="通道">3</td>
-                <td data-label="状态"><span class="pill danger">Fault</span></td>
-                <td data-label="目标">70g</td>
-                <td data-label="今日">0g</td>
-                <td data-label="桶余量"><div class="progress warn"><span style="width:16%"></span></div></td>
-                <td data-label="操作"><button class="button">详情</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <div class="layout">
-        <section class="section">
-          <div class="section-header">
-            <h2>正在下料</h2>
-            <span class="pill ok">通道 2 Running</span>
-          </div>
-          <div class="section-body">
-            <div class="metric-grid">
-              <div class="metric"><div class="metric-label">目标</div><div class="metric-value">1.00 圈</div></div>
-              <div class="metric"><div class="metric-label">已完成</div><div class="metric-value">0.42 圈</div></div>
-              <div class="metric"><div class="metric-label">估算下料</div><div class="metric-value">29g</div></div>
-              <div class="metric"><div class="metric-label">已运行</div><div class="metric-value">6.3s</div></div>
-            </div>
-            <div class="page-note">
-              运行中这里持续刷新：实际脉冲、完成百分比、估算克数、剩余目标、当前电机状态、停止原因。喂食器首页不需要运行曲线。
-            </div>
-            <div class="progress"><span style="width:42%"></span></div>
-          </div>
-        </section>
-
-        <section class="section">
-          <div class="section-header">
-            <h2>最近事件</h2>
-          </div>
-          <div class="section-body">
-            <ul class="event-list">
-              <li><span>07:32 PowerLossAborted</span><span class="subtle">通道 1,2</span></li>
-              <li><span>07:30 ScheduleTriggered</span><span class="subtle">mask=7</span></li>
-              <li><span>昨天 18:20 BucketRefill</span><span class="subtle">通道 3</span></li>
-            </ul>
-          </div>
-        </section>
-      </div>
-
-      <section id="schedule" class="section">
-        <div class="section-header">
-          <h2>投喂计划</h2>
-          <span class="pill">默认关闭</span>
-        </div>
-        <div class="section-body">
-          <div class="form-grid">
-            <div class="field"><label>启用每日计划</label><select class="select"><option>关闭</option><option>启用</option></select></div>
-            <div class="field"><label>执行时间</label><input class="input" value="07:30"></div>
-            <div class="field"><label>参与通道</label><input class="input" value="1, 2, 3"></div>
-            <div class="field"><label>跳过今日</label><select class="select"><option>否</option><option>是</option></select></div>
-          </div>
-          <table class="data-table">
-            <thead><tr><th>通道</th><th>单位</th><th>目标克数</th><th>目标圈数</th><th>标定</th></tr></thead>
-            <tbody>
-              <tr><td data-label="通道">1</td><td data-label="单位">克数</td><td data-label="目标克数">70g</td><td data-label="目标圈数">1.00</td><td data-label="标定">有效</td></tr>
-              <tr><td data-label="通道">2</td><td data-label="单位">圈数</td><td data-label="目标克数">估算 68g</td><td data-label="目标圈数">1.00</td><td data-label="标定">有效</td></tr>
-              <tr><td data-label="通道">3</td><td data-label="单位">克数</td><td data-label="目标克数">70g</td><td data-label="目标圈数">1.00</td><td data-label="标定">有效</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="buckets" class="section">
-        <div class="section-header">
-          <h2>饲料桶</h2>
-          <span class="subtle">第一版软件估算，低料位硬件后续增强</span>
-        </div>
-        <div class="section-body">
-          <table class="data-table">
-            <thead><tr><th>通道</th><th>容量</th><th>当前余量</th><th>阈值</th><th>预计次数</th><th>操作</th></tr></thead>
-            <tbody>
-              <tr><td data-label="通道">1</td><td data-label="容量">5kg</td><td data-label="当前余量">4.1kg</td><td data-label="阈值">20%</td><td data-label="预计次数">58</td><td data-label="操作"><button class="button">记录加料</button></td></tr>
-              <tr><td data-label="通道">2</td><td data-label="容量">5kg</td><td data-label="当前余量">3.0kg</td><td data-label="阈值">20%</td><td data-label="预计次数">44</td><td data-label="操作"><button class="button">设置余量</button></td></tr>
-              <tr><td data-label="通道">3</td><td data-label="容量">3kg</td><td data-label="当前余量">0.5kg</td><td data-label="阈值">20%</td><td data-label="预计次数">7</td><td data-label="操作"><button class="button">标记已加满</button></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="calibration" class="section">
-        <div class="section-header">
-          <h2>下料参数</h2>
-        </div>
-        <div class="section-body">
-          <div class="form-grid">
-            <div class="field"><label>通道</label><select class="select"><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
-            <div class="field"><label>每圈下料克数</label><input class="input" value="70.0 g/圈"></div>
-            <div class="field"><label>参数来源</label><select class="select"><option>手工输入</option><option>历史实测</option></select></div>
-            <div class="field"><label>备注</label><input class="input" value="当前使用 70g/圈"></div>
-          </div>
-          <div class="actions">
-            <button class="button primary">保存标定</button>
-          </div>
-          <div class="page-note">
-            下料标定页只提供手工输入参数，不做实际运转测试。是否要单独做维护试运行页面，后续再确认。
-          </div>
-        </div>
-      </section>
-
-      <section id="records" class="section">
-        <div class="section-header">
-          <h2>业务记录</h2>
-          <span class="subtle">首版网页分页查看，导出后续增强</span>
-        </div>
-        <div class="section-body">
-          <div class="form-grid">
-            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
-            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
-            <div class="field"><label>通道</label><select class="select"><option>全部</option><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
-            <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>投喂</option><option>故障</option><option>补料</option><option>计划</option></select></div>
-          </div>
-          <table class="data-table">
-            <thead><tr><th>时间</th><th>事件</th><th>通道</th><th>结果</th><th>详情</th></tr></thead>
-            <tbody>
-              <tr><td data-label="时间">07:32</td><td data-label="事件">FeederPowerLossAborted</td><td data-label="通道">1,2</td><td data-label="结果">BlockedResume</td><td data-label="详情">actual=42g</td></tr>
-              <tr><td data-label="时间">07:30</td><td data-label="事件">FeederScheduleTriggered</td><td data-label="通道">1,2,3</td><td data-label="结果">Partial</td><td data-label="详情">mask=7</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="base" class="page-note">
-        Esp32Base 页面入口：系统状态、App Config、System Logs、WiFi、OTA、系统工具。业务记录不写入系统日志。
-      </section>
-    </main>
-  </div>
+      <a class="button" href="index.html">返回原型首页</a>
+    </div>
+    <section class="prototype-grid">
+      <article class="prototype-tile"><h2>Dashboard</h2><p>三路状态、正在下料、常用控制。</p><a class="button primary" href="feeder-dashboard.html">打开</a></article>
+      <article class="prototype-tile"><h2>Schedule</h2><p>每日计划、参与通道、目标量。</p><a class="button primary" href="feeder-schedule.html">打开</a></article>
+      <article class="prototype-tile"><h2>Buckets</h2><p>饲料桶容量、估算余量、补料。</p><a class="button primary" href="feeder-buckets.html">打开</a></article>
+      <article class="prototype-tile"><h2>Calibration</h2><p>手工输入每圈下料克数。</p><a class="button primary" href="feeder-calibration.html">打开</a></article>
+      <article class="prototype-tile"><h2>Records</h2><p>业务原始记录分页查看。</p><a class="button primary" href="feeder-records.html">打开</a></article>
+      <article class="prototype-tile"><h2>Diagnostics</h2><p>硬件、存储、通道和错误诊断。</p><a class="button primary" href="feeder-diagnostics.html">打开</a></article>
+    </section>
+  </main>
 </body>
 </html>

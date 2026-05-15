@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmDoor Records</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Esp32FarmDoor</div>
+      <nav class="nav-section">
+        <a class="nav-link" href="farmdoor-dashboard.html">Dashboard</a>
+        <a class="nav-link" href="farmdoor-maintenance.html">Maintenance</a>
+        <a class="nav-link active" href="farmdoor-records.html">Records</a>
+        <a class="nav-link" href="farmdoor-diagnostics.html">Diagnostics</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>Records</h1><div class="subtle">业务原始记录分页查看，导出后续增强。</div></div></div>
+      <section class="section">
+        <div class="section-header"><h2>查询</h2></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
+            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
+            <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>开门</option><option>关门</option><option>保护停止</option><option>故障</option></select></div>
+            <div class="field"><label>结果</label><select class="select"><option>全部</option><option>Ok</option><option>Warning</option><option>Fault</option></select></div>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>记录</h2></div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>结果</th><th>原始字段</th></tr></thead>
+            <tbody>
+              <tr><td data-label="序号">1052</td><td data-label="时间">08:01</td><td data-label="事件">CloseCompleted</td><td data-label="结果">Ok</td><td data-label="原始字段">pulses=20960 durationMs=17900</td></tr>
+              <tr><td data-label="序号">1051</td><td data-label="时间">02:13</td><td data-label="事件">DoorPowerLossRecovered</td><td data-label="结果">Trusted</td><td data-label="原始字段">source=checkpoint seq=884</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

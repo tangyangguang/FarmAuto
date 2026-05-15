@@ -10,7 +10,11 @@
 - `docs/prototypes/web/esp32-farmdoor.html`
 - `docs/prototypes/web/esp32-farmfeeder.html`
 
-当前 `esp32-farmdoor.html` 和 `esp32-farmfeeder.html` 是应用级总览原型，用于快速确认信息结构。下一步应拆成最终页面文件，例如 `farmdoor-dashboard.html`、`farmdoor-maintenance.html`、`feeder-dashboard.html`、`feeder-schedule.html` 等，逐页确认最终效果。
+当前已拆成最终独立页面文件：
+
+- 自动门：`farmdoor-dashboard.html`、`farmdoor-maintenance.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
+- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-buckets.html`、`feeder-calibration.html`、`feeder-records.html`、`feeder-diagnostics.html`
+- `esp32-farmdoor.html` 和 `esp32-farmfeeder.html` 仅作为页面列表入口保留。
 
 阅读顺序：
 
@@ -249,4 +253,4 @@
 | W3 | 喂食器首页使用表格还是卡片 | 不预设；以展示合理、手机查看和操作体验好为准 |
 | W4 | 业务记录导出是否首版必须做 | 已确认：不是必须；网页查看是基本能力，导出后续再做 |
 | W5 | 危险操作 confirm token | 已确认：首版应用内实现短期 token，不要求 Esp32Base 先增强 |
-| W6 | 原型是否拆成最终独立页面 | 待执行：下一步拆成最终页面文件逐页确认 |
+| W6 | 原型是否拆成最终独立页面 | 已完成：下一步逐页确认最终页面效果 |

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder Records</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Esp32FarmFeeder</div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">Dashboard</a>
+        <a class="nav-link" href="feeder-schedule.html">Schedule</a>
+        <a class="nav-link" href="feeder-buckets.html">Buckets</a>
+        <a class="nav-link" href="feeder-calibration.html">Calibration</a>
+        <a class="nav-link active" href="feeder-records.html">Records</a>
+        <a class="nav-link" href="feeder-diagnostics.html">Diagnostics</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>Records</h1><div class="subtle">业务原始记录分页展示，不预设“最近 7 天”。</div></div></div>
+      <section class="section">
+        <div class="section-header"><h2>分页查询</h2></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
+            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
+            <div class="field"><label>通道</label><select class="select"><option>全部</option><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
+            <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>投喂</option><option>故障</option><option>补料</option><option>计划</option></select></div>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>记录</h2></div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>通道</th><th>结果</th><th>原始字段</th></tr></thead>
+            <tbody>
+              <tr><td data-label="序号">2001</td><td data-label="时间">07:32</td><td data-label="事件">FeederPowerLossAborted</td><td data-label="通道">1,2</td><td data-label="结果">BlockedResume</td><td data-label="原始字段">actualPulses=[2590,0]</td></tr>
+              <tr><td data-label="序号">2000</td><td data-label="时间">07:30</td><td data-label="事件">FeederScheduleTriggered</td><td data-label="通道">1,2,3</td><td data-label="结果">Partial</td><td data-label="原始字段">mask=7</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

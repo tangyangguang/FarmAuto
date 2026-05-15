@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder Calibration</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Esp32FarmFeeder</div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">Dashboard</a>
+        <a class="nav-link" href="feeder-schedule.html">Schedule</a>
+        <a class="nav-link" href="feeder-buckets.html">Buckets</a>
+        <a class="nav-link active" href="feeder-calibration.html">Calibration</a>
+        <a class="nav-link" href="feeder-records.html">Records</a>
+        <a class="nav-link" href="feeder-diagnostics.html">Diagnostics</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>Calibration</h1><div class="subtle">只手工输入每圈下料克数，不做实际运转测试。</div></div></div>
+      <section class="section">
+        <div class="section-header"><h2>下料参数</h2></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>通道</label><select class="select"><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
+            <div class="field"><label>每圈下料克数</label><input class="input" value="70.0 g/圈"></div>
+            <div class="field"><label>来源</label><select class="select"><option>手工输入</option><option>历史实测</option></select></div>
+            <div class="field"><label>备注</label><input class="input" value="当前使用 70g/圈"></div>
+          </div>
+          <div class="actions"><button class="button primary">保存参数</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

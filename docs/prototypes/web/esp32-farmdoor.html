@@ -3,212 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmDoor Web 原型</title>
+  <title>Esp32FarmDoor 页面入口</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">Esp32FarmDoor</div>
-      <div class="subtle">自动门本地 Web 原型</div>
-      <nav class="nav-section">
-        <div class="nav-title">应用页面</div>
-        <a class="nav-link active" href="#dashboard">Dashboard</a>
-        <a class="nav-link" href="#maintenance">Maintenance</a>
-        <a class="nav-link" href="#records">Records</a>
-        <a class="nav-link" href="#diagnostics">Diagnostics</a>
-      </nav>
-      <nav class="nav-section">
-        <div class="nav-title">Esp32Base</div>
-        <a class="nav-link" href="#base">App Config</a>
-        <a class="nav-link" href="#base">System Logs</a>
-        <a class="nav-link" href="#base">OTA / WiFi</a>
-      </nav>
-    </aside>
-
-    <main class="content">
-      <section id="dashboard" class="topbar">
-        <div class="title-block">
-          <h1>自动门状态控制</h1>
-          <div class="subtle">首页合并控制页。普通操作只发起命令，不等待动作完成。</div>
-        </div>
-        <div class="status-strip">
-          <span class="pill ok">在线</span>
-          <span class="pill ok">时间同步</span>
-          <span class="pill warn">存储 warning</span>
-        </div>
-      </section>
-
-      <div class="alert info">
-        运行中断电后已可信恢复：位置来自 RecoveredCheckpoint。首次动作将自动限速和限幅，不需要 Web 确认。
+  <main class="content">
+    <div class="topbar">
+      <div class="title-block">
+        <h1>Esp32FarmDoor 页面入口</h1>
+        <div class="subtle">已拆成独立页面，后续请逐页确认。</div>
       </div>
-
-      <div class="layout">
-        <div>
-          <section class="section">
-            <div class="section-header">
-              <h2>当前状态</h2>
-              <span class="pill ok">IdleClosed</span>
-            </div>
-            <div class="section-body">
-              <div class="metric-grid">
-                <div class="metric">
-                  <div class="metric-label">当前位置</div>
-                  <div class="metric-value">0.00 圈</div>
-                </div>
-                <div class="metric">
-                  <div class="metric-label">开门目标</div>
-                  <div class="metric-value">5.00 圈</div>
-                </div>
-                <div class="metric">
-                  <div class="metric-label">最大运行</div>
-                  <div class="metric-value">7.50 圈</div>
-                </div>
-                <div class="metric">
-                  <div class="metric-label">最大时长</div>
-                  <div class="metric-value">25 秒</div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="section">
-            <div class="section-header">
-              <h2>操作</h2>
-              <span class="subtle">停止按钮运行中始终优先显示</span>
-            </div>
-            <div class="section-body">
-              <div class="actions">
-                <button class="button primary">开门</button>
-                <button class="button">关门</button>
-                <button class="button danger" disabled>停止</button>
-                <button class="button" disabled>清除故障</button>
-                <a class="button" href="#maintenance">进入维护</a>
-              </div>
-            </div>
-          </section>
-
-          <section class="section">
-            <div class="section-header">
-              <h2>运行曲线</h2>
-              <span class="subtle">位置 / 速度 / 电流 / 保护停止</span>
-            </div>
-            <div class="section-body">
-              <div class="chart">这里展示最近一次动作的降采样曲线。达到最大圈数/时长显示保护停止，不直接等同故障。</div>
-            </div>
-          </section>
-        </div>
-
-        <aside>
-          <section class="section">
-            <div class="section-header">
-              <h2>硬件摘要</h2>
-            </div>
-            <div class="section-body">
-              <table class="data-table">
-                <tbody>
-                  <tr><td data-label="项目">电机</td><td data-label="值">Idle / output 0%</td></tr>
-                  <tr><td data-label="项目">电流</td><td data-label="值">320mA / 阈值 2500mA</td></tr>
-                  <tr><td data-label="项目">上限位</td><td data-label="值">首版未安装</td></tr>
-                  <tr><td data-label="项目">下限位</td><td data-label="值">未安装</td></tr>
-                  <tr><td data-label="项目">AT24C</td><td data-label="值">在线，估算寿命 2%</td></tr>
-                  <tr><td data-label="项目">Flash</td><td data-label="值">LittleFS 正常，剩余 42%，写入健康正常</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="section">
-            <div class="section-header">
-              <h2>最近事件</h2>
-            </div>
-            <div class="section-body">
-              <ul class="event-list">
-                <li><span>08:01 关门完成</span><span class="subtle">5.0 圈</span></li>
-                <li><span>07:00 开门完成</span><span class="subtle">18.2s</span></li>
-                <li><span>02:13 断电恢复</span><span class="subtle">可信</span></li>
-              </ul>
-            </div>
-          </section>
-        </aside>
-      </div>
-
-      <section id="maintenance" class="section">
-        <div class="section-header">
-          <h2>维护页</h2>
-          <span class="pill warn">危险操作需要 confirm token</span>
-        </div>
-        <div class="section-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>低速点动</label>
-              <div class="actions">
-                <button class="button">开门方向点动</button>
-                <button class="button">关门方向点动</button>
-                <button class="button danger">停止</button>
-              </div>
-            </div>
-            <div class="field">
-              <label>直接设置行程</label>
-              <input class="input" value="5.00 圈">
-            </div>
-            <div class="field">
-              <label>微调步长</label>
-              <select class="select"><option>0.10 圈</option><option>0.25 圈</option><option>0.50 圈</option></select>
-            </div>
-            <div class="field">
-              <label>端点操作</label>
-              <div class="actions">
-                <button class="button">设置当前位置为关闭点</button>
-                <button class="button">保存开门目标</button>
-              </div>
-            </div>
-          </div>
-          <div class="page-note">
-            第一版无限位时，端点维护需要远程观察或明确机械标记。保护边界触发后停止并告警；连续重复触发才升级故障。
-          </div>
-        </div>
-      </section>
-
-      <section id="records" class="section">
-        <div class="section-header">
-          <h2>业务记录</h2>
-          <span class="subtle">首版网页分页查看，导出后续增强</span>
-        </div>
-        <div class="section-body">
-          <div class="form-grid">
-            <div class="field"><label>页码</label><input class="input" value="第 1 页"></div>
-            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
-            <div class="field"><label>事件类型</label><select class="select"><option>全部</option><option>开门</option><option>关门</option><option>保护停止</option></select></div>
-          </div>
-          <table class="data-table">
-            <thead><tr><th>时间</th><th>事件</th><th>结果</th><th>详情</th></tr></thead>
-            <tbody>
-              <tr><td data-label="时间">08:01</td><td data-label="事件">CloseCompleted</td><td data-label="结果">Ok</td><td data-label="详情">5.0 圈 / 17.9s</td></tr>
-              <tr><td data-label="时间">02:13</td><td data-label="事件">DoorPowerLossRecovered</td><td data-label="结果">Trusted</td><td data-label="详情">checkpoint 有效</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="diagnostics" class="section">
-        <div class="section-header">
-          <h2>业务诊断</h2>
-        </div>
-        <div class="section-body">
-          <div class="metric-grid">
-            <div class="metric"><div class="metric-label">Flash 剩余</div><div class="metric-value">42%</div></div>
-            <div class="metric"><div class="metric-label">Flash 写入健康</div><div class="metric-value">正常</div></div>
-            <div class="metric"><div class="metric-label">AT24C verify 错误</div><div class="metric-value">0</div></div>
-            <div class="metric"><div class="metric-label">最近保护停止</div><div class="metric-value">0</div></div>
-          </div>
-        </div>
-      </section>
-
-      <section id="base" class="page-note">
-        Esp32Base 页面入口：系统状态、App Config、System Logs、WiFi、OTA、系统工具。业务记录不写入系统日志。
-      </section>
-    </main>
-  </div>
+      <a class="button" href="index.html">返回原型首页</a>
+    </div>
+    <section class="prototype-grid">
+      <article class="prototype-tile"><h2>Dashboard</h2><p>自动门状态和常用控制。</p><a class="button primary" href="farmdoor-dashboard.html">打开</a></article>
+      <article class="prototype-tile"><h2>Maintenance</h2><p>端点维护、点动、行程设置。</p><a class="button primary" href="farmdoor-maintenance.html">打开</a></article>
+      <article class="prototype-tile"><h2>Records</h2><p>业务原始记录分页查看。</p><a class="button primary" href="farmdoor-records.html">打开</a></article>
+      <article class="prototype-tile"><h2>Diagnostics</h2><p>硬件、存储和业务诊断。</p><a class="button primary" href="farmdoor-diagnostics.html">打开</a></article>
+    </section>
+  </main>
 </body>
 </html>

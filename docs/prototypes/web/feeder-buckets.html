@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder Buckets</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Esp32FarmFeeder</div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">Dashboard</a>
+        <a class="nav-link" href="feeder-schedule.html">Schedule</a>
+        <a class="nav-link active" href="feeder-buckets.html">Buckets</a>
+        <a class="nav-link" href="feeder-calibration.html">Calibration</a>
+        <a class="nav-link" href="feeder-records.html">Records</a>
+        <a class="nav-link" href="feeder-diagnostics.html">Diagnostics</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>Buckets</h1><div class="subtle">第一版软件估算；低料位硬件后续增强。</div></div></div>
+      <section class="section">
+        <div class="section-header"><h2>饲料桶</h2></div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>通道</th><th>容量</th><th>当前余量</th><th>低余量阈值</th><th>预计次数</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td data-label="通道">1</td><td data-label="容量">5kg</td><td data-label="当前余量">4.1kg</td><td data-label="低余量阈值">20%</td><td data-label="预计次数">58</td><td data-label="操作"><button class="button">记录加料</button></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="容量">5kg</td><td data-label="当前余量">3.0kg</td><td data-label="低余量阈值">20%</td><td data-label="预计次数">44</td><td data-label="操作"><button class="button">设置余量</button></td></tr>
+              <tr><td data-label="通道">3</td><td data-label="容量">3kg</td><td data-label="当前余量">0.5kg</td><td data-label="低余量阈值">20%</td><td data-label="预计次数">7</td><td data-label="操作"><button class="button">标记已加满</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <div class="page-note">下一阶段如果只需要“快没料”告警，优先评估红外/光电/电容点位检测；称重只作为连续余量估算方案。</div>
+    </main>
+  </div>
+</body>
+</html>

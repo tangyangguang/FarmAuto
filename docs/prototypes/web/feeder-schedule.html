@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder Schedule</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Esp32FarmFeeder</div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">Dashboard</a>
+        <a class="nav-link active" href="feeder-schedule.html">Schedule</a>
+        <a class="nav-link" href="feeder-buckets.html">Buckets</a>
+        <a class="nav-link" href="feeder-calibration.html">Calibration</a>
+        <a class="nav-link" href="feeder-records.html">Records</a>
+        <a class="nav-link" href="feeder-diagnostics.html">Diagnostics</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>Schedule</h1><div class="subtle">默认不开启。启用前必须设置时间、通道和每路目标。</div></div><span class="pill">默认关闭</span></div>
+      <section class="section">
+        <div class="section-header"><h2>每日计划</h2></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>启用</label><select class="select"><option>关闭</option><option>启用</option></select></div>
+            <div class="field"><label>执行时间</label><input class="input" value="07:30"></div>
+            <div class="field"><label>参与通道</label><input class="input" value="1, 2, 3"></div>
+            <div class="field"><label>跳过今日</label><select class="select"><option>否</option><option>是</option></select></div>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>每路目标</h2></div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>通道</th><th>是否参与</th><th>单位</th><th>目标</th><th>参数状态</th></tr></thead>
+            <tbody>
+              <tr><td data-label="通道">1</td><td data-label="是否参与">是</td><td data-label="单位">克数</td><td data-label="目标">70g</td><td data-label="参数状态">70g/圈</td></tr>
+              <tr><td data-label="通道">2</td><td data-label="是否参与">是</td><td data-label="单位">圈数</td><td data-label="目标">1.00 圈</td><td data-label="参数状态">68g/圈</td></tr>
+              <tr><td data-label="通道">3</td><td data-label="是否参与">是</td><td data-label="单位">克数</td><td data-label="目标">70g</td><td data-label="参数状态">70g/圈</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
