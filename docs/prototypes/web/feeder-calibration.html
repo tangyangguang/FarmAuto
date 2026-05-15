@@ -9,14 +9,19 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Esp32FarmFeeder</div>
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
         <a class="nav-link" href="feeder-schedule.html">每日计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
         <a class="nav-link active" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-maintenance.html">维护</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
         <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
@@ -27,9 +32,9 @@
           <table class="data-table">
             <thead><tr><th>通道</th><th>是否启用</th><th>电机每圈信号数</th><th>每圈下料克数</th><th>备注</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" value="4192"></td><td data-label="每圈下料克数"><input class="input" value="70.0g"></td><td data-label="备注">手工输入</td></tr>
-              <tr><td data-label="通道">2</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" value="4192"></td><td data-label="每圈下料克数"><input class="input" value="68.0g"></td><td data-label="备注">减速比不同</td></tr>
-              <tr><td data-label="通道">3</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" value="4192"></td><td data-label="每圈下料克数"><input class="input" value="70.0g"></td><td data-label="备注">手工输入</td></tr>
+              <tr><td data-label="通道">1</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" type="number" min="1" step="1" value="4320"></td><td data-label="每圈下料克数"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="70.0"><span class="input-unit">克</span></div></td><td data-label="备注">手工输入</td></tr>
+              <tr><td data-label="通道">2</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" type="number" min="1" step="1" value="4320"></td><td data-label="每圈下料克数"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="68.0"><span class="input-unit">克</span></div></td><td data-label="备注">减速比不同</td></tr>
+              <tr><td data-label="通道">3</td><td data-label="是否启用">是</td><td data-label="电机每圈信号数"><input class="input" type="number" min="1" step="1" value="4320"></td><td data-label="每圈下料克数"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="70.0"><span class="input-unit">克</span></div></td><td data-label="备注">手工输入</td></tr>
             </tbody>
           </table>
           <div class="actions"><button class="button primary">保存参数</button></div>

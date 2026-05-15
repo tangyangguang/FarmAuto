@@ -9,14 +9,19 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Esp32FarmFeeder</div>
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
         <a class="nav-link" href="feeder-schedule.html">每日计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
         <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-maintenance.html">维护</a>
         <a class="nav-link active" href="feeder-records.html">记录</a>
         <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
@@ -25,8 +30,8 @@
         <div class="section-header"><h2>记录</h2><span class="subtle">共 2,001 条</span></div>
         <div class="section-body">
           <div class="form-grid">
-            <div class="field"><label>开始日期</label><input class="input" type="date" value="2026-05-01"></div>
-            <div class="field"><label>结束日期</label><input class="input" type="date" value="2026-05-15"></div>
+            <div class="field"><label>开始时间</label><input class="input" type="datetime-local" value="2026-05-01T00:00"></div>
+            <div class="field"><label>结束时间</label><input class="input" type="datetime-local" value="2026-05-15T23:59"></div>
             <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>通道</label><select class="select"><option>全部</option><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
             <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>投喂</option><option>故障</option><option>补料</option><option>计划</option></select></div>
@@ -35,8 +40,12 @@
           <table class="data-table">
             <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>通道</th><th>结果</th><th>原始字段</th></tr></thead>
             <tbody>
-              <tr><td data-label="序号">2001</td><td data-label="时间">07:32</td><td data-label="事件">投喂断电中断</td><td data-label="通道">1,2</td><td data-label="结果">阻止自动续喂</td><td data-label="原始字段">实际脉冲=[2590,0]</td></tr>
-              <tr><td data-label="序号">2000</td><td data-label="时间">07:30</td><td data-label="事件">每日计划触发</td><td data-label="通道">1,2,3</td><td data-label="结果">部分完成</td><td data-label="原始字段">通道掩码=7</td></tr>
+              <tr><td data-label="序号">2001</td><td data-label="时间">05-15 07:32</td><td data-label="事件">投喂断电中断</td><td data-label="通道">通道 1、2</td><td data-label="结果">阻止自动续喂</td><td data-label="原始字段">通道 1 已下料 42g；通道 2 未完成</td></tr>
+              <tr><td data-label="序号">2000</td><td data-label="时间">05-15 07:30</td><td data-label="事件">每日计划触发</td><td data-label="通道">通道 1、2、3</td><td data-label="结果">部分完成</td><td data-label="原始字段">通道 1 完成；通道 2 运行中断；通道 3 跳过</td></tr>
+              <tr><td data-label="序号">1999</td><td data-label="时间">05-14 17:30</td><td data-label="事件">计划完成</td><td data-label="通道">通道 1、2</td><td data-label="结果">正常</td><td data-label="原始字段">通道 1 下料 70g；通道 2 下料 68g</td></tr>
+              <tr><td data-label="序号">1998</td><td data-label="时间">05-14 12:30</td><td data-label="事件">跳过今日</td><td data-label="通道">计划 2</td><td data-label="结果">已跳过</td><td data-label="原始字段">用户跳过 12:30 计划</td></tr>
+              <tr><td data-label="序号">1997</td><td data-label="时间">05-14 09:12</td><td data-label="事件">补料</td><td data-label="通道">通道 3</td><td data-label="结果">正常</td><td data-label="原始字段">当前估算余量更新为 3.0kg</td></tr>
+              <tr><td data-label="序号">1996</td><td data-label="时间">05-13 18:00</td><td data-label="事件">计划错过</td><td data-label="通道">计划 4</td><td data-label="结果">未补投</td><td data-label="原始字段">时间恢复时计划时间已过</td></tr>
             </tbody>
           </table>
           <div class="pagination">

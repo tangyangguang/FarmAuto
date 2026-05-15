@@ -19,10 +19,10 @@
       <div class="section-header"><h2>自动门行程与保护参数示例</h2></div>
       <div class="section-body">
         <div class="form-grid">
-          <div class="field"><label>开门目标圈数</label><input class="input" value="5.00 圈"></div>
-          <div class="field"><label>保护最大圈数</label><input class="input" value="7.50 圈"></div>
-          <div class="field"><label>保护最大时长</label><input class="input" value="25 秒"></div>
-          <div class="field"><label>电机速度</label><input class="input" value="80%"></div>
+          <div class="field"><label>开门目标圈数</label><div class="input-with-unit"><input class="input" type="number" step="0.01" value="5.00"><span class="input-unit">圈</span></div></div>
+          <div class="field"><label>保护最大圈数</label><div class="input-with-unit"><input class="input" type="number" step="0.01" value="7.50"><span class="input-unit">圈</span></div></div>
+          <div class="field"><label>保护最大时长</label><div class="input-with-unit"><input class="input" type="number" step="1" value="25"><span class="input-unit">秒</span></div></div>
+          <div class="field"><label>电机速度</label><div class="input-with-unit"><input class="input" type="number" min="10" max="100" step="5" value="80"><span class="input-unit">%</span></div></div>
         </div>
         <div class="actions"><button class="button primary">保存系统参数</button></div>
       </div>

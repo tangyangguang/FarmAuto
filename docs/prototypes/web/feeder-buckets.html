@@ -9,14 +9,19 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Esp32FarmFeeder</div>
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
         <a class="nav-link" href="feeder-schedule.html">每日计划</a>
         <a class="nav-link active" href="feeder-buckets.html">饲料桶</a>
         <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-maintenance.html">维护</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
         <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
@@ -25,11 +30,11 @@
         <div class="section-header"><h2>饲料桶</h2></div>
         <div class="section-body">
           <table class="data-table">
-            <thead><tr><th>通道</th><th>满桶容量</th><th>当前估算余量</th><th>低余量阈值</th><th>按当前计划可投喂</th><th>操作</th></tr></thead>
+            <thead><tr><th>通道</th><th>满桶容量</th><th>当前估算余量</th><th>低余量阈值</th><th>可投喂次数</th><th>预计剩余天数</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="满桶容量">5kg</td><td data-label="当前估算余量">4.1kg</td><td data-label="低余量阈值">20%</td><td data-label="按当前计划可投喂">约 58 次</td><td data-label="操作"><button class="button">记录加料</button></td></tr>
-              <tr><td data-label="通道">2</td><td data-label="满桶容量">5kg</td><td data-label="当前估算余量">3.0kg</td><td data-label="低余量阈值">20%</td><td data-label="按当前计划可投喂">约 44 次</td><td data-label="操作"><button class="button">设置余量</button></td></tr>
-              <tr><td data-label="通道">3</td><td data-label="满桶容量">3kg</td><td data-label="当前估算余量">0.5kg</td><td data-label="低余量阈值">20%</td><td data-label="按当前计划可投喂">约 7 次</td><td data-label="操作"><button class="button">标记已加满</button></td></tr>
+              <tr><td data-label="通道">1</td><td data-label="满桶容量">5kg</td><td data-label="当前估算余量">4.1kg</td><td data-label="低余量阈值">20%</td><td data-label="可投喂次数">约 58 次</td><td data-label="预计剩余天数">约 19 天</td><td data-label="操作"><a class="button" href="feeder-bucket-refill.html">补料…</a></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="满桶容量">5kg</td><td data-label="当前估算余量">3.0kg</td><td data-label="低余量阈值">20%</td><td data-label="可投喂次数">约 44 次</td><td data-label="预计剩余天数">约 14 天</td><td data-label="操作"><a class="button" href="feeder-bucket-refill.html">补料…</a></td></tr>
+              <tr><td data-label="通道">3</td><td data-label="满桶容量">3kg</td><td data-label="当前估算余量">0.5kg</td><td data-label="低余量阈值">20%</td><td data-label="可投喂次数">约 7 次</td><td data-label="预计剩余天数">约 2 天</td><td data-label="操作"><a class="button" href="feeder-bucket-refill.html">补料…</a></td></tr>
             </tbody>
           </table>
         </div>

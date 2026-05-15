@@ -9,14 +9,19 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Esp32FarmFeeder</div>
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
         <a class="nav-link" href="feeder-schedule.html">每日计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
         <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-maintenance.html">维护</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
         <a class="nav-link active" href="feeder-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
@@ -26,9 +31,9 @@
         <div class="section-body">
           <div class="metric-grid">
             <div class="metric"><div class="metric-label">AT24C</div><div class="metric-value">在线</div></div>
-            <div class="metric"><div class="metric-label">AT24C 寿命估算</div><div class="metric-value">3%</div></div>
+            <div class="metric"><div class="metric-label">AT24C 已用寿命</div><div class="metric-value">3%</div></div>
             <div class="metric"><div class="metric-label">Flash 剩余</div><div class="metric-value">28%</div></div>
-            <div class="metric"><div class="metric-label">Flash 写入健康</div><div class="metric-value">告警</div></div>
+            <div class="metric"><div class="metric-label">电流采集硬件</div><div class="metric-value small">未安装</div></div>
           </div>
         </div>
       </section>
@@ -36,23 +41,28 @@
         <div class="section-header"><h2>通道诊断</h2></div>
         <div class="section-body">
           <table class="data-table">
-            <thead><tr><th>通道</th><th>电机</th><th>编码器</th><th>电流</th><th>最近故障</th></tr></thead>
+            <thead><tr><th>通道</th><th>电机</th><th>编码器</th><th>最近故障</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="电机">待机</td><td data-label="编码器">正常</td><td data-label="电流">未安装</td><td data-label="最近故障">断电中断</td></tr>
-              <tr><td data-label="通道">2</td><td data-label="电机">下料中</td><td data-label="编码器">正在计数</td><td data-label="电流">未安装</td><td data-label="最近故障">无</td></tr>
-              <tr><td data-label="通道">3</td><td data-label="电机">故障</td><td data-label="编码器">无脉冲</td><td data-label="电流">未安装</td><td data-label="最近故障">无编码器脉冲</td></tr>
+              <tr><td data-label="通道">1</td><td data-label="电机">待机</td><td data-label="编码器">正常</td><td data-label="最近故障">断电中断</td><td data-label="操作"><a class="button" href="feeder-maintenance.html">处理</a></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="电机">下料中</td><td data-label="编码器">正在计数</td><td data-label="最近故障">无</td><td data-label="操作"><button class="button danger">停止</button></td></tr>
+              <tr id="channel-3"><td data-label="通道">3</td><td data-label="电机">故障</td><td data-label="编码器">无脉冲</td><td data-label="最近故障">无编码器脉冲</td><td data-label="操作"><a class="button" href="feeder-maintenance.html">清除故障…</a></td></tr>
             </tbody>
           </table>
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>设备检查与校准</h2></div>
+        <div class="section-header"><h2>设备检查</h2></div>
         <div class="section-body actions">
           <button class="button">AT24C 检查</button>
           <button class="button">Flash 检查</button>
           <button class="button">编码器计数检查</button>
-          <button class="button" disabled>INA240A2 零点校准</button>
-          <button class="button danger">格式化业务存储</button>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>危险操作</h2><span class="pill danger">维护页确认</span></div>
+        <div class="section-body">
+          <div class="alert danger">格式化业务存储、清空今日计数、清除故障等动作统一进入维护页确认。</div>
+          <div class="actions"><a class="button danger" href="feeder-maintenance.html">进入维护页</a></div>
         </div>
       </section>
       <section class="page-note">系统日志、WiFi、OTA、系统工具仍进入 Esp32Base 页面。业务诊断和记录留在应用页面。</section>

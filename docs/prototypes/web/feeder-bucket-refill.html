@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder 补料</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link active" href="feeder-buckets.html">饲料桶</a>
+        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link" href="feeder-maintenance.html">维护</a>
+        <a class="nav-link" href="feeder-records.html">记录</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>补料</h1><div class="subtle">维护饲料桶的软件估算余量。</div></div><a class="button" href="feeder-buckets.html">返回饲料桶</a></div>
+      <section class="section">
+        <div class="section-header"><h2>补料记录</h2></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>通道</label><select class="select"><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
+            <div class="field"><label>操作方式</label><select class="select"><option>记录加料重量</option><option>设置当前余量</option><option>标记为满桶</option></select></div>
+            <div class="field"><label>加料重量</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="1.0"><span class="input-unit">kg</span></div></div>
+            <div class="field"><label>操作备注</label><input class="input" value="远程维护记录"></div>
+          </div>
+          <div class="actions"><button class="button primary">保存补料记录</button><a class="button" href="feeder-buckets.html">取消</a></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

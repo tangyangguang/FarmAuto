@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmDoor 首页 - 运行中</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div><div class="brand">Esp32FarmDoor</div><div class="subtle">自动门</div></div>
+      <nav class="nav-section">
+        <a class="nav-link active" href="farmdoor-dashboard.html">首页</a>
+        <a class="nav-link" href="farmdoor-maintenance.html">行程校准</a>
+        <a class="nav-link" href="farmdoor-records.html">记录</a>
+        <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar">
+        <div class="title-block"><h1>首页</h1><div class="subtle">运行中状态示意。</div></div>
+        <div class="status-strip"><span class="pill ok">在线</span><span class="pill ok">时间同步</span><a class="pill warn" href="farmdoor-diagnostics.html">Flash 余量 42%</a></div>
+      </div>
+      <div class="state-switch">
+        <a class="button" href="farmdoor-dashboard.html">关闭待机</a>
+        <a class="button primary" href="farmdoor-dashboard-running.html">运行中</a>
+        <a class="button" href="farmdoor-dashboard-fault.html">故障</a>
+        <a class="button" href="farmdoor-dashboard-position-unknown.html">位置不可信</a>
+      </div>
+      <section class="section">
+        <div class="section-header"><h2>门状态与操作</h2><span class="pill ok">正在开门 32%</span></div>
+        <div class="section-body">
+          <div class="metric-grid">
+            <div class="metric"><div class="metric-label">当前位置</div><div class="metric-value">1.62 圈</div></div>
+            <div class="metric"><div class="metric-label">目标位置</div><div class="metric-value">5.00 圈</div></div>
+            <div class="metric"><div class="metric-label">预计剩余</div><div class="metric-value">11 秒</div></div>
+            <div class="metric"><div class="metric-label">输出速度</div><div class="metric-value">58%</div></div>
+          </div>
+          <div class="actions">
+            <button class="button primary" disabled>开门</button>
+            <button class="button" disabled>关门</button>
+            <button class="button danger">停止</button>
+          </div>
+          <div class="inline-progress">
+            <div class="meta"><span>本次行程</span><span>1.62 / 5.00 圈</span></div>
+            <div class="progress"><span style="width:32%"></span></div>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>实时运行曲线</h2><span class="subtle">运行结束后保存为上次运行回放</span></div>
+        <div class="section-body">
+          <div class="trend-chart" aria-label="自动门实时运行曲线">
+            <svg viewBox="0 0 720 220" role="img">
+              <line class="axis" x1="40" y1="180" x2="690" y2="180"></line>
+              <line class="axis" x1="40" y1="30" x2="40" y2="180"></line>
+              <polyline class="position-line" points="45,176 100,168 160,145 230,120 310,96"></polyline>
+              <polyline class="speed-line" points="45,178 90,140 150,92 230,82 310,88"></polyline>
+              <polyline class="current-line" points="45,160 100,116 150,126 230,132 310,136"></polyline>
+              <text x="42" y="202" fill="#62706d" font-size="12">0s</text>
+              <text x="300" y="202" fill="#62706d" font-size="12">当前</text>
+            </svg>
+          </div>
+          <div class="chart-legend"><span><i class="legend-dot" style="background:#0f766e"></i>位置</span><span><i class="legend-dot" style="background:#1d4ed8"></i>速度</span><span><i class="legend-dot" style="background:#b54708"></i>电流</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

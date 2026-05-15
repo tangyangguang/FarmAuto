@@ -9,13 +9,16 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Esp32FarmDoor</div>
-      <div class="subtle">自动门</div>
+      <div><div class="brand">Esp32FarmDoor</div><div class="subtle">自动门</div></div>
       <nav class="nav-section">
         <a class="nav-link active" href="farmdoor-dashboard.html">首页</a>
         <a class="nav-link" href="farmdoor-maintenance.html">行程校准</a>
         <a class="nav-link" href="farmdoor-records.html">记录</a>
         <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
@@ -27,8 +30,14 @@
         <div class="status-strip">
           <span class="pill ok">在线</span>
           <span class="pill ok">时间同步</span>
-          <span class="pill warn">存储告警</span>
+          <a class="pill warn" href="farmdoor-diagnostics.html">Flash 余量 42%</a>
         </div>
+      </div>
+      <div class="state-switch">
+        <a class="button primary" href="farmdoor-dashboard.html">关闭待机</a>
+        <a class="button" href="farmdoor-dashboard-running.html">运行中</a>
+        <a class="button" href="farmdoor-dashboard-fault.html">故障</a>
+        <a class="button" href="farmdoor-dashboard-position-unknown.html">位置不可信</a>
       </div>
       <div class="alert info">断电后已可信恢复。首次动作自动限速和限幅，不需要 Web 确认。</div>
       <section class="section">
@@ -37,7 +46,7 @@
           <div class="metric-grid">
             <div class="metric"><div class="metric-label">当前位置</div><div class="metric-value">0.00 圈</div></div>
             <div class="metric"><div class="metric-label">开门目标</div><div class="metric-value">5.00 圈</div></div>
-            <div class="metric"><div class="metric-label">位置可信</div><div class="metric-value">是</div></div>
+            <div class="metric"><div class="metric-label">位置来源</div><div class="metric-value small">已保存<br>08:01 关门完成</div></div>
             <div class="metric"><div class="metric-label">保护状态</div><div class="metric-value">正常</div></div>
           </div>
           <div class="actions">
@@ -49,9 +58,12 @@
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>运行状态</h2><span class="subtle">示例：一次开门过程</span></div>
+        <div class="section-header">
+          <h2>上次运行回放</h2>
+          <div class="actions"><button class="button subtle-button">上次开门</button><button class="button subtle-button">上次关门</button></div>
+        </div>
         <div class="section-body">
-          <div class="trend-chart" aria-label="自动门运行曲线示例">
+          <div class="trend-chart" aria-label="自动门上次开门运行回放">
             <svg viewBox="0 0 720 220" role="img">
               <line class="axis" x1="40" y1="180" x2="690" y2="180"></line>
               <line class="axis" x1="40" y1="30" x2="40" y2="180"></line>

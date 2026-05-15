@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmDoor 首页 - 位置不可信</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div><div class="brand">Esp32FarmDoor</div><div class="subtle">自动门</div></div>
+      <nav class="nav-section">
+        <a class="nav-link active" href="farmdoor-dashboard.html">首页</a>
+        <a class="nav-link" href="farmdoor-maintenance.html">行程校准</a>
+        <a class="nav-link" href="farmdoor-records.html">记录</a>
+        <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar">
+        <div class="title-block"><h1>首页</h1><div class="subtle">位置不可信状态示意。</div></div>
+        <div class="status-strip"><span class="pill ok">在线</span><span class="pill ok">时间同步</span><a class="pill warn" href="farmdoor-diagnostics.html">位置不可信</a></div>
+      </div>
+      <div class="state-switch">
+        <a class="button" href="farmdoor-dashboard.html">关闭待机</a>
+        <a class="button" href="farmdoor-dashboard-running.html">运行中</a>
+        <a class="button" href="farmdoor-dashboard-fault.html">故障</a>
+        <a class="button primary" href="farmdoor-dashboard-position-unknown.html">位置不可信</a>
+      </div>
+      <div class="alert danger">当前位置无法可信恢复。普通开门、关门命令已禁用，请进入行程校准，通过手动运行重新标定关门基准和开门目标。</div>
+      <section class="section">
+        <div class="section-header"><h2>门状态与操作</h2><span class="pill warn">位置不可信</span></div>
+        <div class="section-body">
+          <div class="metric-grid">
+            <div class="metric"><div class="metric-label">当前位置</div><div class="metric-value">未知</div></div>
+            <div class="metric"><div class="metric-label">上次检查点</div><div class="metric-value small">CRC 失败</div></div>
+            <div class="metric"><div class="metric-label">允许操作</div><div class="metric-value small">仅手动运行</div></div>
+            <div class="metric"><div class="metric-label">建议动作</div><div class="metric-value small">行程校准</div></div>
+          </div>
+          <div class="actions">
+            <button class="button primary" disabled>开门</button>
+            <button class="button" disabled>关门</button>
+            <button class="button danger" disabled>停止</button>
+            <a class="button primary" href="farmdoor-maintenance.html">进入行程校准</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

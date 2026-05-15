@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder 操作确认</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
+        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
+        <a class="nav-link active" href="feeder-maintenance.html">维护</a>
+        <a class="nav-link" href="feeder-records.html">记录</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>操作确认</h1><div class="subtle">喂食器危险操作二次确认页面原型。</div></div><a class="button" href="feeder-dashboard.html">返回首页</a></div>
+      <section class="section">
+        <div class="section-header"><h2>确认即将执行的操作</h2><span class="pill danger">需要确认</span></div>
+        <div class="section-body">
+          <div class="confirm-box">
+            <dl>
+              <dt>操作</dt><dd>重新手动投喂通道 1</dd>
+              <dt>目标</dt><dd>70g，新命令，不续接断电前未完成投喂</dd>
+              <dt>影响</dt><dd>鸡群可能被再次吸引到喂食位置。请确认当前时间和现场情况适合重新投喂。</dd>
+            </dl>
+            <div class="field"><label>确认输入</label><input class="input" value="我确认"></div>
+            <div class="actions"><button class="button danger">确认执行</button><a class="button" href="feeder-dashboard.html">取消</a></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

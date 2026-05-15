@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmDoor 操作确认</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div><div class="brand">Esp32FarmDoor</div><div class="subtle">自动门</div></div>
+      <nav class="nav-section">
+        <a class="nav-link" href="farmdoor-dashboard.html">首页</a>
+        <a class="nav-link active" href="farmdoor-maintenance.html">行程校准</a>
+        <a class="nav-link" href="farmdoor-records.html">记录</a>
+        <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>操作确认</h1><div class="subtle">危险操作二次确认页面原型。</div></div><a class="button" href="farmdoor-maintenance.html">返回行程校准</a></div>
+      <section class="section">
+        <div class="section-header"><h2>确认即将执行的操作</h2><span class="pill danger">需要确认</span></div>
+        <div class="section-body">
+          <div class="confirm-box">
+            <dl>
+              <dt>操作</dt><dd>用当前位置更新开门目标</dd>
+              <dt>当前值</dt><dd>开门目标 5.00 圈</dd>
+              <dt>新值</dt><dd>开门目标 4.86 圈</dd>
+              <dt>影响</dt><dd>后续开门命令会以新的开门目标运行；错误标定可能导致开门不到位或过度卷绳。</dd>
+            </dl>
+            <div class="field"><label>确认输入</label><input class="input" value="我确认"></div>
+            <div class="actions"><button class="button danger">确认执行</button><a class="button" href="farmdoor-maintenance.html">取消</a></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

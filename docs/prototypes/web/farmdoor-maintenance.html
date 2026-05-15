@@ -9,45 +9,54 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Esp32FarmDoor</div>
+      <div><div class="brand">Esp32FarmDoor</div><div class="subtle">自动门</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="farmdoor-dashboard.html">首页</a>
         <a class="nav-link active" href="farmdoor-maintenance.html">行程校准</a>
         <a class="nav-link" href="farmdoor-records.html">记录</a>
         <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
+        <span class="nav-title">系统</span>
+        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
+        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
+        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>行程校准</h1><div class="subtle">手动运行电机，并用当前位置生成或更新开门目标。</div></div><span class="pill warn">需要二次确认</span></div>
-      <div class="alert warn">第一版无限位时，需要远程观察或机械标记辅助。危险操作必须二次确认。</div>
+      <div class="topbar"><div class="title-block"><h1>行程校准</h1><div class="subtle">手动运行电机，并用当前位置生成或更新开门目标。</div></div><span class="pill warn">危险操作需确认</span></div>
+      <div class="alert">第一版无限位时，需要远程观察或机械标记辅助。保存端点和格式化类操作必须二次确认。</div>
       <section class="section">
         <div class="section-header"><h2>手动运行与端点标定</h2><span class="subtle">按指定圈数调整门的位置</span></div>
         <div class="section-body">
+          <div class="metric-grid">
+            <div class="metric"><div class="metric-label">当前位置</div><div class="metric-value">0.00 圈</div></div>
+            <div class="metric"><div class="metric-label">当前开门目标</div><div class="metric-value">5.00 圈</div></div>
+            <div class="metric"><div class="metric-label">位置来源</div><div class="metric-value small">已保存</div></div>
+            <div class="metric"><div class="metric-label">运行状态</div><div class="metric-value">待机</div></div>
+          </div>
           <div class="form-grid">
-            <div class="field"><label>当前位置</label><input class="input" value="0.00 圈"></div>
-            <div class="field"><label>当前开门目标</label><input class="input" value="5.00 圈"></div>
-            <div class="field"><label>本次转动圈数</label><input class="input" value="0.25 圈"></div>
             <div class="field">
-              <label>速度百分比（10-100）</label>
-              <div class="range-row"><input class="range" type="range" min="10" max="100" value="30"><input class="input compact-input" value="30%"></div>
+              <label>本次转动圈数</label>
+              <div class="input-with-unit"><input class="input" type="number" min="0.05" max="10" step="0.05" value="0.25"><span class="input-unit">圈</span></div>
+            </div>
+            <div class="field">
+              <label>速度百分比</label>
+              <div class="range-row"><input class="range" type="range" min="10" max="100" value="30"><input class="input compact-input" type="number" min="10" max="100" step="5" value="30"></div>
             </div>
           </div>
           <div class="actions">
-            <button class="button">向开门方向转动</button>
-            <button class="button">向关门方向转动</button>
+            <button class="button">向开门方向运行</button>
+            <button class="button">向关门方向运行</button>
             <button class="button danger">立即停止</button>
-            <button class="button">标定为关门状态</button>
-            <button class="button primary">用当前位置更新开门目标</button>
+            <a class="button" href="farmdoor-confirm.html">把当前位置标为关门基准（清零）…</a>
+            <a class="button primary" href="farmdoor-confirm.html">用当前位置更新开门目标…</a>
           </div>
-          <div class="page-note">开门目标也可以在 Esp32Base 的系统参数页面直接修改。这里的标定操作会按当前位置自动更新开门目标圈数，并记录端点快照。</div>
+          <div class="page-note">开门目标也可以在 Esp32Base 系统参数页面直接修改。这里的标定操作会按当前位置自动更新开门目标圈数，并记录端点快照。</div>
         </div>
       </section>
       <section class="section">
         <div class="section-header"><h2>参数管理入口</h2></div>
         <div class="section-body">
-          <div class="actions">
-            <a class="button" href="esp32base-app-config.html">打开 Esp32Base 系统参数</a>
-          </div>
+          <div class="actions"><a class="button" href="esp32base-app-config.html">打开 Esp32Base 系统参数</a></div>
           <div class="page-note">开门目标、保护最大圈数、保护最大时长、电机速度、软启动和软停止等低频参数统一在 Esp32Base App Config 管理。本页不重复做参数保存。</div>
         </div>
       </section>
