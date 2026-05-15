@@ -33,6 +33,10 @@
 | C12 | Web 页面原型是否作为首版页面信息架构 | 已确认：先按当前拆分推进；自动门首页合并控制页；喂食器展示形式以手机体验和操作合理性为准；静态 HTML 原型已拆成最终独立页面，下一步逐页确认 | `docs/apps/26-web-prototype-review.md` | `docs/prototypes/web/index.html`、`docs/apps/19-web-page-prototypes.md`、`docs/apps/23-esp32base-web-integration.md` | 逐页确认静态页面内容 |
 | C13 | 应用系统参数是否使用 Esp32Base App Config | 已接受原则：系统配置进 App Config；业务运行数据和维护动作进专门业务页面 | `docs/apps/14-configuration-and-defaults.md` | `docs/apps/19-web-page-prototypes.md` | 源码前按字段数确认 App Config 容量 |
 | C14 | 饲料桶余量感知路线 | 已确认：第一版软件扣减估算，不加硬件；下一阶段优先评估低成本红外/光电低料位告警，称重作为更准确但更复杂的连续余量方案 | `docs/apps/20-feeder-bucket-level-sensing.md` | `docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | 暂无需回复 |
+| C15 | 实际 ESP32 模组型号 | 推荐首版按 ESP32-WROOM-32 系列且不启用 PSRAM；如果现有 PCB 不是 WROOM-32 系列，需要先重排 GPIO 表 | `docs/15-hardware-resource-budget.md` | `docs/apps/10-esp32-farmdoor-rewrite-plan.md`、`docs/apps/11-esp32-farmfeeder-rewrite-plan.md` | 请确认实际 PCB 上的 ESP32 模组型号 |
+| C16 | 自动门第一版无限位保护余量 | 推荐 `maxRunPulses` 和 `maxCloseUnwindPulses` 初始为开门目标的 150%；下一阶段有上限位后可缩紧 | `docs/apps/14-configuration-and-defaults.md` | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | 是否接受 150% 作为首版默认 |
+| C17 | OTA 回滚策略 | 推荐两个应用默认启用 `ESP32BASE_OTA_REQUIRE_MARK_VALID=1`，超时 5 分钟 | `docs/apps/23-esp32base-web-integration.md` | Esp32Base `docs/05_ota.md` | 是否接受默认启用 mark-valid 回滚 |
+| C18 | 记录页时间范围筛选 | 推荐作为首版必须能力，导出仍非首版必须 | `docs/apps/13-web-api-and-maintenance.md` | `docs/apps/19-web-page-prototypes.md`、`docs/apps/26-web-prototype-review.md` | 暂按推荐执行，若反对请说明 |
 
 ## 公共库决策
 
@@ -138,7 +142,7 @@
 ## 尚需继续确认的应用细节
 
 - 自动门故障 `Coast` 的实机安全性：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md`。
-- 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`，源码前按目标 PCB/芯片确认；如果不是 ESP32-WROOM-32，不得沿用 GPIO16/GPIO17 等默认分配。
+- 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：看 `docs/15-hardware-resource-budget.md`，源码前按目标 PCB/芯片确认；如果不是 ESP32-WROOM-32 系列且不启用 PSRAM，不得沿用 GPIO16/GPIO17 等默认分配。
 - 喂食器计划状态字段语义：已按单个计划定义，`scheduleAttemptedToday` 表达“该计划今日已开始过”、`todayExecuted` 表达“该计划今日明确完成”、`scheduleMissedToday` 表达“该计划错过未触发”，看 `docs/apps/12-application-state-machines.md` 和 `docs/apps/25-esp32-farmfeeder-web-api.md`。
 - 喂食器启动全部间隔默认值：推荐 `startAllIntervalMs=1000ms`，实机确认浪涌足够低后可调小，看 `docs/apps/14-configuration-and-defaults.md`。
 - Web 页面原型和信息架构：看 `docs/apps/19-web-page-prototypes.md`。

@@ -51,6 +51,7 @@ Esp32FarmDoor 页面：
 
 `GET /api/app/status` 应只包含自动门字段：
 
+- 应用标识：appKind=`FarmDoor`、firmwareVersion、schemaVersion。
 - 应用状态：`PositionUnknown`、`IdleClosed`、`IdleOpen`、`IdlePartial`、`Opening`、`Closing`、`Stopping`、`Maintenance`、`Fault`。
 - 维护流程：activeFlow，可为空，或为 `EndpointTeaching`、`EndpointVerifying`、`LimitHoming`、`CurrentZeroCalibration`、`StorageFormat`。
 - 当前位置：positionPulses、positionPercent、positionTrustLevel、positionSource、lastPositionSavedAt。
@@ -68,6 +69,11 @@ Esp32FarmDoor 页面：
 - `Trusted`：位置记录和恢复条件可信，可正常远程开关门。
 - `Limited`：位置大致可信但未经验证；页面必须提示，首次动作自动限速和限幅。
 - `Untrusted`：位置不可用，只允许维护/行程校准流程。
+
+`positionPercent` 计算规则：
+
+- `positionPercent = clamp(positionPulses / max(openTargetPulses, 1) * 100, 0, 120)`。
+- 超过 100% 时页面应使用告警样式，表示超过当前开门目标。
 
 不得包含喂食器通道、饲料桶、每日计划、今日投喂等字段。
 

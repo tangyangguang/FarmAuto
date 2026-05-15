@@ -169,6 +169,7 @@ Esp32BaseFs
 ```text
 RecordSegmentHeader
   magic
+  appKind
   schemaVersion
   headerSize
   segmentFlags

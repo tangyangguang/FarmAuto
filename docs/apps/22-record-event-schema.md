@@ -32,7 +32,7 @@
 - 不记录每个编码器脉冲。
 - 高频 trace 只在 RAM 中短期保留；长期记录只保存摘要或故障窗口摘要。
 - 记录格式采用固定头 + 变长 payload，文件模型见 `docs/apps/18-long-term-records.md`。
-- CRC 算法首版统一使用 CRC-32/ISO-HDLC；后续改变算法必须提升 schemaVersion。
+- CRC 算法首版统一使用 CRC-32/ISO-HDLC；后续改变算法必须提升 schemaVersion。实现上优先复用 `Esp32At24cRecordStore` 提供的 `Crc32IsoHdlc` helper，避免应用记录服务和 AT24C 记录库各写一套。
 - 所有字段固定 little-endian 且必须字段级显式序列化，禁止直接写 C++ 结构体内存。
 - 克数统一使用 `*GramsX100` 或 `*GramsPerRevX100`，单位为 0.01g；不再在事件 payload 中混用整数克字段。
 
@@ -83,7 +83,7 @@
 | `DoorTravelAdjusted` | 微调行程 | oldTravelPulses、newTravelPulses、deltaPulses、deltaTurnsX100 |
 | `DoorEndpointSaved` | 保存开门/关门端点 | endpointType、positionPulses、maxRunPulses |
 | `DoorEndpointVerified` | 低速端点验证完成 | openOk、closeOk、durationMs、maxObservedCurrentMa |
-| `DoorPositionTrustChanged` | 位置可信度变化 | oldTrusted、newTrusted、reason |
+| `DoorPositionTrustChanged` | 位置可信度变化 | oldTrustLevel、newTrustLevel、reason |
 | `DoorMotionCheckpoint` | 运行中低频位置检查点 | command、direction、positionPulses、targetPulses、checkpointReason |
 | `DoorPowerLossRecovered` | 断电后位置恢复 | recoveredPositionPulses、source、confidence、journalSequence |
 

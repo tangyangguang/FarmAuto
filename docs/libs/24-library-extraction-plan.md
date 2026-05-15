@@ -88,6 +88,33 @@
 - 错误码和状态输出足够诊断问题。
 - API 命名稳定，没有明显会马上推翻的设计。
 
+## 标准目录结构
+
+阶段 2 创建公共库源码骨架时，每个库按独立 PlatformIO/Arduino 库组织：
+
+```text
+lib/<LibraryName>/
+  library.json
+  README.md
+  CHANGELOG.md
+  include/<LibraryName>/
+    <public headers>
+  src/
+    <implementation files>
+  examples/
+    <example_name>/
+      platformio.ini
+      src/main.cpp
+```
+
+约束：
+
+- `include/` 只放稳定公共头文件。
+- `src/` 放实现和私有头文件。
+- `examples/` 不依赖 FarmAuto 应用代码，不包含具体应用业务词汇。
+- `library.json` 明确 platform、framework、dependencies、export.exclude。
+- 首版不创建多余脚手架；只有真实需要的 examples 才落地。
+
 ## FarmAuto 如何引用独立库
 
 独立前：

@@ -71,18 +71,18 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | currentFaultThresholdMa | mA | 2500 | >0 | 否 | 待实机确认 |
 | rsenseMilliOhm | mΩ | 5 | >0 | 否 | 待实物确认 |
 | maxRunMs | ms | 目标运行估算 * 150% | >0 | 否 | 安全兜底，源码按行程校准结果生成初始值 |
-| maxRunPulses | pulses | openTargetPulses * 120% | >0 | 否 | 安全兜底，源码按行程校准结果生成初始值 |
+| maxRunPulses | pulses | openTargetPulses * 150% | >0 | 否 | 第一版无限位默认更保守；下一阶段有上限位后可实测缩紧 |
 | openLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 第一版默认禁用，下一阶段优先启用开门/上限位 |
 | closeLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 关门/下限位，可选 |
 | limitDebounceMs | ms | 50 | 5-500 | 否 | 限位稳定时间 |
 | openLimitCalibrateSpeedPercent | % | 30 | 1-100 | 否 | 远程端点校准低速运行 |
 | openLimitCalibrateMaxMs | ms | maxRunMs | >0 | 否 | 下一阶段限位端点校准最大时长 |
 | openLimitCalibrateMaxPulses | pulses | maxRunPulses | >0 | 否 | 下一阶段限位端点校准最大脉冲 |
-| maxCloseUnwindPulses | pulses | openTargetPulses * 120% | >0 | 否 | 关门最大放绳脉冲，防止过放反卷 |
+| maxCloseUnwindPulses | pulses | openTargetPulses * 150% | >0 | 否 | 关门最大放绳脉冲，防止过放反卷；第一版无限位默认更保守 |
 | faultEmergencyOutputMode | enum | Coast | Coast/Brake | 否 | 故障停机默认倾向滑行，需实测确认 |
 | motionCheckpointMinIntervalMs | ms | 2000 | 1000-10000 | 否 | 运行中断电恢复检查点最小时间间隔 |
 | motionCheckpointMinTravelPercent | % | 5 | 1-20 | 否 | 运行中断电恢复检查点最小行程变化 |
-| recoveredFirstMoveSpeedPercent | % | 50 | 1-100 | 否 | 断电恢复后第一次动作速度，不高于正常速度 |
+| recoveredFirstMoveSpeedPercent | % | 50 | 1-100 | 否 | 断电恢复后第一次动作速度，实际使用 min(recoveredFirstMoveSpeedPercent, motorSpeedPercent) |
 
 Esp32FarmDoor 校准/运行数据，不放在 App Config：
 
@@ -118,7 +118,6 @@ Esp32FarmDoor 校准/运行数据，不放在 App Config：
 | feeder3OutputPulsesPerRev | pulses | 4320 | >0 | 否 | 可计算，也允许手动覆盖 |
 | outputPulsesPerRevOverrideEnabled | bool | false | true/false | 否 | true 时使用每路手动值 |
 | startAllIntervalMs | ms | 1000 | >=0 | 否 | 顺序启动间隔 |
-| stopAllMode | enum | StopAllNow | StopAllNow/EmergencyStopAll | 否 | 普通停止同时请求各路软停止 |
 | maxRunMs | ms | 300000 | >0 | 否 | 默认 5 分钟 |
 | maxRunPulses | pulses | 432000 | >0 | 否 | 默认 100 圈 |
 
@@ -128,9 +127,9 @@ Esp32FarmFeeder 业务配置和维护数据，不放在 App Config：
 
 | 数据 | 页面 | 保存建议 | 备注 |
 | --- | --- | --- | --- |
-| 每路目标模式 | 喂食控制/计划页 | 应用持久化服务 | Grams/Revolutions，每路可独立选择 |
-| 每路目标克数 | 喂食控制/计划页 | 应用持久化服务 | 克数模式使用 |
-| 每路目标圈数 | 喂食控制/计划页 | 应用持久化服务 | 圈数模式使用 |
+| 每路目标模式 | 喂食控制/计划页 | AT24C128 `FeederChannelTarget` | Grams/Revolutions，每路可独立选择；仅表示手动投喂默认目标 |
+| 每路目标克数 | 喂食控制/计划页 | AT24C128 `FeederChannelTarget` | 克数模式使用；计划内目标随 `FeederSchedule` 保存 |
+| 每路目标圈数 | 喂食控制/计划页 | AT24C128 `FeederChannelTarget` | 圈数模式使用；计划内目标随 `FeederSchedule` 保存 |
 | 每路每圈下料克数 | 维护/标定页 | AT24C128 校准记录 | 由实测下料量写入 |
 | 每路饲料桶容量 | 饲料桶管理页 | 应用持久化服务 | 属于业务对象，不是硬件系统参数 |
 | 每路当前估算余量 | 饲料桶管理页 | AT24C128 关键状态 + 长期记录 | 补料和投喂扣减更新，不能放 App Config |
@@ -140,6 +139,12 @@ Esp32FarmFeeder 业务配置和维护数据，不放在 App Config：
 | 今日计划已尝试状态 | 首页/计划页 | AT24C128 今日状态 | 定时投喂启动后即记录；断电中断后不再次自动触发 |
 | 今日计数 | 首页/记录服务 | AT24C128 今日状态 | 日期切换后归档 |
 | 未完成投喂命令摘要 | 启动恢复/记录服务 | AT24C128 恢复记录 | 仅用于重启后记录 `PowerLossAborted` 和阻止自动续喂，不用于续投 |
+
+App Config 字段计数：
+
+- Esp32FarmDoor 当前建议注册 28 个字段，推荐构建配置 `ESP32BASE_APP_CONFIG_MAX_FIELDS >= 48`，给后续限位、电流和实机校准保留余量。
+- Esp32FarmFeeder 当前建议注册 20 个字段，推荐构建配置 `ESP32BASE_APP_CONFIG_MAX_FIELDS >= 40`，给未来每路电流检测和少量新增参数保留余量。
+- 两个应用是独立固件，字段数分别计算，不相加。
 
 ## 长期原始记录策略
 

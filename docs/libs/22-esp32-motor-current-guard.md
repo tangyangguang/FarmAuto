@@ -68,33 +68,13 @@ I = Vshunt / Rsense
 - 零点异常检测。
 - 传感器读取失败检测。
 
-## ACS712 未来采样类
+## 未来芯片方向
 
-ACS712 是霍尔模拟电流传感器，输出模拟电压。
+首版只实现 INA240A2。ACS712 和 INA226 只保留未来方向，不进入首版接口冻结和 examples。
 
-未来配置项：
+未来如增加 ACS712，应新增 `Acs712AnalogSensor`，产出同样的 `CurrentSample`。ACS712 是霍尔模拟电流传感器，输出模拟电压，噪声和温漂通常比 INA240 更需要校准和滤波。
 
-- ADC 引脚。
-- 供电电压。
-- 零点电压，通常接近 VCC/2。
-- 型号灵敏度，单位 mV/A。
-- 滤波参数。
-
-ACS712 噪声和温漂通常比 INA240 更需要校准和滤波。它适合隔离测量，但不应假设和 INA240 拥有相同精度。
-
-## INA226 未来采样类
-
-INA226 是 I2C 数字电流、电压、功率监测芯片。
-
-未来配置项：
-
-- I2C 地址。
-- Rsense。
-- conversion time。
-- averaging。
-- alert 阈值。
-
-INA226 可直接读取 shunt voltage、bus voltage、current 和 power。它更适合电源监测和较慢保护，不应默认承担最快速的 PWM 电机瞬态堵转保护。
+未来如增加 INA226，应新增 `Ina226I2cSensor`，产出同样的 `CurrentSample`。INA226 是 I2C 数字电流、电压、功率监测芯片，更适合电源监测和较慢保护，不应默认承担最快速的 PWM 电机瞬态堵转保护。
 
 ## MotorCurrentGuard 判定逻辑
 

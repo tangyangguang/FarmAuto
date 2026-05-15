@@ -70,6 +70,7 @@ Esp32FarmFeeder 页面：
 
 `GET /api/app/status` 应只包含喂食器字段：
 
+- 应用标识：appKind=`FarmFeeder`、firmwareVersion、schemaVersion。
 - 全局状态：`Idle`、`Starting`、`Running`、`Stopping`、`RollingDay`、`Degraded`、`Fault`、`Maintenance`。
 - 计划状态：planCount、nextPlanId、nextPlanTimeMinutes、timeValid，以及每个计划的 enabled、timeMinutes、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
 - 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
@@ -79,6 +80,8 @@ Esp32FarmFeeder 页面：
 - 最近命令：commandId、source、channelMask、startedAt、result。
 
 不得包含自动门位置、端点、限位、开门目标等字段。
+
+`installedChannelMask` 首版可作为编译期常量；如果未来扩展为 4 路或支持不同 PCB 版本，再提升为运行时配置。
 
 ## 计划字段
 
@@ -168,6 +171,7 @@ Esp32FarmFeeder 页面：
 - 克数模式要求该通道已完成 `gramsPerRevX100` 标定；未标定返回 `NotConfigured`。
 - 最终执行目标必须换算为 `targetPulses`。
 - 保存目标时不改变今日计数、桶余量或长期记录正文。
+- 手动投喂默认目标保存在 AT24C `FeederChannelTarget` 记录区；计划内目标保存在对应 `FeederSchedule` payload 中。
 
 ## 饲料桶字段
 

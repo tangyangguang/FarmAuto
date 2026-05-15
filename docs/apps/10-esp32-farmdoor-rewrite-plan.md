@@ -170,14 +170,14 @@ DoorController
 3. 执行“设置当前位置为关闭点”，当前位置保存为 `0`。
 4. 手动运行开门方向，让门到达用户认为安全的打开位置。因为第一版没有上限位，用户必须通过远程视频、现场观察或机械标记确认。
 5. 执行“保存当前位置为开门目标”，记录 `openTargetPulses`。
-6. 自动生成安全上限：`maxRunPulses = openTargetPulses * 120%`，`maxCloseUnwindPulses = openTargetPulses * 120%` 作为初始推荐值。
+6. 自动生成安全上限：第一版无限位默认 `maxRunPulses = openTargetPulses * 150%`，`maxCloseUnwindPulses = openTargetPulses * 150%` 作为初始推荐值。下一阶段加入开门/上限位后，可按实测缩紧到 120% 或更小。
 7. 执行一次低速开关门验证；验证通过后，位置可信，允许正常控制。
 
 直接设置行程流程：
 
 1. 用户输入 `travelTurnsX100` 或 `travelPulses`。如果输入圈数，系统按 `outputPulsesPerRev` 换算为脉冲。
 2. 系统把关门位置定义为 `0`，把开门目标定义为 `travelPulses`。
-3. 自动生成安全上限：`maxRunPulses = travelPulses * 120%`，`maxCloseUnwindPulses = travelPulses * 120%`。
+3. 自动生成安全上限：第一版无限位默认 `maxRunPulses = travelPulses * 150%`，`maxCloseUnwindPulses = travelPulses * 150%`。下一阶段加入开门/上限位后，可按实测缩紧到 120% 或更小。
 4. 用户可通过“开门目标 + 微调”或“开门目标 - 微调”修改行程。默认微调单位建议 0.05 圈到 0.10 圈，最终按脉冲保存。
 5. 任何直接设置或微调都必须二次确认，并写入长期业务记录。
 6. 修改后建议执行低速端点验证；如果跳过验证，状态应标记为 `positionTrustLevel=Limited` 或等价的低可信来源，页面持续提示。
@@ -230,7 +230,7 @@ DoorController
 - 如果 motion journal、检查点、CRC、范围和限位状态均有效，恢复状态应视为可信，不需要 Web 确认，也不应阻塞后续正常开关门。
 - 可信恢复后的第一次动作可以由用户、物理按钮或后续自动策略触发；系统自动套用保守速度和剩余距离上限。
 - 如果只能恢复为低可信位置，例如检查点较旧、接近边界、缺少部分辅助信息但仍未越界，禁止自动动作，允许远程 Web 确认后执行保守动作或进入维护模式。
-- 第一次动作速度使用 `recoveredFirstMoveSpeedPercent`，推荐默认 50%，但不高于正常速度。
+- 第一次动作速度使用 `min(recoveredFirstMoveSpeedPercent, motorSpeedPercent)`，推荐默认 50%，但不高于正常速度。
 - 第一次动作仍使用正常目标端点，不重新定义端点。
 - 第一次动作的最大脉冲按“当前位置到目标的剩余距离 + 10% 余量”计算，且不得超过正常 `maxRunPulses`。
 - 第一次动作的最大时间按“估算剩余运行时间 * 150%”计算，且不得超过正常 `maxRunMs`。

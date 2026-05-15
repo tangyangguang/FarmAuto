@@ -202,6 +202,13 @@ CRC 和字节序规则：
 - 所有 header 和 payload 字段必须字段级显式序列化，禁止直接把 C++ 结构体内存写入 EEPROM；结构体对齐、padding 和编译器差异不能进入持久化格式。
 - header 必须保证不跨 EEPROM 页，避免提交 `Valid` 时出现跨页半写。
 
+CRC32 实现归属：
+
+- `Esp32At24cRecordStore` 首版提供一个小型 `Crc32IsoHdlc` helper。
+- 应用长期记录服务可以复用该 helper，避免 AT24C 记录和 flash 记录各写一套 CRC32。
+- helper 不依赖 EEPROM 设备类，也不依赖 Esp32Base。
+- 如果以后 Esp32Base 已提供同等 CRC32 helper，再评估是否切换；首版不因此阻塞。
+
 sequence 规则：
 
 - `sequence` 使用 `uint32_t` 递增。
@@ -382,6 +389,12 @@ RecordSlotInspect
   headerCrcOk
   payloadCrcOk
 ```
+
+诊断 API 使用原则：
+
+- 库层 `inspect(recordType)` 可以返回完整结构，方便测试和深度诊断。
+- 应用 `/api/app/diagnostics` 默认只返回 region 摘要，不默认展开 `slots[]`。
+- 只有显式请求某个 recordType 的 slot 明细时，才返回 `slots[]`，避免 ESP32 JSON 响应过大。
 
 ## 型号支持原则
 

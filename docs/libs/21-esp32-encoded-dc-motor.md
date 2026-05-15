@@ -42,6 +42,13 @@ Fault
 - `Braking`：执行刹车动作。
 - `Fault`：故障停机，需要应用层确认或清除。
 
+对外状态建议：
+
+- 公共库 snapshot 可以保留上述 6 个内部状态，便于测试和诊断。
+- 上层应用 UI 通常只需要折叠为 `Idle` / `Active` / `Stopping` / `Fault` 四类。
+- `SoftStarting` 和 `Running` 可显示为 `Active`，通过 outputPercent、speedPps 和 elapsedMs 表达细节。
+- `SoftStopping` 和 `Braking` 可显示为 `Stopping`，通过 stopReason 和 outputMode 表达细节。
+
 ## 核心能力
 
 编码器能力：
