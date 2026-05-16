@@ -57,7 +57,7 @@ struct FeederRecordTime {
 
 class FeederRecordLog {
  public:
-  void append(const FeederRecord& record, const FeederRecordTime& time);
+  FeederRecord append(const FeederRecord& record, const FeederRecordTime& time);
   FeederRecordSnapshot snapshot() const;
 
  private:

@@ -12,7 +12,11 @@ int main() {
   FeederRecord record;
   record.type = FeederRecordType::ManualRequested;
   record.requestedMask = 0b0011;
-  log.append(record, time);
+  FeederRecord stored = log.append(record, time);
+  assert(stored.sequence == 1);
+  assert(stored.unixTime == 1800000000);
+  assert(stored.uptimeSec == 12);
+  assert(stored.bootId == 3);
 
   FeederRecordSnapshot snapshot = log.snapshot();
   assert(snapshot.count == 1);
@@ -26,13 +30,14 @@ int main() {
   for (uint8_t i = 0; i < kFeederRecentRecordCapacity + 2; ++i) {
     record.type = FeederRecordType::ChannelStarted;
     record.channel = i;
-    log.append(record, time);
+    stored = log.append(record, time);
   }
 
   snapshot = log.snapshot();
   assert(snapshot.count == kFeederRecentRecordCapacity);
   assert(snapshot.records[0].sequence == 4);
   assert(snapshot.records[kFeederRecentRecordCapacity - 1].sequence == 19);
+  assert(stored.sequence == 19);
 
   assert(feederRecordResultFromCommand(FeederCommandResult::Ok) == FeederRecordResult::Ok);
   assert(feederRecordResultFromCommand(FeederCommandResult::Partial) == FeederRecordResult::Partial);

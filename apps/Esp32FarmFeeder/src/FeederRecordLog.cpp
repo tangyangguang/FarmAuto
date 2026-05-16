@@ -1,6 +1,6 @@
 #include "FeederRecordLog.h"
 
-void FeederRecordLog::append(const FeederRecord& record, const FeederRecordTime& time) {
+FeederRecord FeederRecordLog::append(const FeederRecord& record, const FeederRecordTime& time) {
   if (snapshot_.nextSequence == 0) {
     snapshot_.nextSequence = 1;
   }
@@ -19,6 +19,7 @@ void FeederRecordLog::append(const FeederRecord& record, const FeederRecordTime&
   stored.uptimeSec = time.uptimeSec;
   stored.bootId = time.bootId;
   snapshot_.records[snapshot_.count - 1] = stored;
+  return stored;
 }
 
 FeederRecordSnapshot FeederRecordLog::snapshot() const {

@@ -83,4 +83,14 @@ c++ -std=c++17 \
   -o /tmp/farmauto_test_feeder_record_codec
 /tmp/farmauto_test_feeder_record_codec
 
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_record_file_store.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederRecordFileStore.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederRecordCodec.cpp" \
+  "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
+  -o /tmp/farmauto_test_feeder_record_file_store
+/tmp/farmauto_test_feeder_record_file_store
+
 echo "Host tests passed."

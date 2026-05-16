@@ -7,6 +7,7 @@
 
 #include "FeederBucket.h"
 #include "FeederController.h"
+#include "FeederRecordFileStore.h"
 #include "FeederRecordLog.h"
 #include "FeederRunTracker.h"
 #include "FeederSchedule.h"
@@ -23,8 +24,12 @@ FeederRunTracker g_runs;
 FeederRecordLog g_records;
 uint16_t g_lastScheduleMinute = 24 * 60;
 uint32_t g_lastScheduleDate = 0;
+bool g_recordStorageReady = false;
 
 static constexpr uint8_t kFarmFeederApiRouteCount = 20;
+static constexpr const char* kFeederRecordRootDir = "/records";
+static constexpr const char* kFeederRecordDir = "/records/feeder";
+static constexpr const char* kFeederRecordCurrentPath = "/records/feeder/current.far";
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
               "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 20");
 
@@ -113,6 +118,44 @@ FeederRecordTime currentRecordTime() {
   time.bootId = snapshot.bootId;
 #endif
   return time;
+}
+
+#if ESP32BASE_ENABLE_FS
+bool appendFeederRecordBytes(const char* path, const uint8_t* data, std::size_t length, void*) {
+  return Esp32BaseFs::appendBytes(path, data, length);
+}
+
+bool ensureRecordStorageReady() {
+  if (g_recordStorageReady) {
+    return true;
+  }
+  if (!Esp32BaseFs::isReady()) {
+    return false;
+  }
+  if (!Esp32BaseFs::exists(kFeederRecordRootDir) && !Esp32BaseFs::mkdir(kFeederRecordRootDir)) {
+    return false;
+  }
+  if (!Esp32BaseFs::exists(kFeederRecordDir) && !Esp32BaseFs::mkdir(kFeederRecordDir)) {
+    return false;
+  }
+  g_recordStorageReady = true;
+  return true;
+}
+#endif
+
+void recordBusinessEvent(const FeederRecord& record) {
+  const FeederRecord stored = g_records.append(record, currentRecordTime());
+#if ESP32BASE_ENABLE_FS
+  if (!ensureRecordStorageReady()) {
+    return;
+  }
+  const FeederRecordWriteResult result = appendFeederRecordToPath(
+      stored, kFeederRecordCurrentPath, appendFeederRecordBytes, nullptr);
+  if (result != FeederRecordWriteResult::Ok) {
+    ESP32BASE_LOG_W("farmfeeder", "record_append_failed result=%u",
+                    static_cast<unsigned>(result));
+  }
+#endif
 }
 
 void sendChannelArray(const FeederSnapshot& snapshot, const FeederRunSnapshot& runs) {
@@ -542,7 +585,7 @@ FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource sour
       record.successMask = bit;
       record.targetPulses = targets.channels[i].targetPulses;
       record.estimatedGramsX100 = targets.channels[i].estimatedGramsX100;
-      g_records.append(record, currentRecordTime());
+      recordBusinessEvent(record);
     }
   }
   result.skippedMask |= static_cast<uint8_t>(targets.invalidMask | targets.notCalibratedMask);
@@ -698,7 +741,7 @@ void FarmFeederApp::handleScheduleTick() {
     record.type = FeederRecordType::ScheduleMissed;
     record.result = FeederRecordResult::Skipped;
     record.planId = tick.planId;
-    g_records.append(record, currentRecordTime());
+    recordBusinessEvent(record);
     ESP32BASE_LOG_W("farmfeeder", "schedule_missed plan_id=%u date=%lu minute=%u",
                     static_cast<unsigned>(tick.planId),
                     static_cast<unsigned long>(serviceDate),
@@ -725,7 +768,7 @@ void FarmFeederApp::handleScheduleTick() {
   record.busyMask = result.busyMask;
   record.faultMask = result.faultMask;
   record.skippedMask = result.skippedMask;
-  g_records.append(record, currentRecordTime());
+  recordBusinessEvent(record);
   ESP32BASE_LOG_I("farmfeeder",
                   "schedule_triggered plan_id=%u result=%u success_mask=%u skipped_mask=%u",
                   static_cast<unsigned>(tick.planId),
@@ -926,7 +969,7 @@ void FarmFeederApp::handleFeederManualStart() {
   record.busyMask = result.busyMask;
   record.faultMask = result.faultMask;
   record.skippedMask = result.skippedMask;
-  g_records.append(record, currentRecordTime());
+  recordBusinessEvent(record);
   sendStartResultJson(result, &targets);
 #endif
 }
@@ -952,7 +995,7 @@ void FarmFeederApp::handleFeederStart() {
   record.busyMask = result.busyMask;
   record.faultMask = result.faultMask;
   record.skippedMask = result.skippedMask;
-  g_records.append(record, currentRecordTime());
+  recordBusinessEvent(record);
   sendStartResultJson(result, &targets);
 #endif
 }
@@ -977,7 +1020,7 @@ void FarmFeederApp::handleFeederStop() {
   record.result = feederRecordResultFromCommand(result);
   record.requestedMask = channelMask;
   record.successMask = result == FeederCommandResult::Ok ? channelMask : 0;
-  g_records.append(record, currentRecordTime());
+  recordBusinessEvent(record);
   sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
 #endif
 }
@@ -994,7 +1037,7 @@ void FarmFeederApp::handleFeederStopAll() {
   record.result = feederRecordResultFromCommand(result);
   record.requestedMask = runningMask;
   record.successMask = result == FeederCommandResult::Ok ? runningMask : 0;
-  g_records.append(record, currentRecordTime());
+  recordBusinessEvent(record);
   sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
 #endif
 }
