@@ -73,6 +73,15 @@ c++ -std=c++17 \
 
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_schedule_codec.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederScheduleCodec.cpp" \
+  "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
+  -o /tmp/farmauto_test_feeder_schedule_codec
+/tmp/farmauto_test_feeder_schedule_codec
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_bucket.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederBucket.cpp" \
   -o /tmp/farmauto_test_feeder_bucket
