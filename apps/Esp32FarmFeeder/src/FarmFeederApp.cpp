@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Esp32Base.h>
 
+#include "FeederBucket.h"
 #include "FeederController.h"
 #include "FeederSchedule.h"
 
@@ -11,6 +12,7 @@ namespace {
 FeederController g_feeder;
 FeederControllerConfig g_feederConfig;
 FeederScheduleService g_schedules;
+FeederBucketService g_buckets;
 
 const char* deviceStateName(FeederDeviceState state) {
   switch (state) {
@@ -88,6 +90,39 @@ void sendScheduleSummary(const FeederScheduleSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("]}");
 }
 
+void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
+  Esp32BaseWeb::sendChunk("[");
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    const FeederBucketState& channel = snapshot.channels[i];
+    Esp32BaseWeb::sendChunk("{\"channel\":");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk(",\"enabled\":");
+    Esp32BaseWeb::sendChunk(channel.baseInfo.enabled ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"outputPulsesPerRev\":");
+    char number[16];
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(channel.baseInfo.outputPulsesPerRev));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"gramsPerRevX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(channel.baseInfo.gramsPerRevX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"capacityGramsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(channel.baseInfo.capacityGramsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"remainGramsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(channel.remainGramsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"remainPercent\":");
+    sendUint8(channel.remainPercent);
+    Esp32BaseWeb::sendChunk(",\"underflow\":");
+    Esp32BaseWeb::sendChunk(channel.underflow ? "true" : "false");
+    Esp32BaseWeb::sendChunk("}");
+  }
+  Esp32BaseWeb::sendChunk("]");
+}
+
 }  // namespace
 
 FarmFeederApp FarmFeeder;
@@ -120,6 +155,17 @@ void FarmFeederApp::configureStaticDefaults() {
   }
 
   g_schedules.beginDay(0);
+
+  FeederChannelBaseInfo channelInfo;
+  channelInfo.enabled = true;
+  channelInfo.outputPulsesPerRev = 4320;
+  channelInfo.gramsPerRevX100 = 7000;
+  channelInfo.capacityGramsX100 = 500000;
+  for (uint8_t i = 0; i < 3; ++i) {
+    if (g_buckets.updateBaseInfo(i, channelInfo) != FeederBucketResult::Ok) {
+      ESP32BASE_LOG_E("farmfeeder", "bucket_base_info_failed channel=%u", static_cast<unsigned>(i));
+    }
+  }
 }
 
 void FarmFeederApp::configureAppConfigPage() {
@@ -152,6 +198,7 @@ void FarmFeederApp::sendStatusJson() {
 #if ESP32BASE_ENABLE_WEB
   const FeederSnapshot snapshot = g_feeder.snapshot();
   const FeederScheduleSnapshot scheduleSnapshot = g_schedules.snapshot();
+  const FeederBucketSnapshot bucketSnapshot = g_buckets.snapshot();
 
   Esp32BaseWeb::beginJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmFeeder\",");
@@ -174,6 +221,8 @@ void FarmFeederApp::sendStatusJson() {
   sendChannelArray(snapshot);
   Esp32BaseWeb::sendChunk(",\"schedule\":");
   sendScheduleSummary(scheduleSnapshot);
+  Esp32BaseWeb::sendChunk(",\"buckets\":");
+  sendBucketSummary(bucketSnapshot);
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
 #endif
