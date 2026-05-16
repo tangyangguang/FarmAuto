@@ -29,6 +29,35 @@ bool appendCapture(const char* path, const uint8_t* data, std::size_t length, vo
   return true;
 }
 
+int64_t fileSizeCapture(const char*, void* user) {
+  CaptureAppender* capture = static_cast<CaptureAppender*>(user);
+  return capture == nullptr ? -1 : static_cast<int64_t>(capture->length);
+}
+
+bool readCapture(const char*,
+                 uint32_t offset,
+                 uint8_t* out,
+                 std::size_t maxLength,
+                 std::size_t* readLength,
+                 void* user) {
+  if (readLength) {
+    *readLength = 0;
+  }
+  CaptureAppender* capture = static_cast<CaptureAppender*>(user);
+  if (capture == nullptr || out == nullptr || offset > capture->length) {
+    return false;
+  }
+  const std::size_t available = capture->length - offset;
+  const std::size_t n = available < maxLength ? available : maxLength;
+  for (std::size_t i = 0; i < n; ++i) {
+    out[i] = capture->bytes[offset + i];
+  }
+  if (readLength) {
+    *readLength = n;
+  }
+  return true;
+}
+
 }  // namespace
 
 int main() {
@@ -60,6 +89,42 @@ int main() {
   capture.fail = true;
   result = appendFeederRecordToPath(record, "/records/feeder/current.far", appendCapture, &capture);
   assert(result == FeederRecordWriteResult::WriteFailed);
+
+  capture.fail = false;
+  appendFeederRecordToPath(record, "/records/feeder/current.far", appendCapture, &capture);
+
+  FeederRecordPage page;
+  assert(readFeederRecordPage("/records/feeder/current.far",
+                              0,
+                              2,
+                              fileSizeCapture,
+                              readCapture,
+                              &capture,
+                              page) == FeederRecordReadResult::Ok);
+  assert(page.totalRecords == 2);
+  assert(page.startIndex == 0);
+  assert(page.count == 2);
+  assert(page.records[0].sequence == 8);
+  assert(page.records[1].sequence == 8);
+
+  assert(readFeederRecordPage("/records/feeder/current.far",
+                              1,
+                              1,
+                              fileSizeCapture,
+                              readCapture,
+                              &capture,
+                              page) == FeederRecordReadResult::Ok);
+  assert(page.totalRecords == 2);
+  assert(page.startIndex == 1);
+  assert(page.count == 1);
+
+  assert(readFeederRecordPage("/records/feeder/current.far",
+                              0,
+                              0,
+                              fileSizeCapture,
+                              readCapture,
+                              &capture,
+                              page) == FeederRecordReadResult::InvalidArgument);
 
   return 0;
 }

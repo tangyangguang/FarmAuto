@@ -109,6 +109,12 @@ void sendUint8(uint8_t value) {
   Esp32BaseWeb::sendChunk(number);
 }
 
+void sendUint32(uint32_t value) {
+  char number[16];
+  snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(value));
+  Esp32BaseWeb::sendChunk(number);
+}
+
 FeederRecordTime currentRecordTime() {
   FeederRecordTime time;
 #if ESP32BASE_ENABLE_NTP
@@ -123,6 +129,19 @@ FeederRecordTime currentRecordTime() {
 #if ESP32BASE_ENABLE_FS
 bool appendFeederRecordBytes(const char* path, const uint8_t* data, std::size_t length, void*) {
   return Esp32BaseFs::appendBytes(path, data, length);
+}
+
+int64_t feederRecordFileSize(const char* path, void*) {
+  return Esp32BaseFs::fileSize(path);
+}
+
+bool readFeederRecordBytesAt(const char* path,
+                             uint32_t offset,
+                             uint8_t* out,
+                             std::size_t maxLength,
+                             std::size_t* readLength,
+                             void*) {
+  return Esp32BaseFs::readBytesAt(path, offset, out, maxLength, readLength);
 }
 
 bool ensureRecordStorageReady() {
@@ -373,54 +392,64 @@ void sendResolvedTargetArray(const FeederTargetBatch& batch) {
   Esp32BaseWeb::sendChunk("]");
 }
 
+void sendRecordJson(const FeederRecord& record) {
+  char number[16];
+  Esp32BaseWeb::sendChunk("{\"sequence\":");
+  sendUint32(record.sequence);
+  Esp32BaseWeb::sendChunk(",\"unixTime\":");
+  sendUint32(record.unixTime);
+  Esp32BaseWeb::sendChunk(",\"uptimeSec\":");
+  sendUint32(record.uptimeSec);
+  Esp32BaseWeb::sendChunk(",\"bootId\":");
+  sendUint32(record.bootId);
+  Esp32BaseWeb::sendChunk(",\"eventType\":\"");
+  Esp32BaseWeb::sendChunk(recordTypeName(record.type));
+  Esp32BaseWeb::sendChunk("\",\"result\":\"");
+  Esp32BaseWeb::sendChunk(recordResultName(record.result));
+  Esp32BaseWeb::sendChunk("\",\"planId\":");
+  sendUint8(record.planId);
+  Esp32BaseWeb::sendChunk(",\"channel\":");
+  sendUint8(record.channel);
+  Esp32BaseWeb::sendChunk(",\"requestedMask\":");
+  sendUint8(record.requestedMask);
+  Esp32BaseWeb::sendChunk(",\"successMask\":");
+  sendUint8(record.successMask);
+  Esp32BaseWeb::sendChunk(",\"busyMask\":");
+  sendUint8(record.busyMask);
+  Esp32BaseWeb::sendChunk(",\"faultMask\":");
+  sendUint8(record.faultMask);
+  Esp32BaseWeb::sendChunk(",\"skippedMask\":");
+  sendUint8(record.skippedMask);
+  Esp32BaseWeb::sendChunk(",\"targetPulses\":");
+  snprintf(number, sizeof(number), "%ld", static_cast<long>(record.targetPulses));
+  Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk(",\"estimatedGramsX100\":");
+  snprintf(number, sizeof(number), "%ld", static_cast<long>(record.estimatedGramsX100));
+  Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk(",\"actualPulses\":");
+  snprintf(number, sizeof(number), "%ld", static_cast<long>(record.actualPulses));
+  Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk("}");
+}
+
 void sendRecordArray(const FeederRecordSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("[");
   for (uint8_t i = 0; i < snapshot.count; ++i) {
     if (i > 0) {
       Esp32BaseWeb::sendChunk(",");
     }
-    const FeederRecord& record = snapshot.records[i];
-    char number[16];
-    Esp32BaseWeb::sendChunk("{\"sequence\":");
-    snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(record.sequence));
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk(",\"unixTime\":");
-    snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(record.unixTime));
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk(",\"uptimeSec\":");
-    snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(record.uptimeSec));
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk(",\"bootId\":");
-    snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(record.bootId));
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk(",\"eventType\":\"");
-    Esp32BaseWeb::sendChunk(recordTypeName(record.type));
-    Esp32BaseWeb::sendChunk("\",\"result\":\"");
-    Esp32BaseWeb::sendChunk(recordResultName(record.result));
-    Esp32BaseWeb::sendChunk("\",\"planId\":");
-    sendUint8(record.planId);
-    Esp32BaseWeb::sendChunk(",\"channel\":");
-    sendUint8(record.channel);
-    Esp32BaseWeb::sendChunk(",\"requestedMask\":");
-    sendUint8(record.requestedMask);
-    Esp32BaseWeb::sendChunk(",\"successMask\":");
-    sendUint8(record.successMask);
-    Esp32BaseWeb::sendChunk(",\"busyMask\":");
-    sendUint8(record.busyMask);
-    Esp32BaseWeb::sendChunk(",\"faultMask\":");
-    sendUint8(record.faultMask);
-    Esp32BaseWeb::sendChunk(",\"skippedMask\":");
-    sendUint8(record.skippedMask);
-    Esp32BaseWeb::sendChunk(",\"targetPulses\":");
-    snprintf(number, sizeof(number), "%ld", static_cast<long>(record.targetPulses));
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk(",\"estimatedGramsX100\":");
-    snprintf(number, sizeof(number), "%ld", static_cast<long>(record.estimatedGramsX100));
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk(",\"actualPulses\":");
-    snprintf(number, sizeof(number), "%ld", static_cast<long>(record.actualPulses));
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk("}");
+    sendRecordJson(snapshot.records[i]);
+  }
+  Esp32BaseWeb::sendChunk("]");
+}
+
+void sendRecordArray(const FeederRecordPage& page) {
+  Esp32BaseWeb::sendChunk("[");
+  for (uint8_t i = 0; i < page.count; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    sendRecordJson(page.records[i]);
   }
   Esp32BaseWeb::sendChunk("]");
 }
@@ -437,6 +466,24 @@ bool readUint8Param(const char* name, uint8_t& out) {
   }
   out = static_cast<uint8_t>(value);
   return true;
+}
+
+bool readUint32Param(const char* name, uint32_t& out) {
+  char raw[16];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  char* end = nullptr;
+  const unsigned long value = strtoul(raw, &end, 10);
+  if (!end || *end != '\0') {
+    return false;
+  }
+  out = static_cast<uint32_t>(value);
+  return true;
+}
+
+bool readUint32ParamOptional(const char* name, uint32_t& out) {
+  return !Esp32BaseWeb::hasParam(name) || readUint32Param(name, out);
 }
 
 bool readInt32Param(const char* name, int32_t& out) {
@@ -923,9 +970,49 @@ void FarmFeederApp::sendTargetsJson() {
 
 void FarmFeederApp::sendRecordsJson() {
 #if ESP32BASE_ENABLE_WEB
-  const FeederRecordSnapshot snapshot = g_records.snapshot();
+  uint32_t startIndex = 0;
+  uint32_t limitParam = kFeederRecordPageMaxRecords;
+  if (!readUint32ParamOptional("start", startIndex) || !readUint32ParamOptional("limit", limitParam) ||
+      limitParam == 0 || limitParam > kFeederRecordPageMaxRecords) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+
   Esp32BaseWeb::beginJson(200);
-  Esp32BaseWeb::sendChunk("{\"count\":");
+#if ESP32BASE_ENABLE_FS
+  FeederRecordPage page;
+  const FeederRecordReadResult readResult = readFeederRecordPage(kFeederRecordCurrentPath,
+                                                                 startIndex,
+                                                                 static_cast<uint8_t>(limitParam),
+                                                                 feederRecordFileSize,
+                                                                 readFeederRecordBytesAt,
+                                                                 nullptr,
+                                                                 page);
+  if (readResult == FeederRecordReadResult::Ok && page.totalRecords > 0) {
+    Esp32BaseWeb::sendChunk("{\"source\":\"flash\",\"start\":");
+    sendUint32(page.startIndex);
+    Esp32BaseWeb::sendChunk(",\"limit\":");
+    sendUint32(limitParam);
+    Esp32BaseWeb::sendChunk(",\"count\":");
+    sendUint8(page.count);
+    Esp32BaseWeb::sendChunk(",\"totalRecords\":");
+    sendUint32(page.totalRecords);
+    Esp32BaseWeb::sendChunk(",\"recordBytes\":");
+    sendUint32(kFeederRecordEncodedMaxBytes);
+    Esp32BaseWeb::sendChunk(",\"records\":");
+    sendRecordArray(page);
+    Esp32BaseWeb::sendChunk("}");
+    Esp32BaseWeb::endJson();
+    return;
+  }
+#endif
+
+  const FeederRecordSnapshot snapshot = g_records.snapshot();
+  Esp32BaseWeb::sendChunk("{\"source\":\"ram\",\"start\":0,\"limit\":");
+  sendUint32(kFeederRecentRecordCapacity);
+  Esp32BaseWeb::sendChunk(",\"count\":");
+  sendUint8(snapshot.count);
+  Esp32BaseWeb::sendChunk(",\"totalRecords\":");
   sendUint8(snapshot.count);
   Esp32BaseWeb::sendChunk(",\"capacity\":");
   sendUint8(kFeederRecentRecordCapacity);
