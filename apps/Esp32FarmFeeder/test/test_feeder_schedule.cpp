@@ -25,6 +25,10 @@ int main() {
   assert(schedules.snapshot().planCount == 2);
   assert(schedules.nextPlan(7 * 60).config.planId == 1);
 
+  evening.timeMinutes = 19 * 60;
+  assert(schedules.updatePlan(2, evening) == FeederScheduleResult::Ok);
+  assert(schedules.snapshot().plans[1].config.timeMinutes == 19 * 60);
+
   FeederScheduleTick tick = schedules.evaluate(7 * 60 + 30, true);
   assert(tick.action == FeederScheduleAction::TriggerPlan);
   assert(tick.planId == 1);
@@ -34,18 +38,21 @@ int main() {
   assert(schedules.snapshot().plans[0].todayExecuted);
 
   assert(schedules.skipToday(2) == FeederScheduleResult::Ok);
-  assert(schedules.evaluate(18 * 60, true).action == FeederScheduleAction::NoAction);
+  assert(schedules.evaluate(19 * 60, true).action == FeederScheduleAction::NoAction);
 
   schedules.beginDay(20260517);
   assert(!schedules.snapshot().plans[0].todayExecuted);
   assert(!schedules.snapshot().plans[1].skipToday);
 
-  assert(schedules.evaluate(18 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
+  assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
   assert(schedules.snapshot().plans[0].scheduleMissedToday);
-  assert(schedules.evaluate(18 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
+  assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
   assert(schedules.snapshot().plans[1].scheduleMissedToday);
 
   assert(schedules.skipToday(99) == FeederScheduleResult::NotFound);
+  assert(schedules.deletePlan(1) == FeederScheduleResult::Ok);
+  assert(schedules.snapshot().planCount == 1);
+  assert(schedules.snapshot().plans[0].config.planId == 2);
 
   return 0;
 }

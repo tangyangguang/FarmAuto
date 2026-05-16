@@ -68,6 +68,8 @@ class FeederScheduleService {
  public:
   void beginDay(uint32_t serviceDate);
   FeederScheduleMutation addPlan(const FeederPlanConfig& config);
+  FeederScheduleResult updatePlan(uint8_t planId, const FeederPlanConfig& config);
+  FeederScheduleResult deletePlan(uint8_t planId);
   FeederScheduleResult skipToday(uint8_t planId);
   FeederScheduleResult cancelSkipToday(uint8_t planId);
   FeederScheduleResult markAttempted(uint8_t planId);

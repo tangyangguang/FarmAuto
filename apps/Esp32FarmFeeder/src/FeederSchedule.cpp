@@ -30,6 +30,34 @@ FeederScheduleMutation FeederScheduleService::addPlan(const FeederPlanConfig& co
   return mutation;
 }
 
+FeederScheduleResult FeederScheduleService::updatePlan(uint8_t planId, const FeederPlanConfig& config) {
+  const int index = findPlan(planId);
+  if (index < 0) {
+    return FeederScheduleResult::NotFound;
+  }
+  if (!hasRunnableTarget(config)) {
+    return FeederScheduleResult::InvalidArgument;
+  }
+
+  FeederPlanConfig updated = config;
+  updated.planId = planId;
+  snapshot_.plans[index].config = updated;
+  return FeederScheduleResult::Ok;
+}
+
+FeederScheduleResult FeederScheduleService::deletePlan(uint8_t planId) {
+  const int index = findPlan(planId);
+  if (index < 0) {
+    return FeederScheduleResult::NotFound;
+  }
+  for (uint8_t i = static_cast<uint8_t>(index); i + 1 < snapshot_.planCount; ++i) {
+    snapshot_.plans[i] = snapshot_.plans[i + 1];
+  }
+  --snapshot_.planCount;
+  snapshot_.plans[snapshot_.planCount] = FeederPlanState{};
+  return FeederScheduleResult::Ok;
+}
+
 FeederScheduleResult FeederScheduleService::skipToday(uint8_t planId) {
   const int index = findPlan(planId);
   if (index < 0) {
