@@ -9,6 +9,7 @@ class FarmFeederApp {
   void configureStaticDefaults();
   void configureAppConfigPage();
   void configureBusinessShell();
+  void handleScheduleTick();
   static void sendStatusJson();
   static void sendSchedulesJson();
   static void sendBucketsJson();

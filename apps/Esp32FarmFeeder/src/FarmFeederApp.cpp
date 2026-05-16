@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <Esp32Base.h>
 
+#include <time.h>
+
 #include "FeederBucket.h"
 #include "FeederController.h"
 #include "FeederRunTracker.h"
@@ -17,6 +19,8 @@ FeederScheduleService g_schedules;
 FeederBucketService g_buckets;
 FeederTargetService g_targets;
 FeederRunTracker g_runs;
+uint16_t g_lastScheduleMinute = 24 * 60;
+uint32_t g_lastScheduleDate = 0;
 
 static constexpr uint8_t kFarmFeederApiRouteCount = 19;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
@@ -431,6 +435,59 @@ FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource sour
   return result;
 }
 
+FeederTargetSnapshot targetSnapshotFromPlan(const FeederPlanConfig& plan) {
+  FeederTargetSnapshot targets;
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    targets.channels[i].mode = plan.targets[i].mode;
+    targets.channels[i].targetGramsX100 = plan.targets[i].targetGramsX100;
+    targets.channels[i].targetRevolutionsX100 = plan.targets[i].targetRevolutionsX100;
+  }
+  return targets;
+}
+
+bool findPlanConfig(uint8_t planId, FeederPlanConfig& out) {
+  const FeederScheduleSnapshot snapshot = g_schedules.snapshot();
+  for (uint8_t i = 0; i < snapshot.planCount; ++i) {
+    if (snapshot.plans[i].config.planId == planId) {
+      out = snapshot.plans[i].config;
+      return true;
+    }
+  }
+  return false;
+}
+
+FeederStartResult startPlanTargets(const FeederPlanConfig& plan, FeederTargetBatch& targets) {
+  targets = resolveFeederTargetsForMask(g_buckets.snapshot(), targetSnapshotFromPlan(plan), plan.channelMask);
+  FeederStartResult result;
+  if (targets.okMask != 0) {
+    result = g_feeder.startChannels(targets.okMask, FeederRunSource::Schedule);
+    if (result.successMask != 0) {
+      g_runs.start(result.successMask, FeederRunSource::Schedule, targets);
+    }
+  } else {
+    result.result = FeederCommandResult::InvalidArgument;
+  }
+  result.skippedMask |= static_cast<uint8_t>(
+      plan.channelMask & static_cast<uint8_t>(targets.invalidMask | targets.notCalibratedMask));
+  if (result.successMask != 0 && result.skippedMask != 0 && result.result == FeederCommandResult::Ok) {
+    result.result = FeederCommandResult::Partial;
+  }
+  return result;
+}
+
+bool localDateAndMinute(uint32_t epochSec, uint32_t& date, uint16_t& minute) {
+  time_t raw = static_cast<time_t>(epochSec);
+  tm value = {};
+  if (!localtime_r(&raw, &value)) {
+    return false;
+  }
+  date = static_cast<uint32_t>((value.tm_year + 1900) * 10000 +
+                               (value.tm_mon + 1) * 100 +
+                               value.tm_mday);
+  minute = static_cast<uint16_t>(value.tm_hour * 60 + value.tm_min);
+  return true;
+}
+
 bool readPlanConfigFromParams(FeederPlanConfig& config) {
   int32_t raw = 0;
   if (!readBoolParam("enabled", config.enabled)) {
@@ -489,6 +546,61 @@ void FarmFeederApp::begin() {
 
 void FarmFeederApp::handle() {
   Esp32Base::handle();
+  handleScheduleTick();
+}
+
+void FarmFeederApp::handleScheduleTick() {
+#if ESP32BASE_ENABLE_NTP
+  const Esp32BaseNtp::TimeSnapshot timeSnapshot = Esp32BaseNtp::snapshot();
+  if (!timeSnapshot.synced || timeSnapshot.epochSec == 0) {
+    return;
+  }
+
+  uint32_t serviceDate = 0;
+  uint16_t currentMinute = 0;
+  if (!localDateAndMinute(timeSnapshot.epochSec, serviceDate, currentMinute)) {
+    return;
+  }
+
+  if (serviceDate != g_lastScheduleDate) {
+    g_schedules.beginDay(serviceDate);
+    g_lastScheduleDate = serviceDate;
+    g_lastScheduleMinute = 24 * 60;
+  }
+  if (currentMinute == g_lastScheduleMinute) {
+    return;
+  }
+  g_lastScheduleMinute = currentMinute;
+
+  const FeederScheduleTick tick = g_schedules.evaluate(currentMinute, true);
+  if (tick.action == FeederScheduleAction::NoAction) {
+    return;
+  }
+  if (tick.action == FeederScheduleAction::MarkMissed) {
+    ESP32BASE_LOG_W("farmfeeder", "schedule_missed plan_id=%u date=%lu minute=%u",
+                    static_cast<unsigned>(tick.planId),
+                    static_cast<unsigned long>(serviceDate),
+                    static_cast<unsigned>(currentMinute));
+    return;
+  }
+
+  FeederPlanConfig plan;
+  if (!findPlanConfig(tick.planId, plan)) {
+    ESP32BASE_LOG_W("farmfeeder", "schedule_plan_missing plan_id=%u",
+                    static_cast<unsigned>(tick.planId));
+    return;
+  }
+
+  g_schedules.markAttempted(tick.planId);
+  FeederTargetBatch targets;
+  const FeederStartResult result = startPlanTargets(plan, targets);
+  ESP32BASE_LOG_I("farmfeeder",
+                  "schedule_triggered plan_id=%u result=%u success_mask=%u skipped_mask=%u",
+                  static_cast<unsigned>(tick.planId),
+                  static_cast<unsigned>(result.result),
+                  static_cast<unsigned>(result.successMask),
+                  static_cast<unsigned>(result.skippedMask));
+#endif
 }
 
 void FarmFeederApp::configureStaticDefaults() {
