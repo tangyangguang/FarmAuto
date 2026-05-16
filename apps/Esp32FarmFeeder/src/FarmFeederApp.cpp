@@ -247,6 +247,36 @@ const char* scheduleResultName(FeederScheduleResult result) {
   return "InvalidArgument";
 }
 
+const char* feederCommandResultName(FeederCommandResult result) {
+  switch (result) {
+    case FeederCommandResult::Ok: return "Ok";
+    case FeederCommandResult::Partial: return "Partial";
+    case FeederCommandResult::Busy: return "Busy";
+    case FeederCommandResult::NotConfigured: return "NotConfigured";
+    case FeederCommandResult::Fault: return "Fault";
+    case FeederCommandResult::InvalidArgument: return "InvalidArgument";
+  }
+  return "InvalidArgument";
+}
+
+void sendStartResultJson(const FeederStartResult& result) {
+  const bool success = result.result == FeederCommandResult::Ok ||
+                       result.result == FeederCommandResult::Partial;
+  Esp32BaseWeb::beginJson(success ? 200 : 400);
+  Esp32BaseWeb::sendChunk("{\"result\":\"");
+  Esp32BaseWeb::sendChunk(feederCommandResultName(result.result));
+  Esp32BaseWeb::sendChunk("\",\"successMask\":");
+  sendUint8(result.successMask);
+  Esp32BaseWeb::sendChunk(",\"busyMask\":");
+  sendUint8(result.busyMask);
+  Esp32BaseWeb::sendChunk(",\"faultMask\":");
+  sendUint8(result.faultMask);
+  Esp32BaseWeb::sendChunk(",\"skippedMask\":");
+  sendUint8(result.skippedMask);
+  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
+}
+
 bool readPlanConfigFromParams(FeederPlanConfig& config) {
   int32_t raw = 0;
   if (!readBoolParam("enabled", config.enabled)) {
@@ -352,6 +382,10 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   Esp32BaseWeb::addApi("/api/app/status", FarmFeederApp::sendStatusJson);
+  Esp32BaseWeb::addApi("/api/app/feeders/manual-start", FarmFeederApp::handleFeederManualStart);
+  Esp32BaseWeb::addApi("/api/app/feeders/start", FarmFeederApp::handleFeederStart);
+  Esp32BaseWeb::addApi("/api/app/feeders/stop", FarmFeederApp::handleFeederStop);
+  Esp32BaseWeb::addApi("/api/app/feeders/stop-all", FarmFeederApp::handleFeederStopAll);
   Esp32BaseWeb::addApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
   Esp32BaseWeb::addApi("/api/app/schedules/create", FarmFeederApp::handleScheduleCreate);
   Esp32BaseWeb::addApi("/api/app/schedules/update", FarmFeederApp::handleScheduleUpdate);
@@ -426,6 +460,55 @@ void FarmFeederApp::sendBaseInfoJson() {
   sendBaseInfoSummary(g_buckets.snapshot());
   Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::handleFeederManualStart() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channelMask = 0;
+  if (!readUint8Param("channelMask", channelMask)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  sendStartResultJson(g_feeder.startChannels(channelMask, FeederRunSource::Manual));
+#endif
+}
+
+void FarmFeederApp::handleFeederStart() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channelMask = 0;
+  if (!readUint8Param("channelMask", channelMask)) {
+    uint8_t channel = 0;
+    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+      sendResultJson(400, "InvalidArgument");
+      return;
+    }
+    channelMask = static_cast<uint8_t>(1U << channel);
+  }
+  sendStartResultJson(g_feeder.startChannels(channelMask, FeederRunSource::Manual));
+#endif
+}
+
+void FarmFeederApp::handleFeederStop() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channelMask = 0;
+  if (!readUint8Param("channelMask", channelMask)) {
+    uint8_t channel = 0;
+    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+      sendResultJson(400, "InvalidArgument");
+      return;
+    }
+    channelMask = static_cast<uint8_t>(1U << channel);
+  }
+  const FeederCommandResult result = g_feeder.stopChannels(channelMask);
+  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleFeederStopAll() {
+#if ESP32BASE_ENABLE_WEB
+  const FeederCommandResult result = g_feeder.stopAll();
+  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
 #endif
 }
 

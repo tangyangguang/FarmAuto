@@ -13,6 +13,10 @@ class FarmFeederApp {
   static void sendSchedulesJson();
   static void sendBucketsJson();
   static void sendBaseInfoJson();
+  static void handleFeederManualStart();
+  static void handleFeederStart();
+  static void handleFeederStop();
+  static void handleFeederStopAll();
   static void handleScheduleCreate();
   static void handleScheduleUpdate();
   static void handleScheduleDelete();
