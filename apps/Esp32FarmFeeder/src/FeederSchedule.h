@@ -78,6 +78,7 @@ class FeederScheduleService {
   FeederScheduleTick evaluate(uint16_t currentMinutes, bool timeValid);
   FeederPlanState nextPlan(uint16_t currentMinutes) const;
   FeederScheduleSnapshot snapshot() const;
+  FeederScheduleResult restore(const FeederScheduleSnapshot& snapshot);
 
  private:
   int findPlan(uint8_t planId) const;

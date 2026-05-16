@@ -152,6 +152,25 @@ FeederScheduleSnapshot FeederScheduleService::snapshot() const {
   return snapshot_;
 }
 
+FeederScheduleResult FeederScheduleService::restore(const FeederScheduleSnapshot& snapshot) {
+  if (snapshot.planCount > kFeederMaxPlans) {
+    return FeederScheduleResult::InvalidArgument;
+  }
+  for (uint8_t i = 0; i < snapshot.planCount; ++i) {
+    const FeederPlanState& plan = snapshot.plans[i];
+    if (plan.config.planId == 0 || !hasRunnableTarget(plan.config)) {
+      return FeederScheduleResult::InvalidArgument;
+    }
+    for (uint8_t j = static_cast<uint8_t>(i + 1); j < snapshot.planCount; ++j) {
+      if (snapshot.plans[j].config.planId == plan.config.planId) {
+        return FeederScheduleResult::InvalidArgument;
+      }
+    }
+  }
+  snapshot_ = snapshot;
+  return FeederScheduleResult::Ok;
+}
+
 int FeederScheduleService::findPlan(uint8_t planId) const {
   for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
     if (snapshot_.plans[i].config.planId == planId) {

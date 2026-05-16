@@ -67,5 +67,25 @@ int main() {
   assert(schedules.snapshot().planCount == 1);
   assert(schedules.snapshot().plans[0].config.planId == 2);
 
+  FeederScheduleSnapshot persisted;
+  persisted.serviceDate = 20260518;
+  persisted.planCount = 1;
+  persisted.plans[0].config.planId = 9;
+  persisted.plans[0].config.enabled = true;
+  persisted.plans[0].config.timeConfigured = true;
+  persisted.plans[0].config.timeMinutes = 8 * 60;
+  persisted.plans[0].config.channelMask = 0b0001;
+  persisted.plans[0].config.targets[0].mode = FeederTargetMode::Grams;
+  persisted.plans[0].config.targets[0].targetGramsX100 = 5000;
+  persisted.plans[0].skipToday = true;
+  assert(schedules.restore(persisted) == FeederScheduleResult::Ok);
+  assert(schedules.snapshot().serviceDate == 20260518);
+  assert(schedules.snapshot().planCount == 1);
+  assert(schedules.snapshot().plans[0].config.planId == 9);
+  assert(schedules.snapshot().plans[0].skipToday);
+
+  persisted.planCount = kFeederMaxPlans + 1;
+  assert(schedules.restore(persisted) == FeederScheduleResult::InvalidArgument);
+
   return 0;
 }
