@@ -7,7 +7,7 @@
 - 已接入 Esp32Base FULL profile。
 - 已接入 `FeederController` 纯业务状态机。
 - 已接入每日多计划服务、手工下料目标解析、料桶余量维护、通道基础信息维护。
-- 已接入业务最近记录 RAM 缓冲和 Flash 二进制追加记录。
+- 已接入业务最近记录 RAM 缓冲、Flash 二进制追加记录和基础文件轮转。
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
 - 已提供只读诊断 API、最近事件 API、清空今日状态和清除通道故障维护 API。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard` 作为后续实现依赖。
@@ -18,7 +18,7 @@
 
 - 喂食计划持久化。
 - GPIO、编码器、PWM 和 AT24C128 硬件适配。
-- 业务记录轮转、索引和跨文件查询。
+- 业务记录索引和跨文件查询。
 - 真实电机输出和编码器计数。
 
 ## 当前 API

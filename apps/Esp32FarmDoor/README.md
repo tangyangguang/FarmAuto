@@ -8,7 +8,7 @@
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard`。
 - 已接入自动门业务状态机 `DoorController`。
 - 已提供状态、诊断、最近事件、Flash/RAM 记录、开门、关门、停止、位置标定、行程设置、行程微调和清除故障 API。
-- 已接入自动门业务最近记录 RAM 缓冲和 Flash 二进制追加记录。
+- 已接入自动门业务最近记录 RAM 缓冲、Flash 二进制追加记录和基础文件轮转。
 - 已记录当前 PCB 默认引脚，包括 INA240A2 输出 GPIO33。
 - 已提供 `FARMAUTO_FARMDOOR_ENABLE_INA240A2` 编译开关，默认打开软件支持，但运行配置默认不启用电流保护动作。
 - 所有业务控制 API 当前只更新业务状态机，明确返回 `motorOutput.enabled=false`，不会输出 PWM，也不会驱动 AT8236。
