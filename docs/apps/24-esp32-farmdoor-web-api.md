@@ -10,13 +10,12 @@
 
 Esp32FarmDoor 页面：
 
-- `/`：自动门总览，显示门状态、位置、端点、电机、电流、存储和最近事件。
-- `/control`：开门、关门、停止、清除故障。
-- `/maintenance`：无限位端点示教、手动运行、端点验证、INA240A2 零点校准、存储检查。
+- `/`：自动门总览，显示门状态、位置、保护状态、常用操作、上次运行回放和最近事件。
 - `/records`：自动门长期业务记录查询和导出。
-- `/diagnostics`：自动门业务诊断包，含状态 snapshot、端点快照、最近事件、AT24C inspect、flash 记录范围、电流 trace 摘要。
+- `/calibration`：行程校准，含手动运行、标定关门基准、用当前位置更新开门目标和端点验证。
+- `/diagnostics`：自动门业务诊断信息，含状态 snapshot、端点快照、最近事件、AT24C inspect、flash 记录范围和业务只读检查。
 
-系统参数使用 `/esp32base/app-config`，系统日志使用 `/esp32base/logs`。
+系统参数、系统日志、OTA、WiFi 和文件系统格式化由 Esp32Base 自己提供，不进入自动门业务导航和静态原型。
 
 ## API
 
@@ -44,7 +43,6 @@ Esp32FarmDoor 页面：
 - `POST /api/app/maintenance/verify-endpoints`
 - `POST /api/app/maintenance/calibrate-open-limit`
 - `POST /api/app/maintenance/calibrate-current-zero`
-- `POST /api/app/maintenance/format-app-storage`
 - `POST /api/app/maintenance/clear-fault`
 
 ## Status Snapshot
@@ -88,7 +86,6 @@ Esp32FarmDoor 页面：
 - 低速端点验证。
 - 下一阶段上限位校准。
 - INA240A2 零点校准。
-- 格式化应用业务存储。
 - 清除故障后恢复运行。
 
 二次确认建议：

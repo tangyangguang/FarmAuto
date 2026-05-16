@@ -130,7 +130,7 @@
 | 错过计划时间是否补投喂 | 不补投喂 | 按单个计划记录 missed 事件，避免无人值守重复投喂；不影响其他尚未到时间的计划 |
 | 每日计划数量上限 | 首版最多 6 条 | 覆盖一天多次投喂，同时给 AT24C128 `FeederSchedule` 512B 槽位保留 schema 和扩展余量 |
 | 投喂运行中断电后是否续喂 | 不续喂、不补喂 | 重启后记录中断结果；定时计划标记为已尝试但中断，防止夜间来电后再次自动投喂 |
-| 日期/时间来源失败时 | 暂停自动定时，允许手动投喂 | 手动和定时按通道独立仲裁；同一通道 Busy，其他空闲通道可运行 |
+| 日期/时间来源失败时 | 暂停自动定时，允许手动下料 | 手动和定时按通道独立仲裁；同一通道 Busy，其他空闲通道可运行 |
 | 多路运行方式 | 顺序启动后并行运行 | 主要为降低启动电流叠加；启动间隔可配置 |
 | 停止全部策略 | 普通停止同时请求各路软停止；故障急停同时请求各路急停 | 停止不产生启动浪涌，同时停止更安全 |
 | 单路故障时其他路是否继续 | 继续 | 故障通道停止并记录，其他通道按计划继续 |
@@ -144,7 +144,7 @@
 - 自动门故障 `Coast` 的实机安全性：看 `docs/apps/10-esp32-farmdoor-rewrite-plan.md`。
 - 自动门、喂食器实际 GPIO/LEDC/ADC/I2C 资源：已确认按 ESP32-WROOM-32E 系列处理；源码前仍需按目标 PCB 确认最终引脚和 ADC 衰减。
 - 喂食器计划状态字段语义：已按单个计划定义，`scheduleAttemptedToday` 表达“该计划今日已开始过”、`todayExecuted` 表达“该计划今日明确完成”、`scheduleMissedToday` 表达“该计划错过未触发”，看 `docs/apps/12-application-state-machines.md` 和 `docs/apps/25-esp32-farmfeeder-web-api.md`。
-- 喂食器启动全部间隔默认值：推荐 `startAllIntervalMs=1000ms`，实机确认浪涌足够低后可调小，看 `docs/apps/14-configuration-and-defaults.md`。
+- 喂食器多通道启动间隔默认值：推荐 `startAllIntervalMs=1000ms`，实机确认浪涌足够低后可调小，看 `docs/apps/14-configuration-and-defaults.md`。
 - Web 页面原型和信息架构：看 `docs/apps/19-web-page-prototypes.md`。
 - Web 页面原型确认稿：看 `docs/apps/26-web-prototype-review.md`。
 - Esp32Base 系统页面、系统日志、App Config 和 FarmAuto 业务 API/记录边界：看 `docs/apps/23-esp32base-web-integration.md`。

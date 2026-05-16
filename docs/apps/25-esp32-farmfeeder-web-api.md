@@ -11,12 +11,10 @@
 Esp32FarmFeeder 页面：
 
 - `/`：喂食器总览，显示全局状态、多个每日计划摘要、三路状态、今日累计、桶余量和最近事件。
-- `/control`：单路启动/停止、启动全部、停止全部、跳过今日。
-- `/schedule`：多个每日计划、每个计划的执行时间、参与通道、每路目标、跳过今日和下次执行预览。
-- `/buckets`：每路饲料桶容量、估算余量、补料、低余量阈值。
-- `/calibration`：每路下料参数，手工输入每圈下料克数。
+- `/schedule`：今日计划、明日计划和长期计划管理；每个具体计划可跳过今日或跳过明日。
 - `/records`：喂食器长期业务记录查询和导出。
-- `/diagnostics`：喂食器业务诊断包和维护工具，含状态 snapshot、三路电机 snapshot、计划状态、桶余量、AT24C inspect、flash 记录范围、存储检查和故障处理入口。
+- `/base-info`：业务基础信息，含通道名称、启用状态、每圈信号数、每圈克数和料桶满桶容量。
+- `/diagnostics`：喂食器业务诊断信息，含状态 snapshot、三路电机 snapshot、计划状态、桶余量、AT24C inspect、flash 记录范围和故障处理入口。
 
 系统参数使用 `/esp32base/app-config`，系统日志使用 `/esp32base/logs`。
 
@@ -32,9 +30,9 @@ Esp32FarmFeeder 页面：
 
 控制：
 
+- `POST /api/app/feeders/manual-start`
 - `POST /api/app/feeders/{channel}/start`
 - `POST /api/app/feeders/{channel}/stop`
-- `POST /api/app/feeders/start-all`
 - `POST /api/app/feeders/stop-all`
 
 计划：
@@ -45,6 +43,8 @@ Esp32FarmFeeder 页面：
 - `DELETE /api/app/schedules/{planId}`
 - `POST /api/app/schedules/{planId}/skip-today`
 - `POST /api/app/schedules/{planId}/cancel-skip-today`
+- `POST /api/app/schedules/{planId}/skip-tomorrow`
+- `POST /api/app/schedules/{planId}/cancel-skip-tomorrow`
 
 投喂目标：
 
@@ -53,6 +53,8 @@ Esp32FarmFeeder 页面：
 
 饲料桶：
 
+- `GET /api/app/base-info`
+- `PUT /api/app/base-info/channels/{channel}`
 - `GET /api/app/buckets`
 - `POST /api/app/buckets/{channel}/set-remaining`
 - `POST /api/app/buckets/{channel}/add-feed`
@@ -61,9 +63,6 @@ Esp32FarmFeeder 页面：
 维护：
 
 - `POST /api/app/maintenance/clear-today`
-- `POST /api/app/maintenance/calibrate-feed-rate`
-- `POST /api/app/maintenance/test-channel`
-- `POST /api/app/maintenance/format-app-storage`
 - `POST /api/app/maintenance/clear-fault`
 
 ## Status Snapshot
@@ -171,7 +170,7 @@ Esp32FarmFeeder 页面：
 - 克数模式要求该通道已完成 `gramsPerRevX100` 标定；未标定返回 `NotConfigured`。
 - 最终执行目标必须换算为 `targetPulses`。
 - 保存目标时不改变今日计数、桶余量或长期记录正文。
-- 手动投喂默认目标保存在 AT24C `FeederChannelTarget` 记录区；计划内目标保存在对应 `FeederSchedule` payload 中。
+- 手动下料默认目标保存在 AT24C `FeederChannelTarget` 记录区；计划内目标保存在对应 `FeederSchedule` payload 中。
 
 ## 饲料桶字段
 
@@ -185,9 +184,6 @@ Esp32FarmFeeder 页面：
       "capacityGramsX100": 500000,
       "remainGramsX100": 320000,
       "remainPercent": 64,
-      "lowWarningPercent": 20,
-      "criticalWarningPercent": 10,
-      "estimatedFeedCount": 45,
       "estimatedDays": 15,
       "lastRefillUnixTime": 1778790000
     }
@@ -203,43 +199,49 @@ Esp32FarmFeeder 页面：
 
 规则：
 
-- `capacityGramsX100`、低余量阈值和严重低余量阈值属于饲料桶页面的业务配置，不放 Esp32Base App Config。
+- `capacityGramsX100` 属于基础信息页的业务基础信息，不放 Esp32Base App Config；当前估算余量属于业务运行状态，只通过补料、标记满桶或修正余量入口更新。
 - 修改容量时默认不改变当前余量；如需要同步填满，使用 `mark-full`。
 - 每次补料、设置余量、投喂扣减和低余量告警都写入长期业务记录。
 - 余量不得扣成负数；扣减后小于 0 时显示 0，并记录 underflow。
 
-## 下料参数字段
+## 基础信息字段
 
-`POST /api/app/maintenance/calibrate-feed-rate` 输入：
+`GET /api/app/base-info` 返回业务基础信息；`PUT /api/app/base-info/channels/{channel}` 修改单路基础信息：
 
 ```json
 {
   "channel": 1,
+  "enabled": true,
+  "name": "东侧料桶",
+  "outputPulsesPerRev": 4320,
   "gramsPerRevX100": 7000,
-  "source": "Manual"
+  "capacityGramsX100": 500000
 }
 ```
 
 规则：
 
-- 下料参数页只手工输入每圈下料克数，不发起实际运转测试。
+- 基础信息页只保存低频业务基础信息，不发起实际运转测试。
 - `gramsPerRevX100 <= 0` 时拒绝保存。
+- `outputPulsesPerRev <= 0` 时拒绝保存。
+- `capacityGramsX100 <= 0` 时拒绝保存。
+- 修改容量默认不改变当前估算余量；如需要同步填满，使用 `mark-full`。
 - 保存失败不覆盖旧标定值。
 - 保存成功后，克数模式可用，并写入 `FeederCalibrationSaved`。
 
 ## 运行规则
 
-- 手动投喂和定时投喂按通道独立仲裁，不做全局互斥。
+- 手动下料和定时下料按通道独立仲裁，不做全局互斥。
 - 同一通道正在运行、启动或停止时，该通道新启动请求返回 `Busy`。
-- 其他空闲、已安装、已启用且无故障的通道仍可手动启动。
+- 首页手动下料允许一次选择多个通道，但只启动空闲、已安装、已启用、余量足够且无故障的通道。
 - 定时计划触发时，只启动当时空闲、已安装、已启用且无故障的计划通道；已运行通道记录 busy skipped，不排队、不补执行。
-- 启动全部只启动已启用、已安装、空闲且无故障的通道，按 `startAllIntervalMs` 顺序启动，已启动通道可以并行运行。
+- 多通道启动按 `startAllIntervalMs` 顺序启动，已启动通道可以并行运行。
 - 启动类响应必须返回 successMask、busyMask、faultMask 和 skippedMask，方便页面显示部分成功。
 - 普通停止全部同时请求所有运行通道软停止。
 - 故障或急停停止全部同时请求所有运行通道急停。
 - 单路故障时，该通道停止并记录故障，其他通道继续运行。
 - 未配置每日时间时，不自动定时投喂。
-- 日期/时间无效时暂停自动定时投喂，但允许手动投喂。
+- 日期/时间无效时暂停自动定时投喂，但允许手动下料。
 - 错过计划时间不补投喂，只记录 missed 事件。
 
 ## 断电恢复
@@ -247,12 +249,12 @@ Esp32FarmFeeder 页面：
 - 投喂运行中断电后，重启不自动续喂、不自动补喂。
 - 启动时若发现未完成投喂命令，必须先确保所有电机输出关闭，再记录 `PowerLossAborted`。
 - 定时计划被断电中断后，当天标记为已尝试执行但中断，不因晚些时候来电而再次自动触发。
-- 手动投喂被断电中断后，页面显示中断结果、已可靠记录的实际脉冲和估算克数；用户可重新发起新的手动投喂。
-- 如果最后一段计数不确定，对应通道余量估算标记为低可信，并在桶余量页面提示需要校准。
+- 手动下料被断电中断后，页面显示中断结果、已可靠记录的实际脉冲和估算克数；用户可重新发起新的手动下料。
+- 如果最后一段计数不确定，对应通道余量估算标记为低可信，并在基础信息页的料桶余量维护区提示需要校准。
 
 ## 部分成功响应
 
-启动全部、定时计划触发、手动多通道启动都可能部分成功。
+手动多通道下料、定时计划触发都可能部分成功。
 
 推荐 `data`：
 
@@ -299,7 +301,6 @@ HTTP 层建议：
 - 跳过今日定时投喂。
 - 设置或修正当前饲料桶估算余量。
 - 标定每圈下料量。
-- 格式化应用业务存储。
 - 清除故障后恢复运行。
 
 所有危险操作写入喂食器长期业务记录。
@@ -313,6 +314,6 @@ HTTP 层建议：
 - 编码器无脉冲。
 - 最大运行时间。
 - 最大运行圈数或最大运行脉冲。
-- 启动全部时的顺序启动间隔。
+- 多通道启动时的顺序启动间隔。
 
 未来如增加电流检测，推荐每个电机对应一个 INA240A2 芯片，三路独立采样、独立阈值、独立故障诊断。

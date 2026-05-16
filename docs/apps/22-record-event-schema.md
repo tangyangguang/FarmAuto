@@ -114,11 +114,11 @@
 
 | eventType | 触发时机 | payload 字段 |
 | --- | --- | --- |
-| `FeederManualRequested` | 手动投喂请求 | channelMask、targetMode、targetPulses |
+| `FeederManualRequested` | 手动下料请求 | channelMask、targetMode、targetPulses |
 | `FeederScheduleTriggered` | 每日计划触发 | scheduleTimeMinutes、channelMask |
 | `FeederScheduleMissed` | 错过计划且不补投 | scheduleTimeMinutes、reason |
 | `FeederScheduleChannelSkipped` | 计划触发时跳过单路 | channel、reason、runningCommandId |
-| `FeederStartAllRequested` | 启动全部请求 | channelMask、startIntervalMs |
+| `FeederMultiChannelStartRequested` | 多通道启动请求 | channelMask、startIntervalMs |
 | `FeederChannelStarted` | 单路开始 | channel、targetPulses、speedPercent |
 | `FeederChannelCompleted` | 单路完成 | channel、actualPulses、durationMs、gramsX100 |
 | `FeederPowerLossAborted` | 投喂运行中断电后重启 | commandId、source、channelMask、actualPulsesMask、actualPulses[]、targetPulses[]、scheduleAttemptedToday、autoResumeBlocked |
