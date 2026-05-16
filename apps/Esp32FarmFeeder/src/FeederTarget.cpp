@@ -55,6 +55,28 @@ FeederResolvedTarget resolveFeederTarget(const FeederChannelBaseInfo& info,
   return resolved;
 }
 
+FeederTargetBatch resolveFeederTargetsForMask(const FeederBucketSnapshot& buckets,
+                                              const FeederTargetSnapshot& targets,
+                                              uint8_t requestedMask) {
+  FeederTargetBatch batch;
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((requestedMask & bit) == 0) {
+      continue;
+    }
+
+    batch.channels[i] = resolveFeederTarget(buckets.channels[i].baseInfo, targets.channels[i]);
+    if (batch.channels[i].result == FeederTargetResult::Ok) {
+      batch.okMask |= bit;
+    } else if (batch.channels[i].result == FeederTargetResult::NotCalibrated) {
+      batch.notCalibratedMask |= bit;
+    } else {
+      batch.invalidMask |= bit;
+    }
+  }
+  return batch;
+}
+
 FeederTargetResult FeederTargetService::setTarget(uint8_t channelIndex,
                                                   const FeederTargetRequest& request) {
   if (!validChannel(channelIndex) || !validRequest(request)) {

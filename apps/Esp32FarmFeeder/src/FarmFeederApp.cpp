@@ -162,6 +162,15 @@ const char* targetModeName(FeederTargetMode mode) {
   return "None";
 }
 
+const char* targetResultName(FeederTargetResult result) {
+  switch (result) {
+    case FeederTargetResult::Ok: return "Ok";
+    case FeederTargetResult::InvalidArgument: return "InvalidArgument";
+    case FeederTargetResult::NotCalibrated: return "NotCalibrated";
+  }
+  return "InvalidArgument";
+}
+
 void sendTargetSummary(const FeederTargetSnapshot& targets, const FeederBucketSnapshot& buckets) {
   Esp32BaseWeb::sendChunk("[");
   for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
@@ -192,6 +201,29 @@ void sendTargetSummary(const FeederTargetSnapshot& targets, const FeederBucketSn
     Esp32BaseWeb::sendChunk(number);
     Esp32BaseWeb::sendChunk(",\"calibrated\":");
     Esp32BaseWeb::sendChunk(info.gramsPerRevX100 > 0 ? "true" : "false");
+    Esp32BaseWeb::sendChunk("}");
+  }
+  Esp32BaseWeb::sendChunk("]");
+}
+
+void sendResolvedTargetArray(const FeederTargetBatch& batch) {
+  Esp32BaseWeb::sendChunk("[");
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    const FeederResolvedTarget& target = batch.channels[i];
+    char number[16];
+    Esp32BaseWeb::sendChunk("{\"channel\":");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk(",\"result\":\"");
+    Esp32BaseWeb::sendChunk(targetResultName(target.result));
+    Esp32BaseWeb::sendChunk("\",\"targetPulses\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(target.targetPulses));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"estimatedGramsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(target.estimatedGramsX100));
+    Esp32BaseWeb::sendChunk(number);
     Esp32BaseWeb::sendChunk("}");
   }
   Esp32BaseWeb::sendChunk("]");
@@ -305,7 +337,7 @@ const char* feederCommandResultName(FeederCommandResult result) {
   return "InvalidArgument";
 }
 
-void sendStartResultJson(const FeederStartResult& result) {
+void sendStartResultJson(const FeederStartResult& result, const FeederTargetBatch* targets = nullptr) {
   const bool success = result.result == FeederCommandResult::Ok ||
                        result.result == FeederCommandResult::Partial;
   Esp32BaseWeb::beginJson(success ? 200 : 400);
@@ -319,8 +351,35 @@ void sendStartResultJson(const FeederStartResult& result) {
   sendUint8(result.faultMask);
   Esp32BaseWeb::sendChunk(",\"skippedMask\":");
   sendUint8(result.skippedMask);
+  if (targets) {
+    Esp32BaseWeb::sendChunk(",\"targetOkMask\":");
+    sendUint8(targets->okMask);
+    Esp32BaseWeb::sendChunk(",\"targetInvalidMask\":");
+    sendUint8(targets->invalidMask);
+    Esp32BaseWeb::sendChunk(",\"targetNotCalibratedMask\":");
+    sendUint8(targets->notCalibratedMask);
+    Esp32BaseWeb::sendChunk(",\"targets\":");
+    sendResolvedTargetArray(*targets);
+  }
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
+}
+
+FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource source,
+                                       FeederTargetBatch& targets) {
+  targets = resolveFeederTargetsForMask(g_buckets.snapshot(), g_targets.snapshot(), channelMask);
+  if (targets.okMask == 0) {
+    FeederStartResult result;
+    result.result = FeederCommandResult::InvalidArgument;
+    result.skippedMask = channelMask;
+    return result;
+  }
+  FeederStartResult result = g_feeder.startChannels(targets.okMask, source);
+  result.skippedMask |= static_cast<uint8_t>(targets.invalidMask | targets.notCalibratedMask);
+  if (result.successMask != 0 && result.skippedMask != 0 && result.result == FeederCommandResult::Ok) {
+    result.result = FeederCommandResult::Partial;
+  }
+  return result;
 }
 
 bool readPlanConfigFromParams(FeederPlanConfig& config) {
@@ -550,7 +609,9 @@ void FarmFeederApp::handleFeederManualStart() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
-  sendStartResultJson(g_feeder.startChannels(channelMask, FeederRunSource::Manual));
+  FeederTargetBatch targets;
+  const FeederStartResult result = startResolvedTargets(channelMask, FeederRunSource::Manual, targets);
+  sendStartResultJson(result, &targets);
 #endif
 }
 
@@ -565,7 +626,9 @@ void FarmFeederApp::handleFeederStart() {
     }
     channelMask = static_cast<uint8_t>(1U << channel);
   }
-  sendStartResultJson(g_feeder.startChannels(channelMask, FeederRunSource::Manual));
+  FeederTargetBatch targets;
+  const FeederStartResult result = startResolvedTargets(channelMask, FeederRunSource::Manual, targets);
+  sendStartResultJson(result, &targets);
 #endif
 }
 

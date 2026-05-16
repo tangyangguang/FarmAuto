@@ -41,5 +41,28 @@ int main() {
 
   assert(targets.setTarget(4, grams) == FeederTargetResult::InvalidArgument);
 
+  FeederBucketSnapshot buckets;
+  FeederTargetSnapshot targetSnapshot;
+
+  buckets.channels[0].baseInfo = info;
+  buckets.channels[0].baseInfo.enabled = true;
+  buckets.channels[0].baseInfo.gramsPerRevX100 = 7000;
+  targetSnapshot.channels[0] = grams;
+
+  buckets.channels[1].baseInfo = buckets.channels[0].baseInfo;
+  buckets.channels[1].baseInfo.gramsPerRevX100 = 0;
+  targetSnapshot.channels[1] = grams;
+
+  buckets.channels[2].baseInfo = buckets.channels[0].baseInfo;
+  buckets.channels[2].baseInfo.enabled = false;
+  targetSnapshot.channels[2] = grams;
+
+  FeederTargetBatch batch = resolveFeederTargetsForMask(buckets, targetSnapshot, 0b0111);
+  assert(batch.okMask == 0b0001);
+  assert(batch.notCalibratedMask == 0b0010);
+  assert(batch.invalidMask == 0b0100);
+  assert(batch.channels[0].targetPulses == 4320);
+  assert(batch.channels[0].estimatedGramsX100 == 7000);
+
   return 0;
 }

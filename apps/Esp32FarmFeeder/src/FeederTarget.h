@@ -27,6 +27,13 @@ struct FeederTargetSnapshot {
   FeederTargetRequest channels[kFeederMaxChannels];
 };
 
+struct FeederTargetBatch {
+  uint8_t okMask = 0;
+  uint8_t invalidMask = 0;
+  uint8_t notCalibratedMask = 0;
+  FeederResolvedTarget channels[kFeederMaxChannels];
+};
+
 class FeederTargetService {
  public:
   FeederTargetResult setTarget(uint8_t channelIndex, const FeederTargetRequest& request);
@@ -41,3 +48,6 @@ class FeederTargetService {
 
 FeederResolvedTarget resolveFeederTarget(const FeederChannelBaseInfo& info,
                                          const FeederTargetRequest& request);
+FeederTargetBatch resolveFeederTargetsForMask(const FeederBucketSnapshot& buckets,
+                                              const FeederTargetSnapshot& targets,
+                                              uint8_t requestedMask);
