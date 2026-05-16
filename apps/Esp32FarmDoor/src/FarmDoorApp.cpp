@@ -9,6 +9,7 @@
 #include <cstring>
 
 #include "DoorController.h"
+#include "DoorRecordLog.h"
 #include "FarmDoorHardware.h"
 
 namespace {
@@ -20,6 +21,7 @@ constexpr int64_t kDefaultOpenTargetPulses =
 constexpr int64_t kDefaultMaxRunPulses = (kDefaultOpenTargetPulses * 150) / 100;
 
 DoorController g_door;
+DoorRecordLog g_records;
 DoorControllerConfig g_doorConfig;
 Esp32EncodedDcMotor::MotorHardwareConfig g_motorHardware;
 Esp32EncodedDcMotor::EncoderBackendConfig g_encoderBackend;
@@ -31,9 +33,9 @@ Esp32MotorCurrentGuard::Ina240A2AnalogConfig g_currentSensor;
 Esp32MotorCurrentGuard::MotorCurrentGuardConfig g_currentGuard;
 Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
 
-static constexpr uint8_t kFarmDoorApiRouteCount = 9;
+static constexpr uint8_t kFarmDoorApiRouteCount = 11;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorApiRouteCount,
-              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 9");
+              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 11");
 
 bool ina240CompileEnabled() {
 #if FARMAUTO_FARMDOOR_ENABLE_INA240A2
@@ -126,6 +128,28 @@ const char* commandResultName(DoorCommandResult result) {
     case DoorCommandResult::InvalidArgument: return "InvalidArgument";
     case DoorCommandResult::PositionUntrusted: return "PositionUntrusted";
     case DoorCommandResult::FaultActive: return "FaultActive";
+  }
+  return "InvalidArgument";
+}
+
+const char* recordTypeName(DoorRecordType type) {
+  switch (type) {
+    case DoorRecordType::CommandRequested: return "DoorCommandRequested";
+    case DoorRecordType::PositionSet: return "DoorPositionSet";
+    case DoorRecordType::TravelSet: return "DoorTravelSet";
+    case DoorRecordType::TravelAdjusted: return "DoorTravelAdjusted";
+    case DoorRecordType::FaultCleared: return "DoorFaultCleared";
+  }
+  return "UnknownEvent";
+}
+
+const char* recordResultName(DoorRecordResult result) {
+  switch (result) {
+    case DoorRecordResult::Ok: return "Ok";
+    case DoorRecordResult::Busy: return "Busy";
+    case DoorRecordResult::InvalidArgument: return "InvalidArgument";
+    case DoorRecordResult::PositionUntrusted: return "PositionUntrusted";
+    case DoorRecordResult::FaultActive: return "FaultActive";
   }
   return "InvalidArgument";
 }
@@ -249,6 +273,67 @@ void applyRuntimeConfigFromBase() {
 #else
   g_currentGuard.enabled = false;
 #endif
+}
+
+DoorRecordTime currentRecordTime() {
+  DoorRecordTime time;
+#if ESP32BASE_ENABLE_NTP
+  const Esp32BaseNtp::TimeSnapshot snapshot = Esp32BaseNtp::snapshot();
+  time.unixTime = snapshot.synced ? snapshot.epochSec : 0;
+  time.uptimeSec = snapshot.uptimeSec;
+  time.bootId = snapshot.bootId;
+#endif
+  return time;
+}
+
+void recordBusinessEvent(const DoorRecord& record) {
+  g_records.append(record, currentRecordTime());
+}
+
+void sendRecordJson(const DoorRecord& record) {
+  Esp32BaseWeb::sendChunk("{\"sequence\":");
+  sendUint32(record.sequence);
+  Esp32BaseWeb::sendChunk(",\"unixTime\":");
+  sendUint32(record.unixTime);
+  Esp32BaseWeb::sendChunk(",\"uptimeSec\":");
+  sendUint32(record.uptimeSec);
+  Esp32BaseWeb::sendChunk(",\"bootId\":");
+  sendUint32(record.bootId);
+  Esp32BaseWeb::sendChunk(",\"eventType\":\"");
+  Esp32BaseWeb::sendChunk(recordTypeName(record.type));
+  Esp32BaseWeb::sendChunk("\",\"result\":\"");
+  Esp32BaseWeb::sendChunk(recordResultName(record.result));
+  Esp32BaseWeb::sendChunk("\",\"command\":\"");
+  Esp32BaseWeb::sendChunk(commandName(record.command));
+  Esp32BaseWeb::sendChunk("\",\"oldPositionPulses\":");
+  sendInt64(record.oldPositionPulses);
+  Esp32BaseWeb::sendChunk(",\"newPositionPulses\":");
+  sendInt64(record.newPositionPulses);
+  Esp32BaseWeb::sendChunk(",\"oldTravelPulses\":");
+  sendInt64(record.oldTravelPulses);
+  Esp32BaseWeb::sendChunk(",\"newTravelPulses\":");
+  sendInt64(record.newTravelPulses);
+  Esp32BaseWeb::sendChunk(",\"deltaPulses\":");
+  sendInt64(record.deltaPulses);
+  Esp32BaseWeb::sendChunk("}");
+}
+
+void sendRecordSnapshotJson(const char* source) {
+  const DoorRecordSnapshot snapshot = g_records.snapshot();
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"source\":\"");
+  Esp32BaseWeb::sendChunk(source);
+  Esp32BaseWeb::sendChunk("\",\"count\":");
+  sendUint32(snapshot.count);
+  Esp32BaseWeb::sendChunk(",\"records\":[");
+  for (uint8_t i = 0; i < snapshot.count; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    sendRecordJson(snapshot.records[i]);
+  }
+  Esp32BaseWeb::sendChunk("]}");
+  Esp32BaseWeb::endJson();
 }
 
 void sendCommandResultJson(DoorCommandResult result) {
@@ -446,6 +531,8 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   Esp32BaseWeb::addApi("/api/app/status", FarmDoorApp::sendStatusJson);
   Esp32BaseWeb::addApi("/api/app/diagnostics", FarmDoorApp::sendDiagnosticsJson);
+  Esp32BaseWeb::addApi("/api/app/events/recent", FarmDoorApp::sendRecentEventsJson);
+  Esp32BaseWeb::addApi("/api/app/records", FarmDoorApp::sendRecordsJson);
   Esp32BaseWeb::addApi("/api/app/door/open", FarmDoorApp::handleDoorOpen);
   Esp32BaseWeb::addApi("/api/app/door/close", FarmDoorApp::handleDoorClose);
   Esp32BaseWeb::addApi("/api/app/door/stop", FarmDoorApp::handleDoorStop);
@@ -548,39 +635,95 @@ void FarmDoorApp::sendDiagnosticsJson() {
 #endif
 }
 
+void FarmDoorApp::sendRecentEventsJson() {
+#if ESP32BASE_ENABLE_WEB
+  sendRecordSnapshotJson("ram");
+#endif
+}
+
+void FarmDoorApp::sendRecordsJson() {
+#if ESP32BASE_ENABLE_WEB
+  sendRecordSnapshotJson("ram");
+#endif
+}
+
 void FarmDoorApp::handleDoorOpen() {
 #if ESP32BASE_ENABLE_WEB
-  sendCommandResultJson(g_door.requestOpen());
+  const DoorCommandResult result = g_door.requestOpen();
+  DoorRecord record;
+  record.type = DoorRecordType::CommandRequested;
+  record.result = doorRecordResultFromCommand(result);
+  record.command = DoorCommand::Open;
+  record.newTravelPulses = g_door.snapshot().openTargetPulses;
+  recordBusinessEvent(record);
+  sendCommandResultJson(result);
 #endif
 }
 
 void FarmDoorApp::handleDoorClose() {
 #if ESP32BASE_ENABLE_WEB
-  sendCommandResultJson(g_door.requestClose());
+  const DoorCommandResult result = g_door.requestClose();
+  DoorRecord record;
+  record.type = DoorRecordType::CommandRequested;
+  record.result = doorRecordResultFromCommand(result);
+  record.command = DoorCommand::Close;
+  recordBusinessEvent(record);
+  sendCommandResultJson(result);
 #endif
 }
 
 void FarmDoorApp::handleDoorStop() {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
-  sendCommandResultJson(g_door.requestStop(snapshot.positionPulses));
+  const DoorCommandResult result = g_door.requestStop(snapshot.positionPulses);
+  DoorRecord record;
+  record.type = DoorRecordType::CommandRequested;
+  record.result = doorRecordResultFromCommand(result);
+  record.command = DoorCommand::Stop;
+  record.oldPositionPulses = snapshot.positionPulses;
+  record.newPositionPulses = g_door.snapshot().positionPulses;
+  recordBusinessEvent(record);
+  sendCommandResultJson(result);
 #endif
 }
 
 void FarmDoorApp::handleSetPosition() {
 #if ESP32BASE_ENABLE_WEB
+  const DoorSnapshot before = g_door.snapshot();
+  DoorCommandResult result = DoorCommandResult::InvalidArgument;
   char position[16];
   if (Esp32BaseWeb::getParam("position", position, sizeof(position))) {
     if (strcmp(position, "closed") == 0 || strcmp(position, "Closed") == 0) {
-      sendCommandResultJson(g_door.markPositionClosed());
+      result = g_door.markPositionClosed();
+      DoorRecord record;
+      record.type = DoorRecordType::PositionSet;
+      record.result = doorRecordResultFromCommand(result);
+      record.oldPositionPulses = before.positionPulses;
+      record.newPositionPulses = g_door.snapshot().positionPulses;
+      recordBusinessEvent(record);
+      sendCommandResultJson(result);
       return;
     }
     if (strcmp(position, "open") == 0 || strcmp(position, "Open") == 0) {
-      sendCommandResultJson(g_door.markPositionOpen());
+      result = g_door.markPositionOpen();
+      DoorRecord record;
+      record.type = DoorRecordType::PositionSet;
+      record.result = doorRecordResultFromCommand(result);
+      record.oldPositionPulses = before.positionPulses;
+      record.newPositionPulses = g_door.snapshot().positionPulses;
+      recordBusinessEvent(record);
+      sendCommandResultJson(result);
       return;
     }
     if (strcmp(position, "unknown") == 0 || strcmp(position, "Unknown") == 0) {
-      sendCommandResultJson(g_door.setTrustedPosition(0, PositionTrustLevel::Untrusted));
+      result = g_door.setTrustedPosition(0, PositionTrustLevel::Untrusted);
+      DoorRecord record;
+      record.type = DoorRecordType::PositionSet;
+      record.result = doorRecordResultFromCommand(result);
+      record.oldPositionPulses = before.positionPulses;
+      record.newPositionPulses = g_door.snapshot().positionPulses;
+      recordBusinessEvent(record);
+      sendCommandResultJson(result);
       return;
     }
     sendCommandResultJson(DoorCommandResult::InvalidArgument);
@@ -593,7 +736,14 @@ void FarmDoorApp::handleSetPosition() {
     sendCommandResultJson(DoorCommandResult::InvalidArgument);
     return;
   }
-  sendCommandResultJson(g_door.setTrustedPosition(positionPulses, trustLevel));
+  result = g_door.setTrustedPosition(positionPulses, trustLevel);
+  DoorRecord record;
+  record.type = DoorRecordType::PositionSet;
+  record.result = doorRecordResultFromCommand(result);
+  record.oldPositionPulses = before.positionPulses;
+  record.newPositionPulses = g_door.snapshot().positionPulses;
+  recordBusinessEvent(record);
+  sendCommandResultJson(result);
 #endif
 }
 
@@ -626,7 +776,15 @@ void FarmDoorApp::handleSetTravel() {
   }
 
   bool configSaved = false;
+  const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
   const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
+  DoorRecord record;
+  record.type = DoorRecordType::TravelSet;
+  record.result = doorRecordResultFromCommand(result);
+  record.oldTravelPulses = oldTravelPulses;
+  record.newTravelPulses = g_door.snapshot().openTargetPulses;
+  record.deltaPulses = record.newTravelPulses - record.oldTravelPulses;
+  recordBusinessEvent(record);
   sendTravelResultJson(result, configSaved);
 #endif
 }
@@ -656,13 +814,26 @@ void FarmDoorApp::handleAdjustTravel() {
   const int64_t openTargetPulses = g_door.snapshot().openTargetPulses + deltaPulses;
   const int64_t maxRunPulses = defaultMaxRunPulsesForTarget(openTargetPulses);
   bool configSaved = false;
+  const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
   const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
+  DoorRecord record;
+  record.type = DoorRecordType::TravelAdjusted;
+  record.result = doorRecordResultFromCommand(result);
+  record.oldTravelPulses = oldTravelPulses;
+  record.newTravelPulses = g_door.snapshot().openTargetPulses;
+  record.deltaPulses = deltaPulses;
+  recordBusinessEvent(record);
   sendTravelResultJson(result, configSaved);
 #endif
 }
 
 void FarmDoorApp::handleClearFault() {
 #if ESP32BASE_ENABLE_WEB
-  sendCommandResultJson(g_door.clearFault());
+  const DoorCommandResult result = g_door.clearFault();
+  DoorRecord record;
+  record.type = DoorRecordType::FaultCleared;
+  record.result = doorRecordResultFromCommand(result);
+  recordBusinessEvent(record);
+  sendCommandResultJson(result);
 #endif
 }

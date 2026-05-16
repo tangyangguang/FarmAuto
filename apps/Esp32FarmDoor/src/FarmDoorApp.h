@@ -12,6 +12,8 @@ class FarmDoorApp {
   void configureBusinessShell();
   static void sendStatusJson();
   static void sendDiagnosticsJson();
+  static void sendRecentEventsJson();
+  static void sendRecordsJson();
   static void handleDoorOpen();
   static void handleDoorClose();
   static void handleDoorStop();
