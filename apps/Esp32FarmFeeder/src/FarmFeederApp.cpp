@@ -151,6 +151,38 @@ void sendBaseInfoSummary(const FeederBucketSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("]");
 }
 
+bool readUint8Param(const char* name, uint8_t& out) {
+  char raw[12];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  char* end = nullptr;
+  const unsigned long value = strtoul(raw, &end, 10);
+  if (!end || *end != '\0' || value > 255) {
+    return false;
+  }
+  out = static_cast<uint8_t>(value);
+  return true;
+}
+
+void sendResultJson(int code, const char* result) {
+  Esp32BaseWeb::beginJson(code);
+  Esp32BaseWeb::sendChunk("{\"result\":\"");
+  Esp32BaseWeb::sendChunk(result);
+  Esp32BaseWeb::sendChunk("\"}");
+  Esp32BaseWeb::endJson();
+}
+
+const char* scheduleResultName(FeederScheduleResult result) {
+  switch (result) {
+    case FeederScheduleResult::Ok: return "Ok";
+    case FeederScheduleResult::Full: return "Full";
+    case FeederScheduleResult::NotFound: return "NotFound";
+    case FeederScheduleResult::InvalidArgument: return "InvalidArgument";
+  }
+  return "InvalidArgument";
+}
+
 }  // namespace
 
 FarmFeederApp FarmFeeder;
@@ -220,6 +252,8 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   Esp32BaseWeb::addApi("/api/app/status", FarmFeederApp::sendStatusJson);
   Esp32BaseWeb::addApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
+  Esp32BaseWeb::addApi("/api/app/schedule-occurrence/skip", FarmFeederApp::handleScheduleSkip);
+  Esp32BaseWeb::addApi("/api/app/schedule-occurrence/cancel-skip", FarmFeederApp::handleScheduleCancelSkip);
   Esp32BaseWeb::addApi("/api/app/buckets", FarmFeederApp::sendBucketsJson);
   Esp32BaseWeb::addApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
 #endif
@@ -284,5 +318,29 @@ void FarmFeederApp::sendBaseInfoJson() {
   sendBaseInfoSummary(g_buckets.snapshot());
   Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::handleScheduleSkip() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t planId = 0;
+  if (!readUint8Param("planId", planId)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederScheduleResult result = g_schedules.skipToday(planId);
+  sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleScheduleCancelSkip() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t planId = 0;
+  if (!readUint8Param("planId", planId)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederScheduleResult result = g_schedules.cancelSkipToday(planId);
+  sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
 #endif
 }
