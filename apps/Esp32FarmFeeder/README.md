@@ -11,7 +11,7 @@
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
 - 已提供只读诊断 API、最近事件 API、清空今日状态和清除通道故障维护 API。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard` 作为后续实现依赖。
-- 默认三路通道均已安装且启用。
+- 默认三路通道均已安装且启用；底层保留 4 路数组容量，但首版业务 API 只暴露和接受 3 路。
 - 当前不会输出 PWM，也不会驱动任何电机。
 
 当前尚未实现：
