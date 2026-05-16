@@ -11,6 +11,7 @@ int main() {
   info.gramsPerRevX100 = 7000;
   info.capacityGramsX100 = 500000;
   assert(buckets.updateBaseInfo(0, info) == FeederBucketResult::Ok);
+  assert(buckets.enabledChannelMask() == 0b0001);
 
   FeederBucketSnapshot snapshot = buckets.snapshot();
   assert(snapshot.channels[0].baseInfo.capacityGramsX100 == 500000);
@@ -44,6 +45,10 @@ int main() {
   assert(snapshot.channels[0].underflow);
 
   assert(buckets.updateBaseInfo(4, info) == FeederBucketResult::InvalidArgument);
+
+  info.enabled = false;
+  assert(buckets.updateBaseInfo(0, info) == FeederBucketResult::Ok);
+  assert(buckets.enabledChannelMask() == 0);
 
   return 0;
 }

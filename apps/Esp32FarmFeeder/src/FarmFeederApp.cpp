@@ -28,6 +28,17 @@ void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   }
 }
 
+void syncFeederConfigFromBaseInfo() {
+  g_feederConfig.enabledChannelMask =
+      static_cast<uint8_t>(g_buckets.enabledChannelMask() & g_feederConfig.installedChannelMask);
+  const FeederCommandResult result = g_feeder.configure(g_feederConfig);
+  g_runs.stopAll();
+  if (result != FeederCommandResult::Ok) {
+    ESP32BASE_LOG_E("farmfeeder", "feeder_config_sync_failed result=%u",
+                    static_cast<unsigned>(result));
+  }
+}
+
 const char* deviceStateName(FeederDeviceState state) {
   switch (state) {
     case FeederDeviceState::Idle: return "Idle";
@@ -483,10 +494,6 @@ void FarmFeederApp::handle() {
 void FarmFeederApp::configureStaticDefaults() {
   g_feederConfig.installedChannelMask = 0b0111;
   g_feederConfig.enabledChannelMask = 0b0111;
-  const FeederCommandResult result = g_feeder.configure(g_feederConfig);
-  if (result != FeederCommandResult::Ok) {
-    ESP32BASE_LOG_E("farmfeeder", "feeder_config_failed result=%u", static_cast<unsigned>(result));
-  }
 
   g_schedules.beginDay(0);
 
@@ -506,6 +513,7 @@ void FarmFeederApp::configureStaticDefaults() {
       ESP32BASE_LOG_E("farmfeeder", "target_default_failed channel=%u", static_cast<unsigned>(i));
     }
   }
+  syncFeederConfigFromBaseInfo();
 }
 
 void FarmFeederApp::configureAppConfigPage() {
@@ -819,6 +827,10 @@ void FarmFeederApp::handleBaseInfoChannel() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  if (g_feeder.snapshot().runningChannelMask != 0) {
+    sendResultJson(400, "Busy");
+    return;
+  }
 
   FeederChannelBaseInfo info;
   info.enabled = enabled;
@@ -826,6 +838,9 @@ void FarmFeederApp::handleBaseInfoChannel() {
   info.gramsPerRevX100 = gramsPerRevX100;
   info.capacityGramsX100 = capacityGramsX100;
   const FeederBucketResult result = g_buckets.updateBaseInfo(channel, info);
+  if (result == FeederBucketResult::Ok) {
+    syncFeederConfigFromBaseInfo();
+  }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
 }

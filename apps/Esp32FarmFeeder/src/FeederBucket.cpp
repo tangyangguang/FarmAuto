@@ -90,6 +90,16 @@ FeederBucketResult FeederBucketService::consume(uint8_t channelIndex, int32_t us
   return FeederBucketResult::Ok;
 }
 
+uint8_t FeederBucketService::enabledChannelMask() const {
+  uint8_t mask = 0;
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    if (snapshot_.channels[i].baseInfo.enabled) {
+      mask |= static_cast<uint8_t>(1U << i);
+    }
+  }
+  return mask;
+}
+
 FeederBucketSnapshot FeederBucketService::snapshot() const {
   return snapshot_;
 }
