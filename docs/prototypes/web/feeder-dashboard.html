@@ -25,7 +25,23 @@
       </div>
       <div class="alert danger">上次投喂因断电中断。自动续喂已阻止；需要投喂时请重新发起一次新的手动下料。</div>
       <section class="section">
-        <div class="section-header"><h2>手动下料</h2><span class="subtle">选择本次参与的通道，统一开始；不会续接断电前未完成的投喂</span></div>
+        <div class="section-header">
+          <h2>当前运行</h2>
+          <a class="button" href="feeder-schedule.html">查看计划</a>
+        </div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>通道</th><th>来源</th><th>状态</th><th>目标</th><th>已完成</th><th>运行时间</th><th>桶余量</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td data-label="通道">1</td><td data-label="来源">手动下料</td><td data-label="状态"><span class="pill warn">断电中断</span></td><td data-label="目标">70g</td><td data-label="已完成">42g / 70g</td><td data-label="运行时间">中断于 07:32</td><td data-label="桶余量"><div class="progress"><span style="width:82%"></span></div></td><td data-label="操作"><a class="button" href="feeder-confirm.html">重新下料…</a></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="来源">计划：早晨主喂</td><td data-label="状态"><span class="pill ok">计划下料中</span></td><td data-label="目标">1.00 圈 ≈ 68g</td><td data-label="已完成"><div class="inline-progress"><div class="meta"><span>0.42 / 1.00 圈</span><span>42%</span></div><div class="progress"><span style="width:42%"></span></div></div></td><td data-label="运行时间">8 秒</td><td data-label="桶余量"><div class="progress"><span style="width:60%"></span></div></td><td data-label="操作"><button class="button danger">停止</button></td></tr>
+              <tr id="channel-3"><td data-label="通道">3</td><td data-label="来源">无</td><td data-label="状态"><span class="pill danger">故障</span></td><td data-label="目标">-</td><td data-label="已完成">未运行</td><td data-label="运行时间">-</td><td data-label="桶余量"><div class="progress warn"><span style="width:17%"></span></div></td><td data-label="操作"><a class="button" href="feeder-diagnostics.html#channel-3">详情</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>手动下料</h2><span class="subtle">配置一次手动任务，选择可用通道后统一开始</span></div>
         <div class="section-body">
           <table class="data-table">
             <thead><tr><th>参与</th><th>通道</th><th>当前状态</th><th>主目标</th><th>换算值</th><th>料桶余量</th><th>本次是否可启动</th></tr></thead>
@@ -59,24 +75,8 @@
               </tr>
             </tbody>
           </table>
-          <div class="page-note">手动下料与计划下料共用同一套通道状态：某路正在计划下料时，该路不能手动启动；其他空闲通道仍可手动启动。</div>
+          <div class="page-note">手动下料与计划下料共用同一套通道状态：运行中、故障、停用或余量不足的通道不能被本次手动任务选中。</div>
           <div class="actions"><a class="button primary" href="feeder-confirm.html">开始所选通道…</a><button class="button danger">停止全部运行通道</button></div>
-        </div>
-      </section>
-      <section class="section">
-        <div class="section-header">
-          <h2>通道运行状态</h2>
-          <a class="button" href="feeder-schedule.html">查看计划</a>
-        </div>
-        <div class="section-body">
-          <table class="data-table">
-            <thead><tr><th>通道</th><th>来源</th><th>状态</th><th>目标</th><th>已完成</th><th>运行时间</th><th>桶余量</th><th>操作</th></tr></thead>
-            <tbody>
-              <tr><td data-label="通道">1</td><td data-label="来源">手动下料</td><td data-label="状态"><span class="pill warn">断电中断</span></td><td data-label="目标">70g</td><td data-label="已完成">42g / 70g</td><td data-label="运行时间">中断于 07:32</td><td data-label="桶余量"><div class="progress"><span style="width:82%"></span></div></td><td data-label="操作"><a class="button" href="feeder-confirm.html">重新下料…</a></td></tr>
-              <tr><td data-label="通道">2</td><td data-label="来源">计划：早晨主喂</td><td data-label="状态"><span class="pill ok">计划下料中</span></td><td data-label="目标">1.00 圈 ≈ 68g</td><td data-label="已完成"><div class="inline-progress"><div class="meta"><span>0.42 / 1.00 圈</span><span>42%</span></div><div class="progress"><span style="width:42%"></span></div></div></td><td data-label="运行时间">8 秒</td><td data-label="桶余量"><div class="progress"><span style="width:60%"></span></div></td><td data-label="操作"><button class="button danger">停止</button></td></tr>
-              <tr id="channel-3"><td data-label="通道">3</td><td data-label="来源">无</td><td data-label="状态"><span class="pill danger">故障</span></td><td data-label="目标">-</td><td data-label="已完成">未运行</td><td data-label="运行时间">-</td><td data-label="桶余量"><div class="progress warn"><span style="width:17%"></span></div></td><td data-label="操作"><a class="button" href="feeder-diagnostics.html#channel-3">详情</a></td></tr>
-            </tbody>
-          </table>
         </div>
       </section>
       <section class="section">
