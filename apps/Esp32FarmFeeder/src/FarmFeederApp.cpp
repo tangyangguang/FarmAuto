@@ -4,11 +4,13 @@
 #include <Esp32Base.h>
 
 #include "FeederController.h"
+#include "FeederSchedule.h"
 
 namespace {
 
 FeederController g_feeder;
 FeederControllerConfig g_feederConfig;
+FeederScheduleService g_schedules;
 
 const char* deviceStateName(FeederDeviceState state) {
   switch (state) {
@@ -52,6 +54,40 @@ void sendChannelArray(const FeederSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("]");
 }
 
+void sendScheduleSummary(const FeederScheduleSnapshot& snapshot) {
+  Esp32BaseWeb::sendChunk("{\"maxPlans\":");
+  sendUint8(kFeederMaxPlans);
+  Esp32BaseWeb::sendChunk(",\"planCount\":");
+  sendUint8(snapshot.planCount);
+  Esp32BaseWeb::sendChunk(",\"plans\":[");
+  for (uint8_t i = 0; i < snapshot.planCount; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    const FeederPlanState& plan = snapshot.plans[i];
+    Esp32BaseWeb::sendChunk("{\"planId\":");
+    sendUint8(plan.config.planId);
+    Esp32BaseWeb::sendChunk(",\"enabled\":");
+    Esp32BaseWeb::sendChunk(plan.config.enabled ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"timeMinutes\":");
+    char number[8];
+    snprintf(number, sizeof(number), "%u", static_cast<unsigned>(plan.config.timeMinutes));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"channelMask\":");
+    sendUint8(plan.config.channelMask);
+    Esp32BaseWeb::sendChunk(",\"skipToday\":");
+    Esp32BaseWeb::sendChunk(plan.skipToday ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"scheduleAttemptedToday\":");
+    Esp32BaseWeb::sendChunk(plan.scheduleAttemptedToday ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"todayExecuted\":");
+    Esp32BaseWeb::sendChunk(plan.todayExecuted ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"scheduleMissedToday\":");
+    Esp32BaseWeb::sendChunk(plan.scheduleMissedToday ? "true" : "false");
+    Esp32BaseWeb::sendChunk("}");
+  }
+  Esp32BaseWeb::sendChunk("]}");
+}
+
 }  // namespace
 
 FarmFeederApp FarmFeeder;
@@ -82,6 +118,8 @@ void FarmFeederApp::configureStaticDefaults() {
   if (result != FeederCommandResult::Ok) {
     ESP32BASE_LOG_E("farmfeeder", "feeder_config_failed result=%u", static_cast<unsigned>(result));
   }
+
+  g_schedules.beginDay(0);
 }
 
 void FarmFeederApp::configureAppConfigPage() {
@@ -113,6 +151,7 @@ void FarmFeederApp::configureBusinessShell() {
 void FarmFeederApp::sendStatusJson() {
 #if ESP32BASE_ENABLE_WEB
   const FeederSnapshot snapshot = g_feeder.snapshot();
+  const FeederScheduleSnapshot scheduleSnapshot = g_schedules.snapshot();
 
   Esp32BaseWeb::beginJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmFeeder\",");
@@ -133,6 +172,8 @@ void FarmFeederApp::sendStatusJson() {
   sendUint8(snapshot.runningCount);
   Esp32BaseWeb::sendChunk(",\"channels\":");
   sendChannelArray(snapshot);
+  Esp32BaseWeb::sendChunk(",\"schedule\":");
+  sendScheduleSummary(scheduleSnapshot);
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
 #endif
