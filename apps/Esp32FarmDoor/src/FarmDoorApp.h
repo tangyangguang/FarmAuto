@@ -10,6 +10,8 @@ class FarmDoorApp {
   void configureHardwareInputs();
   void configureAppConfigPage();
   void configureBusinessShell();
+  static void sendStatusJson();
+  static void sendDiagnosticsJson();
 };
 
 extern FarmDoorApp FarmDoor;

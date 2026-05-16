@@ -5,38 +5,11 @@
 #include <Esp32Base.h>
 #include <Esp32EncodedDcMotor.h>
 #include <Esp32MotorCurrentGuard.h>
-#include <Wire.h>
+
+#include "FarmDoorHardware.h"
 
 namespace {
 
-constexpr uint8_t PIN_CURRENT_ADC = 33;
-constexpr uint8_t PIN_BUTTON_AUX = 36;
-constexpr uint8_t PIN_BUTTON_OPEN = 39;
-constexpr uint8_t PIN_BUTTON_CLOSE = 34;
-constexpr uint8_t PIN_BUTTON_STOP = 35;
-constexpr uint8_t PIN_ENCODER_A = 25;
-constexpr uint8_t PIN_ENCODER_B = 26;
-constexpr uint8_t PIN_MOTOR_IN1 = 16;
-constexpr uint8_t PIN_MOTOR_IN2 = 17;
-constexpr uint8_t PIN_I2C_SDA = 21;
-constexpr uint8_t PIN_I2C_SCL = 22;
-constexpr uint8_t AT24C128_I2C_ADDRESS = 0x50;
-
-struct FarmDoorHardwarePins {
-  uint8_t currentAdc = PIN_CURRENT_ADC;
-  uint8_t buttonAux = PIN_BUTTON_AUX;
-  uint8_t buttonOpen = PIN_BUTTON_OPEN;
-  uint8_t buttonClose = PIN_BUTTON_CLOSE;
-  uint8_t buttonStop = PIN_BUTTON_STOP;
-  uint8_t encoderA = PIN_ENCODER_A;
-  uint8_t encoderB = PIN_ENCODER_B;
-  uint8_t motorIn1 = PIN_MOTOR_IN1;
-  uint8_t motorIn2 = PIN_MOTOR_IN2;
-  uint8_t i2cSda = PIN_I2C_SDA;
-  uint8_t i2cScl = PIN_I2C_SCL;
-};
-
-FarmDoorHardwarePins g_pins;
 Esp32EncodedDcMotor::MotorHardwareConfig g_motorHardware;
 Esp32EncodedDcMotor::EncoderBackendConfig g_encoderBackend;
 Esp32EncodedDcMotor::MotorKinematics g_motorKinematics;
@@ -51,16 +24,11 @@ const char* boolJson(bool value) {
   return value ? "true" : "false";
 }
 
-bool i2cDeviceOnline(uint8_t address) {
-  Wire.beginTransmission(address);
-  return Wire.endTransmission() == 0;
-}
-
-void sendDigitalField(const char* name, uint8_t pin) {
+void sendDigitalField(const char* name, uint8_t value) {
   Esp32BaseWeb::sendChunk("\"");
   Esp32BaseWeb::sendChunk(name);
   Esp32BaseWeb::sendChunk("\":");
-  Esp32BaseWeb::sendChunk(digitalRead(pin) == HIGH ? "1" : "0");
+  Esp32BaseWeb::sendChunk(value == 1 ? "1" : "0");
 }
 
 }  // namespace
@@ -80,7 +48,7 @@ void FarmDoorApp::begin() {
     ESP32BASE_LOG_E("farmdoor", "Esp32Base begin failed: %s", Esp32Base::lastError());
   } else {
     ESP32BASE_LOG_I("farmdoor", "skeleton ready, ina240a2_gpio=%u enabled=%s",
-                    PIN_CURRENT_ADC,
+                    FarmDoorHw.pins().currentAdc,
                     g_currentGuard.enabled ? "yes" : "no");
   }
 }
@@ -90,16 +58,7 @@ void FarmDoorApp::handle() {
 }
 
 void FarmDoorApp::configureHardwareInputs() {
-  pinMode(g_pins.buttonAux, INPUT);
-  pinMode(g_pins.buttonOpen, INPUT);
-  pinMode(g_pins.buttonClose, INPUT);
-  pinMode(g_pins.buttonStop, INPUT);
-  pinMode(g_pins.encoderA, INPUT);
-  pinMode(g_pins.encoderB, INPUT);
-
-  analogReadResolution(12);
-  analogSetPinAttenuation(g_pins.currentAdc, ADC_11db);
-  Wire.begin(g_pins.i2cSda, g_pins.i2cScl);
+  FarmDoorHw.begin(FarmDoorHardwarePins{});
 }
 
 void FarmDoorApp::configureStaticDefaults() {
@@ -110,8 +69,8 @@ void FarmDoorApp::configureStaticDefaults() {
   g_motorHardware.ledcChannelB = 1;
 
   g_encoderBackend.backendType = Esp32EncodedDcMotor::EncoderBackendType::Pcnt;
-  g_encoderBackend.pinA = g_pins.encoderA;
-  g_encoderBackend.pinB = g_pins.encoderB;
+  g_encoderBackend.pinA = FarmDoorHw.pins().encoderA;
+  g_encoderBackend.pinB = FarmDoorHw.pins().encoderB;
   g_encoderBackend.countMode = Esp32EncodedDcMotor::CountMode::X1;
 
   g_motorKinematics.motorShaftPulsesPerRev = 16;
@@ -130,7 +89,7 @@ void FarmDoorApp::configureStaticDefaults() {
 
   g_motorStopPolicy.emergencyOutputMode = Esp32EncodedDcMotor::EmergencyOutputMode::Coast;
 
-  g_currentSensor.adcPin = PIN_CURRENT_ADC;
+  g_currentSensor.adcPin = FarmDoorHw.pins().currentAdc;
   g_currentSensor.amplifierGain = 50.0f;
   g_currentSensor.senseResistorMilliOhm = 5.0f;
   g_currentSensor.bidirectional = true;
@@ -173,52 +132,59 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::setDeviceName("Esp32FarmDoor");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
-  Esp32BaseWeb::addApi("/api/app/status", []() {
-    Esp32BaseWeb::beginJson(200);
-    Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
-    Esp32BaseWeb::sendChunk("\"firmware\":\"");
-    Esp32BaseWeb::writeJsonEscaped(Esp32Base::firmwareVersion());
-    Esp32BaseWeb::sendChunk("\",\"state\":\"Skeleton\",");
-    Esp32BaseWeb::sendChunk("\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"enabled\":");
-    Esp32BaseWeb::sendChunk(g_currentGuard.enabled ? "true" : "false");
-    Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"}}");
-    Esp32BaseWeb::endJson();
-  });
-  Esp32BaseWeb::addApi("/api/app/diagnostics", []() {
-    const int currentRaw = analogRead(g_pins.currentAdc);
-    const bool at24cOnline = i2cDeviceOnline(AT24C128_I2C_ADDRESS);
-
-    Esp32BaseWeb::beginJson(200);
-    Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
-    Esp32BaseWeb::sendChunk("\"mode\":\"readOnlyDiagnostics\",");
-    Esp32BaseWeb::sendChunk("\"buttons\":{");
-    sendDigitalField("aux", g_pins.buttonAux);
-    Esp32BaseWeb::sendChunk(",");
-    sendDigitalField("open", g_pins.buttonOpen);
-    Esp32BaseWeb::sendChunk(",");
-    sendDigitalField("close", g_pins.buttonClose);
-    Esp32BaseWeb::sendChunk(",");
-    sendDigitalField("stop", g_pins.buttonStop);
-    Esp32BaseWeb::sendChunk("},\"encoder\":{");
-    sendDigitalField("a", g_pins.encoderA);
-    Esp32BaseWeb::sendChunk(",");
-    sendDigitalField("b", g_pins.encoderB);
-    Esp32BaseWeb::sendChunk("},\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"rawAdc\":");
-    char number[16];
-    snprintf(number, sizeof(number), "%d", currentRaw);
-    Esp32BaseWeb::sendChunk(number);
-    Esp32BaseWeb::sendChunk(",\"compileEnabled\":");
-#if FARMAUTO_FARMDOOR_ENABLE_INA240A2
-    Esp32BaseWeb::sendChunk("true");
-#else
-    Esp32BaseWeb::sendChunk("false");
+  Esp32BaseWeb::addApi("/api/app/status", FarmDoorApp::sendStatusJson);
+  Esp32BaseWeb::addApi("/api/app/diagnostics", FarmDoorApp::sendDiagnosticsJson);
 #endif
-    Esp32BaseWeb::sendChunk(",\"runtimeEnabled\":");
-    Esp32BaseWeb::sendChunk(boolJson(g_currentGuard.enabled));
-    Esp32BaseWeb::sendChunk("},\"at24c\":{\"address\":\"0x50\",\"online\":");
-    Esp32BaseWeb::sendChunk(boolJson(at24cOnline));
-    Esp32BaseWeb::sendChunk("},\"motorOutput\":{\"enabled\":false}}");
-    Esp32BaseWeb::endJson();
-  });
+}
+
+void FarmDoorApp::sendStatusJson() {
+#if ESP32BASE_ENABLE_WEB
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
+  Esp32BaseWeb::sendChunk("\"firmware\":\"");
+  Esp32BaseWeb::writeJsonEscaped(Esp32Base::firmwareVersion());
+  Esp32BaseWeb::sendChunk("\",\"state\":\"Skeleton\",");
+  Esp32BaseWeb::sendChunk("\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"enabled\":");
+  Esp32BaseWeb::sendChunk(g_currentGuard.enabled ? "true" : "false");
+  Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"}}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmDoorApp::sendDiagnosticsJson() {
+#if ESP32BASE_ENABLE_WEB
+  const FarmDoorReadOnlyDiagnostics diagnostics = FarmDoorHw.readDiagnostics();
+
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
+  Esp32BaseWeb::sendChunk("\"mode\":\"readOnlyDiagnostics\",");
+  Esp32BaseWeb::sendChunk("\"buttons\":{");
+  sendDigitalField("aux", diagnostics.buttonAux);
+  Esp32BaseWeb::sendChunk(",");
+  sendDigitalField("open", diagnostics.buttonOpen);
+  Esp32BaseWeb::sendChunk(",");
+  sendDigitalField("close", diagnostics.buttonClose);
+  Esp32BaseWeb::sendChunk(",");
+  sendDigitalField("stop", diagnostics.buttonStop);
+  Esp32BaseWeb::sendChunk("},\"encoder\":{");
+  sendDigitalField("a", diagnostics.encoderA);
+  Esp32BaseWeb::sendChunk(",");
+  sendDigitalField("b", diagnostics.encoderB);
+  Esp32BaseWeb::sendChunk("},\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"rawAdc\":");
+  char number[16];
+  snprintf(number, sizeof(number), "%d", diagnostics.currentRawAdc);
+  Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk(",\"compileEnabled\":");
+#if FARMAUTO_FARMDOOR_ENABLE_INA240A2
+  Esp32BaseWeb::sendChunk("true");
+#else
+  Esp32BaseWeb::sendChunk("false");
+#endif
+  Esp32BaseWeb::sendChunk(",\"runtimeEnabled\":");
+  Esp32BaseWeb::sendChunk(boolJson(g_currentGuard.enabled));
+  Esp32BaseWeb::sendChunk("},\"at24c\":{\"address\":\"0x50\",\"online\":");
+  Esp32BaseWeb::sendChunk(boolJson(diagnostics.at24cOnline));
+  Esp32BaseWeb::sendChunk("},\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
 #endif
 }
