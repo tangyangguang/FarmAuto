@@ -65,5 +65,16 @@ int main() {
   assert(snapshot.remainingPulses == 0);
   assert(driver.stopCount == 1);
 
+  protection.maxRunPulses = 500;
+  assert(motor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(motor.requestMovePulses(1000) == Esp32EncodedDcMotor::MotorResult::Ok);
+  encoder.position = 1601;
+  motor.update(1300);
+  snapshot = motor.snapshot();
+  assert(snapshot.state == Esp32EncodedDcMotor::MotorState::Fault);
+  assert(snapshot.faultReason == Esp32EncodedDcMotor::FaultReason::MaxRunPulses);
+  assert(driver.stopCount == 2);
+
   return 0;
 }

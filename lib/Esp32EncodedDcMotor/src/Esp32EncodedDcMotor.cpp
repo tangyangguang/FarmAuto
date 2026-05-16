@@ -95,6 +95,24 @@ void EncodedDcMotor::update(uint32_t nowMs) {
   snapshot_.elapsedMs = nowMs - commandStartMs_;
   snapshot_.lastUpdateMs = nowMs;
 
+  if ((snapshot_.state == MotorState::SoftStarting || snapshot_.state == MotorState::Running ||
+       snapshot_.state == MotorState::SoftStopping) &&
+      protection_.maxRunPulses > 0 &&
+      absoluteDistance(snapshot_.positionPulses, snapshot_.segmentStartPulses) >
+          protection_.maxRunPulses) {
+    requestEmergencyStop(FaultReason::MaxRunPulses);
+    updateTrace(nowMs);
+    return;
+  }
+
+  if ((snapshot_.state == MotorState::SoftStarting || snapshot_.state == MotorState::Running ||
+       snapshot_.state == MotorState::SoftStopping) &&
+      protection_.maxRunMs > 0 && snapshot_.elapsedMs > protection_.maxRunMs) {
+    requestEmergencyStop(FaultReason::MaxRunMs);
+    updateTrace(nowMs);
+    return;
+  }
+
   const bool reachedTarget =
       (snapshot_.direction == MotorDirection::Forward &&
        snapshot_.positionPulses >= snapshot_.targetPulses) ||
@@ -184,6 +202,10 @@ uint8_t EncodedDcMotor::outputForElapsed(uint32_t elapsedMs) const {
     return profile_.minEffectiveSpeedPercent;
   }
   return output;
+}
+
+int64_t EncodedDcMotor::absoluteDistance(int64_t lhs, int64_t rhs) {
+  return lhs >= rhs ? lhs - rhs : rhs - lhs;
 }
 
 void EncodedDcMotor::updateTrace(uint32_t nowMs) {

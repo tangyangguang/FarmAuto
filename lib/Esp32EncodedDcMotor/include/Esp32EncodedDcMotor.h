@@ -203,6 +203,7 @@ public:
 private:
   MotorResult startMoveTo(int64_t targetPulses);
   uint8_t outputForElapsed(uint32_t elapsedMs) const;
+  static int64_t absoluteDistance(int64_t lhs, int64_t rhs);
   void updateTrace(uint32_t nowMs);
 
   IMotorDriver* driver_ = nullptr;
