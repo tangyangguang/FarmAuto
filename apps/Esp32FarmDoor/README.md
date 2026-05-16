@@ -2,27 +2,31 @@
 
 `Esp32FarmDoor` 是自动门控制器应用工程。
 
-当前状态是最小可编译骨架：
+当前状态：
 
 - 已接入 Esp32Base FULL profile。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard`。
+- 已接入自动门业务状态机 `DoorController`。
+- 已提供状态、诊断、开门、关门、停止、位置标定和清除故障 API。
 - 已记录当前 PCB 默认引脚，包括 INA240A2 输出 GPIO33。
 - 已提供 `FARMAUTO_FARMDOOR_ENABLE_INA240A2` 编译开关，默认打开软件支持，但运行配置默认不启用电流保护动作。
+- 所有业务控制 API 当前只更新业务状态机，明确返回 `motorOutput.enabled=false`，不会输出 PWM，也不会驱动 AT8236。
 
 当前尚未实现：
 
-- 自动门业务状态机。
-- Web 业务页面和 `/api/app/*`。
+- Web 业务页面。
+- 自动门长期业务记录。
+- AT24C128 关键状态持久化。
 - AT24C128 Wire 设备适配。
 - AT8236 LEDC 驱动适配。
 - 编码器 PCNT 适配。
-- GPIO33 ADC 采样和校准。
+- GPIO33 INA240A2 电流换算、零点校准和保护停机策略。
 
 ## 当前 API
 
 `/api/app/status`
 
-- 返回应用类型、固件版本、骨架状态、INA240A2 配置状态和电机/编码器概要。
+- 返回应用类型、固件版本、门状态、当前位置、行程配置、INA240A2 配置状态和电机/编码器概要。
 - 该接口不执行任何硬件动作。
 
 `/api/app/diagnostics`
@@ -30,6 +34,34 @@
 - 只读硬件诊断接口，适合首次烧录后检查当前 PCB。
 - 返回按钮 GPIO 电平、编码器 A/B 当前电平、GPIO33 ADC 原始值和 8 次采样的 min/max/avg、AT24C128 `0x50` 在线状态。
 - 明确返回 `motorOutput.enabled=false`，不会输出 PWM，也不会驱动 AT8236。
+
+`/api/app/door/open`
+
+- 请求业务状态机进入开门状态。
+- 如果位置未可信标定，返回 `PositionUntrusted`。
+- 当前不输出电机 PWM。
+
+`/api/app/door/close`
+
+- 请求业务状态机进入关门状态。
+- 如果位置未可信标定，返回 `PositionUntrusted`。
+- 当前不输出电机 PWM。
+
+`/api/app/door/stop`
+
+- 请求业务状态机停止当前动作。
+- 当前还没有真实编码器位置接入，因此停止位置使用当前 snapshot 位置。
+
+`/api/app/maintenance/set-position`
+
+- `position=closed`：把当前位置标为关门基准。
+- `position=open`：把当前位置标为开门位置。
+- `position=unknown`：标记位置不可信。
+- `positionPulses=<value>&trustLevel=Trusted|Limited|Untrusted`：直接设置位置和可信等级。
+
+`/api/app/maintenance/clear-fault`
+
+- 清除业务状态机故障。
 
 编译验证：
 

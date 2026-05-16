@@ -2,10 +2,13 @@
 
 `Esp32FarmFeeder` 是三路喂食器控制器应用工程。
 
-当前状态是最小可编译骨架：
+当前状态：
 
 - 已接入 Esp32Base FULL profile。
 - 已接入 `FeederController` 纯业务状态机。
+- 已接入每日多计划服务、手工下料目标解析、料桶余量维护、通道基础信息维护。
+- 已接入业务最近记录 RAM 缓冲和 Flash 二进制追加记录。
+- `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard` 作为后续实现依赖。
 - 默认三路通道均已安装且启用。
 - 当前不会输出 PWM，也不会驱动任何电机。
@@ -13,10 +16,9 @@
 当前尚未实现：
 
 - 喂食计划持久化。
-- 手工下料 API。
-- 业务记录。
 - GPIO、编码器、PWM 和 AT24C128 硬件适配。
-- 饲料桶余量维护。
+- 业务记录轮转、索引和跨文件查询。
+- 真实电机输出和编码器计数。
 
 ## 当前 API
 
@@ -24,6 +26,57 @@
 
 - 返回应用类型、固件版本、设备状态、通道 mask、每路通道状态。
 - 明确返回 `motorOutput.enabled=false`，不会执行下料动作。
+
+`/api/app/feeders/manual-start`
+
+- 按 `channelMask` 手工下料。
+- 每路使用当前默认目标；未配置或未标定的通道会被跳过。
+- 当前只更新业务状态机，不输出 PWM。
+
+`/api/app/feeders/start`
+
+- 支持 `channelMask` 或单个 `channel`。
+- 与 `manual-start` 一样，当前只更新业务状态机。
+
+`/api/app/feeders/stop`
+
+- 支持 `channelMask` 或单个 `channel` 停止。
+
+`/api/app/feeders/stop-all`
+
+- 停止所有正在运行的通道。
+
+`/api/app/schedules`
+
+- 查看多计划、今日/明日执行状态和时间同步状态。
+
+`/api/app/schedules/create`
+`/api/app/schedules/update`
+`/api/app/schedules/delete`
+
+- 管理计划蓝本。
+
+`/api/app/schedule-occurrence/skip`
+`/api/app/schedule-occurrence/cancel-skip`
+
+- 跳过或取消跳过某个计划的今日执行实例。
+
+`/api/app/buckets`
+`/api/app/buckets/set-remaining`
+`/api/app/buckets/add-feed`
+`/api/app/buckets/mark-full`
+
+- 查看和维护每路料桶估算余量。
+
+`/api/app/base-info`
+`/api/app/base-info/channel`
+
+- 查看和维护每路通道基础信息。
+
+`/api/app/records`
+
+- 参数：`start`、`limit`、`startUnixTime`、`endUnixTime`、`eventType`。
+- 优先返回 Flash 业务记录；无 Flash 数据时返回 RAM 最近记录。
 
 编译验证：
 
