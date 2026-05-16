@@ -1,0 +1,11 @@
+{
+  "name": "Esp32At24cRecordStore",
+  "version": "0.1.0",
+  "description": "Wear-levelled record store skeleton for AT24C EEPROM devices on ESP32.",
+  "keywords": ["esp32", "eeprom", "at24c", "wear-leveling", "record-store"],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "build": {
+    "flags": ["-std=gnu++17"]
+  }
+}

@@ -7,12 +7,15 @@ old_prj/
 # PlatformIO build/cache output
 .pio/
 **/.pio/
+.worktrees/
 
 # Local editor settings
 .vscode/
 **/.vscode/
 
 # Build artifacts
+build/
+cmake-build-*/
 *.bin
 *.elf
 *.map
