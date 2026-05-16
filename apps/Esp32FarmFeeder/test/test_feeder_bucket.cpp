@@ -50,5 +50,10 @@ int main() {
   assert(buckets.updateBaseInfo(0, info) == FeederBucketResult::Ok);
   assert(buckets.enabledChannelMask() == 0);
 
+  info.enabled = true;
+  info.gramsPerRevX100 = 0;
+  assert(buckets.updateBaseInfo(0, info) == FeederBucketResult::Ok);
+  assert(buckets.enabledChannelMask() == 0b0001);
+
   return 0;
 }

@@ -26,6 +26,11 @@ int main() {
   assert(resolved.estimatedGramsX100 == 10500);
 
   info.gramsPerRevX100 = 0;
+  resolved = resolveFeederTarget(info, revolutions);
+  assert(resolved.result == FeederTargetResult::Ok);
+  assert(resolved.targetPulses == 6480);
+  assert(resolved.estimatedGramsX100 == 0);
+
   resolved = resolveFeederTarget(info, grams);
   assert(resolved.result == FeederTargetResult::NotCalibrated);
 

@@ -37,16 +37,18 @@ FeederResolvedTarget resolveFeederTarget(const FeederChannelBaseInfo& info,
   }
 
   if (request.mode == FeederTargetMode::Revolutions) {
-    if (request.targetRevolutionsX100 <= 0 || info.gramsPerRevX100 <= 0) {
+    if (request.targetRevolutionsX100 <= 0) {
       resolved.result = FeederTargetResult::InvalidArgument;
       return resolved;
     }
     resolved.targetPulses = divRoundNearest(
         static_cast<int64_t>(request.targetRevolutionsX100) * info.outputPulsesPerRev,
         100);
-    resolved.estimatedGramsX100 = divRoundNearest(
-        static_cast<int64_t>(request.targetRevolutionsX100) * info.gramsPerRevX100,
-        100);
+    if (info.gramsPerRevX100 > 0) {
+      resolved.estimatedGramsX100 = divRoundNearest(
+          static_cast<int64_t>(request.targetRevolutionsX100) * info.gramsPerRevX100,
+          100);
+    }
     resolved.result = FeederTargetResult::Ok;
     return resolved;
   }

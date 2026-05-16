@@ -109,7 +109,7 @@ bool FeederBucketService::validChannel(uint8_t channelIndex) const {
 }
 
 FeederBucketResult FeederBucketService::validateBaseInfo(const FeederChannelBaseInfo& info) const {
-  if (info.outputPulsesPerRev <= 0 || info.gramsPerRevX100 <= 0 ||
+  if (info.outputPulsesPerRev <= 0 || info.gramsPerRevX100 < 0 ||
       info.capacityGramsX100 <= 0) {
     return FeederBucketResult::InvalidArgument;
   }
