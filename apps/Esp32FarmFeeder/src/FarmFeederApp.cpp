@@ -16,6 +16,16 @@ FeederScheduleService g_schedules;
 FeederBucketService g_buckets;
 FeederTargetService g_targets;
 
+static constexpr uint8_t kFarmFeederApiRouteCount = 19;
+static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
+              "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 19");
+
+void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
+  if (!Esp32BaseWeb::addApi(path, handler)) {
+    ESP32BASE_LOG_E("farmfeeder", "api_route_register_failed path=%s", path);
+  }
+}
+
 const char* deviceStateName(FeederDeviceState state) {
   switch (state) {
     case FeederDeviceState::Idle: return "Idle";
@@ -492,25 +502,25 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setDeviceName("Esp32FarmFeeder");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
-  Esp32BaseWeb::addApi("/api/app/status", FarmFeederApp::sendStatusJson);
-  Esp32BaseWeb::addApi("/api/app/feeders/manual-start", FarmFeederApp::handleFeederManualStart);
-  Esp32BaseWeb::addApi("/api/app/feeders/start", FarmFeederApp::handleFeederStart);
-  Esp32BaseWeb::addApi("/api/app/feeders/stop", FarmFeederApp::handleFeederStop);
-  Esp32BaseWeb::addApi("/api/app/feeders/stop-all", FarmFeederApp::handleFeederStopAll);
-  Esp32BaseWeb::addApi("/api/app/feeders/targets", FarmFeederApp::sendTargetsJson);
-  Esp32BaseWeb::addApi("/api/app/feeders/target", FarmFeederApp::handleFeederTarget);
-  Esp32BaseWeb::addApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
-  Esp32BaseWeb::addApi("/api/app/schedules/create", FarmFeederApp::handleScheduleCreate);
-  Esp32BaseWeb::addApi("/api/app/schedules/update", FarmFeederApp::handleScheduleUpdate);
-  Esp32BaseWeb::addApi("/api/app/schedules/delete", FarmFeederApp::handleScheduleDelete);
-  Esp32BaseWeb::addApi("/api/app/schedule-occurrence/skip", FarmFeederApp::handleScheduleSkip);
-  Esp32BaseWeb::addApi("/api/app/schedule-occurrence/cancel-skip", FarmFeederApp::handleScheduleCancelSkip);
-  Esp32BaseWeb::addApi("/api/app/buckets", FarmFeederApp::sendBucketsJson);
-  Esp32BaseWeb::addApi("/api/app/buckets/set-remaining", FarmFeederApp::handleBucketSetRemaining);
-  Esp32BaseWeb::addApi("/api/app/buckets/add-feed", FarmFeederApp::handleBucketAddFeed);
-  Esp32BaseWeb::addApi("/api/app/buckets/mark-full", FarmFeederApp::handleBucketMarkFull);
-  Esp32BaseWeb::addApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
-  Esp32BaseWeb::addApi("/api/app/base-info/channel", FarmFeederApp::handleBaseInfoChannel);
+  addFarmFeederApi("/api/app/status", FarmFeederApp::sendStatusJson);
+  addFarmFeederApi("/api/app/feeders/manual-start", FarmFeederApp::handleFeederManualStart);
+  addFarmFeederApi("/api/app/feeders/start", FarmFeederApp::handleFeederStart);
+  addFarmFeederApi("/api/app/feeders/stop", FarmFeederApp::handleFeederStop);
+  addFarmFeederApi("/api/app/feeders/stop-all", FarmFeederApp::handleFeederStopAll);
+  addFarmFeederApi("/api/app/feeders/targets", FarmFeederApp::sendTargetsJson);
+  addFarmFeederApi("/api/app/feeders/target", FarmFeederApp::handleFeederTarget);
+  addFarmFeederApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
+  addFarmFeederApi("/api/app/schedules/create", FarmFeederApp::handleScheduleCreate);
+  addFarmFeederApi("/api/app/schedules/update", FarmFeederApp::handleScheduleUpdate);
+  addFarmFeederApi("/api/app/schedules/delete", FarmFeederApp::handleScheduleDelete);
+  addFarmFeederApi("/api/app/schedule-occurrence/skip", FarmFeederApp::handleScheduleSkip);
+  addFarmFeederApi("/api/app/schedule-occurrence/cancel-skip", FarmFeederApp::handleScheduleCancelSkip);
+  addFarmFeederApi("/api/app/buckets", FarmFeederApp::sendBucketsJson);
+  addFarmFeederApi("/api/app/buckets/set-remaining", FarmFeederApp::handleBucketSetRemaining);
+  addFarmFeederApi("/api/app/buckets/add-feed", FarmFeederApp::handleBucketAddFeed);
+  addFarmFeederApi("/api/app/buckets/mark-full", FarmFeederApp::handleBucketMarkFull);
+  addFarmFeederApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
+  addFarmFeederApi("/api/app/base-info/channel", FarmFeederApp::handleBaseInfoChannel);
 #endif
 }
 
