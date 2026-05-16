@@ -50,6 +50,15 @@ c++ -std=c++17 \
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
   -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_recovery_codec.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorRecoveryCodec.cpp" \
+  "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
+  -o /tmp/farmauto_test_door_recovery_codec
+/tmp/farmauto_test_door_recovery_codec
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
+  -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_record_file_store.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorRecordFileStore.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorRecordCodec.cpp" \
