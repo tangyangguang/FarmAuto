@@ -7,6 +7,7 @@ class FarmDoorApp {
 
  private:
   void configureStaticDefaults();
+  void configureHardwareInputs();
   void configureAppConfigPage();
   void configureBusinessShell();
 };

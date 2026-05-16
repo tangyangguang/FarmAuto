@@ -18,6 +18,19 @@
 - 编码器 PCNT 适配。
 - GPIO33 ADC 采样和校准。
 
+## 当前 API
+
+`/api/app/status`
+
+- 返回应用类型、固件版本、骨架状态、INA240A2 配置状态和电机/编码器概要。
+- 该接口不执行任何硬件动作。
+
+`/api/app/diagnostics`
+
+- 只读硬件诊断接口，适合首次烧录后检查当前 PCB。
+- 返回按钮 GPIO 电平、编码器 A/B 当前电平、GPIO33 ADC 原始值、AT24C128 `0x50` 在线状态。
+- 明确返回 `motorOutput.enabled=false`，不会输出 PWM，也不会驱动 AT8236。
+
 编译验证：
 
 ```bash
