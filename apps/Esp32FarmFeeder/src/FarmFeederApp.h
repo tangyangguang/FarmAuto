@@ -10,6 +10,9 @@ class FarmFeederApp {
   void configureAppConfigPage();
   void configureBusinessShell();
   static void sendStatusJson();
+  static void sendSchedulesJson();
+  static void sendBucketsJson();
+  static void sendBaseInfoJson();
 };
 
 extern FarmFeederApp FarmFeeder;

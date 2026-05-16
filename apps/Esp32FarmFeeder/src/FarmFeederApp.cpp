@@ -123,6 +123,34 @@ void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("]");
 }
 
+void sendBaseInfoSummary(const FeederBucketSnapshot& snapshot) {
+  Esp32BaseWeb::sendChunk("[");
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    const FeederChannelBaseInfo& info = snapshot.channels[i].baseInfo;
+    Esp32BaseWeb::sendChunk("{\"channel\":");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk(",\"enabled\":");
+    Esp32BaseWeb::sendChunk(info.enabled ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"name\":\"通道 ");
+    sendUint8(static_cast<uint8_t>(i + 1));
+    Esp32BaseWeb::sendChunk("\",\"outputPulsesPerRev\":");
+    char number[16];
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(info.outputPulsesPerRev));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"gramsPerRevX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(info.gramsPerRevX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"capacityGramsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(info.capacityGramsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk("}");
+  }
+  Esp32BaseWeb::sendChunk("]");
+}
+
 }  // namespace
 
 FarmFeederApp FarmFeeder;
@@ -191,6 +219,9 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   Esp32BaseWeb::addApi("/api/app/status", FarmFeederApp::sendStatusJson);
+  Esp32BaseWeb::addApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
+  Esp32BaseWeb::addApi("/api/app/buckets", FarmFeederApp::sendBucketsJson);
+  Esp32BaseWeb::addApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
 #endif
 }
 
@@ -224,6 +255,34 @@ void FarmFeederApp::sendStatusJson() {
   Esp32BaseWeb::sendChunk(",\"buckets\":");
   sendBucketSummary(bucketSnapshot);
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::sendSchedulesJson() {
+#if ESP32BASE_ENABLE_WEB
+  Esp32BaseWeb::beginJson(200);
+  sendScheduleSummary(g_schedules.snapshot());
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::sendBucketsJson() {
+#if ESP32BASE_ENABLE_WEB
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"channels\":");
+  sendBucketSummary(g_buckets.snapshot());
+  Esp32BaseWeb::sendChunk("}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::sendBaseInfoJson() {
+#if ESP32BASE_ENABLE_WEB
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"channels\":");
+  sendBaseInfoSummary(g_buckets.snapshot());
+  Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
 #endif
 }

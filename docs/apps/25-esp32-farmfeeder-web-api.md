@@ -20,6 +20,8 @@ Esp32FarmFeeder 页面：
 
 ## API
 
+Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参数。原因是 Esp32Base 当前采用精确路径注册；业务标识统一放在 JSON body 或 query 参数里，保持路由简单、低开销、易验证。
+
 状态与记录：
 
 - `GET /api/app/status`
@@ -31,32 +33,32 @@ Esp32FarmFeeder 页面：
 控制：
 
 - `POST /api/app/feeders/manual-start`
-- `POST /api/app/feeders/{channel}/start`
-- `POST /api/app/feeders/{channel}/stop`
+- `POST /api/app/feeders/start`，body 指定 channel 或 channelMask
+- `POST /api/app/feeders/stop`，body 指定 channel 或 channelMask
 - `POST /api/app/feeders/stop-all`
 
 计划：
 
 - `GET /api/app/schedules`
-- `POST /api/app/schedules`
-- `PUT /api/app/schedules/{planId}`
-- `DELETE /api/app/schedules/{planId}`
-- `POST /api/app/schedule-occurrences/{date}/{planId}/skip`
-- `POST /api/app/schedule-occurrences/{date}/{planId}/cancel-skip`
+- `POST /api/app/schedules/create`
+- `POST /api/app/schedules/update`，body 指定 planId
+- `POST /api/app/schedules/delete`，body 指定 planId
+- `POST /api/app/schedule-occurrence/skip`，body 指定 date 和 planId
+- `POST /api/app/schedule-occurrence/cancel-skip`，body 指定 date 和 planId
 
 投喂目标：
 
 - `GET /api/app/feeders/targets`
-- `POST /api/app/feeders/{channel}/target`
+- `POST /api/app/feeders/target`，body 指定 channel
 
 饲料桶：
 
 - `GET /api/app/base-info`
-- `PUT /api/app/base-info/channels/{channel}`
+- `POST /api/app/base-info/channel`，body 指定 channel
 - `GET /api/app/buckets`
-- `POST /api/app/buckets/{channel}/set-remaining`
-- `POST /api/app/buckets/{channel}/add-feed`
-- `POST /api/app/buckets/{channel}/mark-full`
+- `POST /api/app/buckets/set-remaining`，body 指定 channel
+- `POST /api/app/buckets/add-feed`，body 指定 channel
+- `POST /api/app/buckets/mark-full`，body 指定 channel
 
 维护：
 
@@ -118,7 +120,7 @@ Esp32FarmFeeder 页面：
 - 组合规则：`todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `scheduleAttemptedToday=true` 且 `todayExecuted=false`；`scheduleMissedToday=true` 不应与 `scheduleAttemptedToday=true` 同时出现。
 - 一个计划断电中断，不影响其他尚未到时间的计划按自身状态触发。
 
-`POST /api/app/schedules` 新增计划，`PUT /api/app/schedules/{planId}` 修改计划：
+`POST /api/app/schedules/create` 新增计划，`POST /api/app/schedules/update` 修改计划。修改时 body 必须包含 `planId`：
 
 - `enabled`：是否启用每日计划。
 - `timeMinutes`：当天 0..1439 分钟；未提供或显式清空表示不配置时间。
@@ -156,7 +158,7 @@ Esp32FarmFeeder 页面：
 }
 ```
 
-`POST /api/app/feeders/{channel}/target` 可修改：
+`POST /api/app/feeders/target` 可修改单路目标，body 必须包含 `channel`：
 
 - `targetMode`：`Grams` 或 `Revolutions`。
 - `targetGramsX100`：克数模式目标，单位 0.01g。
@@ -204,7 +206,7 @@ Esp32FarmFeeder 页面：
 
 ## 基础信息字段
 
-`GET /api/app/base-info` 返回业务基础信息；`PUT /api/app/base-info/channels/{channel}` 修改单路基础信息：
+`GET /api/app/base-info` 返回业务基础信息；`POST /api/app/base-info/channel` 修改单路基础信息，body 必须包含 `channel`：
 
 ```json
 {
