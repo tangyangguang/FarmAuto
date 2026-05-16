@@ -22,6 +22,8 @@ Esp32FarmFeeder 页面：
 
 Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参数。原因是 Esp32Base 当前采用精确路径注册；业务标识统一放在 JSON body 或 query 参数里，保持路由简单、低开销、易验证。
 
+写操作进一步按领域收敛为 action 型 API，避免超过 Esp32Base 默认路由容量。action 放在参数里，例如 `POST /api/app/feeders/control?action=start&channelMask=3`。
+
 状态与记录：
 
 - `GET /api/app/status`
@@ -32,19 +34,12 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 
 控制：
 
-- `POST /api/app/feeders/manual-start`
-- `POST /api/app/feeders/start`，body 指定 channel 或 channelMask
-- `POST /api/app/feeders/stop`，body 指定 channel 或 channelMask
-- `POST /api/app/feeders/stop-all`
+- `POST /api/app/feeders/control`，action=`manual-start|start|stop|stop-all`，body/query 指定 channel 或 channelMask
 
 计划：
 
 - `GET /api/app/schedules`
-- `POST /api/app/schedules/create`
-- `POST /api/app/schedules/update`，body 指定 planId
-- `POST /api/app/schedules/delete`，body 指定 planId
-- `POST /api/app/schedule-occurrence/skip`，body 指定 date 和 planId
-- `POST /api/app/schedule-occurrence/cancel-skip`，body 指定 date 和 planId
+- `POST /api/app/schedules/action`，action=`create|update|delete|skip|cancel-skip`，body/query 指定 planId 等字段
 
 投喂目标：
 
@@ -56,9 +51,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 - `GET /api/app/base-info`
 - `POST /api/app/base-info/channel`，body 指定 channel
 - `GET /api/app/buckets`
-- `POST /api/app/buckets/set-remaining`，body 指定 channel
-- `POST /api/app/buckets/add-feed`，body 指定 channel
-- `POST /api/app/buckets/mark-full`，body 指定 channel
+- `POST /api/app/buckets/action`，action=`set-remaining|add-feed|mark-full`，body/query 指定 channel
 
 维护：
 
@@ -120,7 +113,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 - 组合规则：`todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `scheduleAttemptedToday=true` 且 `todayExecuted=false`；`scheduleMissedToday=true` 不应与 `scheduleAttemptedToday=true` 同时出现。
 - 一个计划断电中断，不影响其他尚未到时间的计划按自身状态触发。
 
-`POST /api/app/schedules/create` 新增计划，`POST /api/app/schedules/update` 修改计划。修改时 body 必须包含 `planId`：
+`POST /api/app/schedules/action` 管理计划。`action=create` 新增计划；`action=update` 修改计划，body/query 必须包含 `planId`；`action=delete` 删除计划。`action=skip` 和 `action=cancel-skip` 只修改当天执行实例，不修改计划蓝本。
 
 - `enabled`：是否启用每日计划。
 - `timeMinutes`：当天 0..1439 分钟；未提供或显式清空表示不配置时间。
