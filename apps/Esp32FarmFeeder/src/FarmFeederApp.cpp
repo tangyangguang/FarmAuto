@@ -91,6 +91,37 @@ const char* recordTypeName(FeederRecordType type) {
   return "UnknownEvent";
 }
 
+bool recordTypeFromName(const char* name, FeederRecordType& out) {
+  if (name == nullptr || name[0] == '\0') {
+    return false;
+  }
+  if (strcmp(name, "FeederManualRequested") == 0 || strcmp(name, "ManualRequested") == 0) {
+    out = FeederRecordType::ManualRequested;
+    return true;
+  }
+  if (strcmp(name, "FeederScheduleTriggered") == 0 || strcmp(name, "ScheduleTriggered") == 0) {
+    out = FeederRecordType::ScheduleTriggered;
+    return true;
+  }
+  if (strcmp(name, "FeederScheduleMissed") == 0 || strcmp(name, "ScheduleMissed") == 0) {
+    out = FeederRecordType::ScheduleMissed;
+    return true;
+  }
+  if (strcmp(name, "FeederChannelStarted") == 0 || strcmp(name, "ChannelStarted") == 0) {
+    out = FeederRecordType::ChannelStarted;
+    return true;
+  }
+  if (strcmp(name, "FeederChannelStopped") == 0 || strcmp(name, "ChannelStopped") == 0) {
+    out = FeederRecordType::ChannelStopped;
+    return true;
+  }
+  if (strcmp(name, "FeederBatchCompleted") == 0 || strcmp(name, "BatchCompleted") == 0) {
+    out = FeederRecordType::BatchCompleted;
+    return true;
+  }
+  return false;
+}
+
 const char* recordResultName(FeederRecordResult result) {
   switch (result) {
     case FeederRecordResult::Ok: return "Ok";
@@ -970,20 +1001,31 @@ void FarmFeederApp::sendTargetsJson() {
 
 void FarmFeederApp::sendRecordsJson() {
 #if ESP32BASE_ENABLE_WEB
-  uint32_t startIndex = 0;
-  uint32_t limitParam = kFeederRecordPageMaxRecords;
-  if (!readUint32ParamOptional("start", startIndex) || !readUint32ParamOptional("limit", limitParam) ||
-      limitParam == 0 || limitParam > kFeederRecordPageMaxRecords) {
+  FeederRecordQuery query;
+  uint32_t limitParam = query.limit;
+  if (!readUint32ParamOptional("start", query.startIndex) ||
+      !readUint32ParamOptional("limit", limitParam) ||
+      !readUint32ParamOptional("startUnixTime", query.startUnixTime) ||
+      !readUint32ParamOptional("endUnixTime", query.endUnixTime) || limitParam == 0 ||
+      limitParam > kFeederRecordPageMaxRecords) {
     sendResultJson(400, "InvalidArgument");
     return;
+  }
+  query.limit = static_cast<uint8_t>(limitParam);
+  char eventType[32];
+  if (Esp32BaseWeb::getParam("eventType", eventType, sizeof(eventType)) && eventType[0] != '\0') {
+    if (!recordTypeFromName(eventType, query.type)) {
+      sendResultJson(400, "InvalidArgument");
+      return;
+    }
+    query.typeFilterEnabled = true;
   }
 
   Esp32BaseWeb::beginJson(200);
 #if ESP32BASE_ENABLE_FS
   FeederRecordPage page;
   const FeederRecordReadResult readResult = readFeederRecordPage(kFeederRecordCurrentPath,
-                                                                 startIndex,
-                                                                 static_cast<uint8_t>(limitParam),
+                                                                 query,
                                                                  feederRecordFileSize,
                                                                  readFeederRecordBytesAt,
                                                                  nullptr,
@@ -991,6 +1033,8 @@ void FarmFeederApp::sendRecordsJson() {
   if (readResult == FeederRecordReadResult::Ok && page.totalRecords > 0) {
     Esp32BaseWeb::sendChunk("{\"source\":\"flash\",\"start\":");
     sendUint32(page.startIndex);
+    Esp32BaseWeb::sendChunk(",\"nextIndex\":");
+    sendUint32(page.nextIndex);
     Esp32BaseWeb::sendChunk(",\"limit\":");
     sendUint32(limitParam);
     Esp32BaseWeb::sendChunk(",\"count\":");

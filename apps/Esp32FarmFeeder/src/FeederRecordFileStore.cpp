@@ -36,9 +36,22 @@ FeederRecordReadResult readFeederRecordPage(const char* path,
                                             FeederRecordReadBytesAt readBytesAt,
                                             void* user,
                                             FeederRecordPage& out) {
+  FeederRecordQuery query;
+  query.startIndex = startIndex;
+  query.limit = limit;
+  return readFeederRecordPage(path, query, fileSize, readBytesAt, user, out);
+}
+
+FeederRecordReadResult readFeederRecordPage(const char* path,
+                                            const FeederRecordQuery& query,
+                                            FeederRecordFileSize fileSize,
+                                            FeederRecordReadBytesAt readBytesAt,
+                                            void* user,
+                                            FeederRecordPage& out) {
   out = FeederRecordPage{};
-  out.startIndex = startIndex;
-  if (!validPath(path) || limit == 0 || fileSize == nullptr || readBytesAt == nullptr) {
+  out.startIndex = query.startIndex;
+  out.nextIndex = query.startIndex;
+  if (!validPath(path) || query.limit == 0 || fileSize == nullptr || readBytesAt == nullptr) {
     return FeederRecordReadResult::InvalidArgument;
   }
 
@@ -47,20 +60,18 @@ FeederRecordReadResult readFeederRecordPage(const char* path,
     return FeederRecordReadResult::NotReady;
   }
   out.totalRecords = static_cast<uint32_t>(size / static_cast<int64_t>(kFeederRecordEncodedMaxBytes));
-  if (startIndex >= out.totalRecords) {
+  if (query.startIndex >= out.totalRecords) {
+    out.nextIndex = out.totalRecords;
     return FeederRecordReadResult::Ok;
   }
 
   const uint8_t boundedLimit =
-      limit > kFeederRecordPageMaxRecords ? kFeederRecordPageMaxRecords : limit;
-  const uint32_t available = out.totalRecords - startIndex;
-  const uint8_t targetCount =
-      available < boundedLimit ? static_cast<uint8_t>(available) : boundedLimit;
+      query.limit > kFeederRecordPageMaxRecords ? kFeederRecordPageMaxRecords : query.limit;
 
   uint8_t buffer[kFeederRecordEncodedMaxBytes];
-  for (uint8_t i = 0; i < targetCount; ++i) {
-    const uint32_t offset =
-        (startIndex + i) * static_cast<uint32_t>(kFeederRecordEncodedMaxBytes);
+  uint32_t scanIndex = query.startIndex;
+  while (scanIndex < out.totalRecords && out.count < boundedLimit) {
+    const uint32_t offset = scanIndex * static_cast<uint32_t>(kFeederRecordEncodedMaxBytes);
     std::size_t readLength = 0;
     if (!readBytesAt(path, offset, buffer, sizeof(buffer), &readLength, user) ||
         readLength != sizeof(buffer)) {
@@ -74,8 +85,21 @@ FeederRecordReadResult readFeederRecordPage(const char* path,
     if (decodeResult != FeederRecordCodecResult::Ok) {
       return FeederRecordReadResult::ReadFailed;
     }
+    ++scanIndex;
+
+    const FeederRecord& decoded = out.records[out.count];
+    if (query.startUnixTime > 0 && decoded.unixTime < query.startUnixTime) {
+      continue;
+    }
+    if (query.endUnixTime > 0 && decoded.unixTime > query.endUnixTime) {
+      continue;
+    }
+    if (query.typeFilterEnabled && decoded.type != query.type) {
+      continue;
+    }
     ++out.count;
   }
+  out.nextIndex = scanIndex;
 
   return FeederRecordReadResult::Ok;
 }

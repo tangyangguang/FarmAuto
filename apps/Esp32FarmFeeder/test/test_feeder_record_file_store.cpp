@@ -8,7 +8,7 @@ namespace {
 
 struct CaptureAppender {
   const char* path = nullptr;
-  uint8_t bytes[kFeederRecordEncodedMaxBytes * 2] = {};
+  uint8_t bytes[kFeederRecordEncodedMaxBytes * 4] = {};
   std::size_t length = 0;
   bool fail = false;
 };
@@ -92,6 +92,10 @@ int main() {
 
   capture.fail = false;
   appendFeederRecordToPath(record, "/records/feeder/current.far", appendCapture, &capture);
+  record.sequence = 9;
+  record.unixTime = 1800003600;
+  record.type = FeederRecordType::ScheduleTriggered;
+  appendFeederRecordToPath(record, "/records/feeder/current.far", appendCapture, &capture);
 
   FeederRecordPage page;
   assert(readFeederRecordPage("/records/feeder/current.far",
@@ -101,11 +105,12 @@ int main() {
                               readCapture,
                               &capture,
                               page) == FeederRecordReadResult::Ok);
-  assert(page.totalRecords == 2);
+  assert(page.totalRecords == 3);
   assert(page.startIndex == 0);
   assert(page.count == 2);
   assert(page.records[0].sequence == 8);
   assert(page.records[1].sequence == 8);
+  assert(page.nextIndex == 2);
 
   assert(readFeederRecordPage("/records/feeder/current.far",
                               1,
@@ -114,9 +119,28 @@ int main() {
                               readCapture,
                               &capture,
                               page) == FeederRecordReadResult::Ok);
-  assert(page.totalRecords == 2);
+  assert(page.totalRecords == 3);
   assert(page.startIndex == 1);
   assert(page.count == 1);
+  assert(page.nextIndex == 2);
+
+  FeederRecordQuery query;
+  query.startIndex = 0;
+  query.limit = 2;
+  query.startUnixTime = 1800003000;
+  query.typeFilterEnabled = true;
+  query.type = FeederRecordType::ScheduleTriggered;
+  assert(readFeederRecordPage("/records/feeder/current.far",
+                              query,
+                              fileSizeCapture,
+                              readCapture,
+                              &capture,
+                              page) == FeederRecordReadResult::Ok);
+  assert(page.totalRecords == 3);
+  assert(page.startIndex == 0);
+  assert(page.count == 1);
+  assert(page.records[0].sequence == 9);
+  assert(page.nextIndex == 3);
 
   assert(readFeederRecordPage("/records/feeder/current.far",
                               0,

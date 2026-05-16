@@ -25,8 +25,18 @@ static constexpr uint8_t kFeederRecordPageMaxRecords = 16;
 struct FeederRecordPage {
   uint32_t totalRecords = 0;
   uint32_t startIndex = 0;
+  uint32_t nextIndex = 0;
   uint8_t count = 0;
   FeederRecord records[kFeederRecordPageMaxRecords];
+};
+
+struct FeederRecordQuery {
+  uint32_t startIndex = 0;
+  uint8_t limit = kFeederRecordPageMaxRecords;
+  uint32_t startUnixTime = 0;
+  uint32_t endUnixTime = 0;
+  bool typeFilterEnabled = false;
+  FeederRecordType type = FeederRecordType::ManualRequested;
 };
 
 using FeederRecordAppendBytes =
@@ -49,6 +59,13 @@ FeederRecordWriteResult appendFeederRecordToPath(const FeederRecord& record,
 FeederRecordReadResult readFeederRecordPage(const char* path,
                                             uint32_t startIndex,
                                             uint8_t limit,
+                                            FeederRecordFileSize fileSize,
+                                            FeederRecordReadBytesAt readBytesAt,
+                                            void* user,
+                                            FeederRecordPage& out);
+
+FeederRecordReadResult readFeederRecordPage(const char* path,
+                                            const FeederRecordQuery& query,
                                             FeederRecordFileSize fileSize,
                                             FeederRecordReadBytesAt readBytesAt,
                                             void* user,
