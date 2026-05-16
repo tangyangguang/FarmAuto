@@ -38,6 +38,7 @@ class FeederBucketService {
   FeederBucketResult consume(uint8_t channelIndex, int32_t usedGramsX100);
   uint8_t enabledChannelMask() const;
   FeederBucketSnapshot snapshot() const;
+  FeederBucketResult restore(const FeederBucketSnapshot& snapshot);
 
  private:
   bool validChannel(uint8_t channelIndex) const;

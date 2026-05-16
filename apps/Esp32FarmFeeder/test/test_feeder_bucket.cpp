@@ -55,5 +55,27 @@ int main() {
   assert(buckets.updateBaseInfo(0, info) == FeederBucketResult::Ok);
   assert(buckets.enabledChannelMask() == 0b0001);
 
+  FeederBucketSnapshot persisted;
+  persisted.channels[0].baseInfo.enabled = true;
+  persisted.channels[0].baseInfo.outputPulsesPerRev = 4320;
+  persisted.channels[0].baseInfo.gramsPerRevX100 = 7000;
+  persisted.channels[0].baseInfo.capacityGramsX100 = 500000;
+  persisted.channels[0].remainGramsX100 = 125000;
+  persisted.channels[0].lastRefillUnixTime = 1800000000;
+  persisted.channels[1].baseInfo.enabled = true;
+  persisted.channels[1].baseInfo.outputPulsesPerRev = 4000;
+  persisted.channels[1].baseInfo.gramsPerRevX100 = 6500;
+  persisted.channels[1].baseInfo.capacityGramsX100 = 300000;
+  persisted.channels[1].remainGramsX100 = 0;
+  persisted.channels[1].underflow = true;
+  assert(buckets.restore(persisted) == FeederBucketResult::Ok);
+  snapshot = buckets.snapshot();
+  assert(snapshot.channels[0].remainPercent == 25);
+  assert(snapshot.channels[0].lastRefillUnixTime == 1800000000);
+  assert(snapshot.channels[1].underflow);
+
+  persisted.channels[0].remainGramsX100 = 600000;
+  assert(buckets.restore(persisted) == FeederBucketResult::InvalidArgument);
+
   return 0;
 }

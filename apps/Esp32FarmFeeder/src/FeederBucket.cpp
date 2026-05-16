@@ -104,6 +104,29 @@ FeederBucketSnapshot FeederBucketService::snapshot() const {
   return snapshot_;
 }
 
+FeederBucketResult FeederBucketService::restore(const FeederBucketSnapshot& snapshot) {
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    const FeederBucketState& channel = snapshot.channels[i];
+    const bool emptyDisabledChannel =
+        !channel.baseInfo.enabled && channel.baseInfo.outputPulsesPerRev == 0 &&
+        channel.baseInfo.gramsPerRevX100 == 0 && channel.baseInfo.capacityGramsX100 == 0 &&
+        channel.remainGramsX100 == 0;
+    if (emptyDisabledChannel) {
+      continue;
+    }
+    const FeederBucketResult validation = validateBaseInfo(channel.baseInfo);
+    if (validation != FeederBucketResult::Ok || channel.remainGramsX100 < 0 ||
+        channel.remainGramsX100 > channel.baseInfo.capacityGramsX100) {
+      return FeederBucketResult::InvalidArgument;
+    }
+  }
+  snapshot_ = snapshot;
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    recomputePercent(i);
+  }
+  return FeederBucketResult::Ok;
+}
+
 bool FeederBucketService::validChannel(uint8_t channelIndex) const {
   return channelIndex < kFeederMaxChannels;
 }
