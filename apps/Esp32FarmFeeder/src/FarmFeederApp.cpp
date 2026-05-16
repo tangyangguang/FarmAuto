@@ -26,12 +26,12 @@ uint16_t g_lastScheduleMinute = 24 * 60;
 uint32_t g_lastScheduleDate = 0;
 bool g_recordStorageReady = false;
 
-static constexpr uint8_t kFarmFeederApiRouteCount = 20;
+static constexpr uint8_t kFarmFeederApiRouteCount = 21;
 static constexpr const char* kFeederRecordRootDir = "/records";
 static constexpr const char* kFeederRecordDir = "/records/feeder";
 static constexpr const char* kFeederRecordCurrentPath = "/records/feeder/current.far";
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
-              "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 20");
+              "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 21");
 
 void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   if (!Esp32BaseWeb::addApi(path, handler)) {
@@ -87,6 +87,7 @@ const char* recordTypeName(FeederRecordType type) {
     case FeederRecordType::ChannelStarted: return "FeederChannelStarted";
     case FeederRecordType::ChannelStopped: return "FeederChannelStopped";
     case FeederRecordType::BatchCompleted: return "FeederBatchCompleted";
+    case FeederRecordType::FaultCleared: return "FeederFaultCleared";
   }
   return "UnknownEvent";
 }
@@ -117,6 +118,10 @@ bool recordTypeFromName(const char* name, FeederRecordType& out) {
   }
   if (strcmp(name, "FeederBatchCompleted") == 0 || strcmp(name, "BatchCompleted") == 0) {
     out = FeederRecordType::BatchCompleted;
+    return true;
+  }
+  if (strcmp(name, "FeederFaultCleared") == 0 || strcmp(name, "FaultCleared") == 0) {
+    out = FeederRecordType::FaultCleared;
     return true;
   }
   return false;
@@ -923,6 +928,7 @@ void FarmFeederApp::configureBusinessShell() {
   addFarmFeederApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
   addFarmFeederApi("/api/app/base-info/channel", FarmFeederApp::handleBaseInfoChannel);
   addFarmFeederApi("/api/app/records", FarmFeederApp::sendRecordsJson);
+  addFarmFeederApi("/api/app/maintenance/clear-fault", FarmFeederApp::handleMaintenanceClearFault);
 #endif
 }
 
@@ -1170,6 +1176,60 @@ void FarmFeederApp::handleFeederStopAll() {
   record.successMask = result == FeederCommandResult::Ok ? runningMask : 0;
   recordBusinessEvent(record);
   sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleMaintenanceClearFault() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channelMask = 0;
+  if (!readUint8Param("channelMask", channelMask)) {
+    uint8_t channel = 0;
+    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+      sendResultJson(400, "InvalidArgument");
+      return;
+    }
+    channelMask = static_cast<uint8_t>(1U << channel);
+  }
+
+  uint8_t successMask = 0;
+  uint8_t skippedMask = 0;
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((channelMask & bit) == 0) {
+      continue;
+    }
+    const FeederCommandResult result = g_feeder.clearChannelFault(i);
+    if (result == FeederCommandResult::Ok) {
+      successMask |= bit;
+    } else {
+      skippedMask |= bit;
+    }
+  }
+
+  FeederRecord record;
+  record.type = FeederRecordType::FaultCleared;
+  record.result = successMask != 0 && skippedMask == 0
+                    ? FeederRecordResult::Ok
+                    : (successMask != 0 ? FeederRecordResult::Partial
+                                        : FeederRecordResult::InvalidArgument);
+  record.requestedMask = channelMask;
+  record.successMask = successMask;
+  record.skippedMask = skippedMask;
+  recordBusinessEvent(record);
+
+  Esp32BaseWeb::beginJson(successMask != 0 ? 200 : 400);
+  Esp32BaseWeb::sendChunk("{\"result\":\"");
+  Esp32BaseWeb::sendChunk(successMask != 0 && skippedMask == 0
+                            ? "Ok"
+                            : (successMask != 0 ? "Partial" : "InvalidArgument"));
+  Esp32BaseWeb::sendChunk("\",\"requestedMask\":");
+  sendUint8(channelMask);
+  Esp32BaseWeb::sendChunk(",\"successMask\":");
+  sendUint8(successMask);
+  Esp32BaseWeb::sendChunk(",\"skippedMask\":");
+  sendUint8(skippedMask);
+  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
 #endif
 }
 
