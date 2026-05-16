@@ -98,6 +98,15 @@ c++ -std=c++17 \
 
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_bucket_codec.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederBucketCodec.cpp" \
+  "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
+  -o /tmp/farmauto_test_feeder_bucket_codec
+/tmp/farmauto_test_feeder_bucket_codec
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_target.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederTarget.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederBucket.cpp" \

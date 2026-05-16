@@ -5,7 +5,7 @@ FarmAuto 是养殖自动化设备 monorepo，规划包含两个独立应用：
 - Esp32FarmDoor：鸡舍/养殖场自动门控制器。
 - Esp32FarmFeeder：三路喂食器控制器。
 
-当前阶段已从分析、策划和文档进入源码阶段。公共库源码骨架已创建，`apps/Esp32FarmDoor` 已创建最小可编译应用骨架；`apps/Esp32FarmFeeder` 仍暂不创建。
+当前阶段已从分析、策划和文档进入源码阶段。公共库源码骨架已创建，`apps/Esp32FarmDoor` 和 `apps/Esp32FarmFeeder` 已创建最小可编译应用骨架。
 
 正式文档按编号放在 `docs/` 中，建议从 [docs/00-overview.md](docs/00-overview.md) 开始阅读。
 
@@ -18,5 +18,5 @@ FarmAuto 是养殖自动化设备 monorepo，规划包含两个独立应用：
 
 ## Source Status
 
-Current source work includes public library skeletons under `lib/` and a minimal compile-ready `apps/Esp32FarmDoor` application shell.
-`apps/Esp32FarmFeeder` is intentionally not created yet.
+Current source work includes public library skeletons under `lib/` and minimal compile-ready application shells under `apps/Esp32FarmDoor` and `apps/Esp32FarmFeeder`.
+Implemented host-tested application logic currently includes business record codecs, record file rotation, feeder scheduling, feeder bucket state handling, and fixed payload codecs for AT24C-backed recovery/state data.
