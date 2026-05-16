@@ -6,6 +6,8 @@
 #include <Esp32EncodedDcMotor.h>
 #include <Esp32MotorCurrentGuard.h>
 
+#include <cstring>
+
 #include "DoorController.h"
 #include "FarmDoorHardware.h"
 
@@ -28,6 +30,14 @@ Esp32EncodedDcMotor::MotorStopPolicy g_motorStopPolicy;
 Esp32MotorCurrentGuard::Ina240A2AnalogConfig g_currentSensor;
 Esp32MotorCurrentGuard::MotorCurrentGuardConfig g_currentGuard;
 Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
+
+bool ina240CompileEnabled() {
+#if FARMAUTO_FARMDOOR_ENABLE_INA240A2
+  return true;
+#else
+  return false;
+#endif
+}
 
 const char* boolJson(bool value) {
   return value ? "true" : "false";
@@ -119,6 +129,27 @@ uint16_t positionPercent(const DoorSnapshot& snapshot) {
   return static_cast<uint16_t>(percent);
 }
 
+void applyRuntimeConfigFromBase() {
+#if ESP32BASE_ENABLE_APP_CONFIG
+  const bool requestedCurrentGuard =
+      Esp32BaseConfig::getBool("door", "currentGuard", false);
+  g_currentGuard.enabled = ina240CompileEnabled() && requestedCurrentGuard;
+#else
+  g_currentGuard.enabled = false;
+#endif
+}
+
+#if ESP32BASE_ENABLE_APP_CONFIG
+void onAppConfigChange(const Esp32BaseAppConfig::Change& change) {
+  if (change.field.ns && change.field.key && strcmp(change.field.ns, "door") == 0 &&
+      strcmp(change.field.key, "currentGuard") == 0) {
+    applyRuntimeConfigFromBase();
+    ESP32BASE_LOG_I("farmdoor", "current_guard_runtime_enabled=%s",
+                    g_currentGuard.enabled ? "yes" : "no");
+  }
+}
+#endif
+
 }  // namespace
 
 FarmDoorApp FarmDoor;
@@ -135,6 +166,7 @@ void FarmDoorApp::begin() {
   if (!Esp32Base::begin()) {
     ESP32BASE_LOG_E("farmdoor", "Esp32Base begin failed: %s", Esp32Base::lastError());
   } else {
+    applyRuntimeConfigFromBase();
     ESP32BASE_LOG_I("farmdoor", "skeleton ready, ina240a2_gpio=%u enabled=%s",
                     FarmDoorHw.pins().currentAdc,
                     g_currentGuard.enabled ? "yes" : "no");
@@ -209,6 +241,7 @@ void FarmDoorApp::configureStaticDefaults() {
 void FarmDoorApp::configureAppConfigPage() {
 #if ESP32BASE_ENABLE_APP_CONFIG
   Esp32BaseAppConfig::setTitle("Esp32FarmDoor 参数");
+  Esp32BaseAppConfig::setChangeCallback(onAppConfigChange);
   Esp32BaseAppConfig::addGroup({"motor", "电机"});
   Esp32BaseAppConfig::addGroup({"protection", "保护"});
   Esp32BaseAppConfig::addGroup({"current", "电流检测"});
