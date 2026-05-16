@@ -60,4 +60,11 @@ c++ -std=c++17 \
   -o /tmp/farmauto_test_feeder_target
 /tmp/farmauto_test_feeder_target
 
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_run_tracker.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederRunTracker.cpp" \
+  -o /tmp/farmauto_test_feeder_run_tracker
+/tmp/farmauto_test_feeder_run_tracker
+
 echo "Host tests passed."

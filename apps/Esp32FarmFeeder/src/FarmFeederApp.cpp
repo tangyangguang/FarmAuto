@@ -5,6 +5,7 @@
 
 #include "FeederBucket.h"
 #include "FeederController.h"
+#include "FeederRunTracker.h"
 #include "FeederSchedule.h"
 #include "FeederTarget.h"
 
@@ -15,6 +16,7 @@ FeederControllerConfig g_feederConfig;
 FeederScheduleService g_schedules;
 FeederBucketService g_buckets;
 FeederTargetService g_targets;
+FeederRunTracker g_runs;
 
 static constexpr uint8_t kFarmFeederApiRouteCount = 19;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
@@ -47,13 +49,21 @@ const char* channelStateName(FeederChannelState state) {
   return "Unknown";
 }
 
+const char* runSourceName(FeederRunSource source) {
+  switch (source) {
+    case FeederRunSource::Manual: return "Manual";
+    case FeederRunSource::Schedule: return "Schedule";
+  }
+  return "Manual";
+}
+
 void sendUint8(uint8_t value) {
   char number[8];
   snprintf(number, sizeof(number), "%u", static_cast<unsigned>(value));
   Esp32BaseWeb::sendChunk(number);
 }
 
-void sendChannelArray(const FeederSnapshot& snapshot) {
+void sendChannelArray(const FeederSnapshot& snapshot, const FeederRunSnapshot& runs) {
   Esp32BaseWeb::sendChunk("[");
   for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
     if (i > 0) {
@@ -63,7 +73,22 @@ void sendChannelArray(const FeederSnapshot& snapshot) {
     sendUint8(i);
     Esp32BaseWeb::sendChunk(",\"state\":\"");
     Esp32BaseWeb::sendChunk(channelStateName(snapshot.channels[i]));
-    Esp32BaseWeb::sendChunk("\"}");
+    Esp32BaseWeb::sendChunk("\",\"run\":{\"active\":");
+    const FeederRunChannel& run = runs.channels[i];
+    Esp32BaseWeb::sendChunk(run.active ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"source\":\"");
+    Esp32BaseWeb::sendChunk(runSourceName(run.source));
+    Esp32BaseWeb::sendChunk("\",\"targetPulses\":");
+    char number[16];
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(run.targetPulses));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"estimatedGramsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(run.estimatedGramsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"actualPulses\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(run.actualPulses));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk("}}");
   }
   Esp32BaseWeb::sendChunk("]");
 }
@@ -385,6 +410,9 @@ FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource sour
     return result;
   }
   FeederStartResult result = g_feeder.startChannels(targets.okMask, source);
+  if (result.successMask != 0) {
+    g_runs.start(result.successMask, source, targets);
+  }
   result.skippedMask |= static_cast<uint8_t>(targets.invalidMask | targets.notCalibratedMask);
   if (result.successMask != 0 && result.skippedMask != 0 && result.result == FeederCommandResult::Ok) {
     result.result = FeederCommandResult::Partial;
@@ -527,6 +555,7 @@ void FarmFeederApp::configureBusinessShell() {
 void FarmFeederApp::sendStatusJson() {
 #if ESP32BASE_ENABLE_WEB
   const FeederSnapshot snapshot = g_feeder.snapshot();
+  const FeederRunSnapshot runSnapshot = g_runs.snapshot();
   const FeederScheduleSnapshot scheduleSnapshot = g_schedules.snapshot();
   const FeederBucketSnapshot bucketSnapshot = g_buckets.snapshot();
 
@@ -548,7 +577,7 @@ void FarmFeederApp::sendStatusJson() {
   Esp32BaseWeb::sendChunk(",\"runningCount\":");
   sendUint8(snapshot.runningCount);
   Esp32BaseWeb::sendChunk(",\"channels\":");
-  sendChannelArray(snapshot);
+  sendChannelArray(snapshot, runSnapshot);
   Esp32BaseWeb::sendChunk(",\"schedule\":");
   sendScheduleSummary(scheduleSnapshot);
   Esp32BaseWeb::sendChunk(",\"buckets\":");
@@ -654,6 +683,9 @@ void FarmFeederApp::handleFeederStop() {
     channelMask = static_cast<uint8_t>(1U << channel);
   }
   const FeederCommandResult result = g_feeder.stopChannels(channelMask);
+  if (result == FeederCommandResult::Ok) {
+    g_runs.stop(channelMask);
+  }
   sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
 #endif
 }
@@ -661,6 +693,9 @@ void FarmFeederApp::handleFeederStop() {
 void FarmFeederApp::handleFeederStopAll() {
 #if ESP32BASE_ENABLE_WEB
   const FeederCommandResult result = g_feeder.stopAll();
+  if (result == FeederCommandResult::Ok) {
+    g_runs.stopAll();
+  }
   sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
 #endif
 }
