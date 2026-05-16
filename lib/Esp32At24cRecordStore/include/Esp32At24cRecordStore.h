@@ -53,9 +53,22 @@ struct RecordInspect {
   uint16_t recordType = 0;
   uint16_t validSlots = 0;
   uint16_t slotCount = 0;
+  uint16_t latestSlotIndex = 0;
   uint32_t latestSequence = 0;
   uint32_t estimatedWrites = 0;
   Result lastResult = Result::NotInitialized;
+};
+
+struct SlotHeader {
+  uint32_t magic = 0;
+  uint16_t layoutVersion = 0;
+  uint16_t recordType = 0;
+  uint16_t schemaVersion = 0;
+  uint8_t flags = 0;
+  uint32_t sequence = 0;
+  uint16_t payloadLength = 0;
+  uint32_t headerCrc = 0;
+  uint32_t payloadCrc = 0;
 };
 
 class RecordStore {
@@ -74,6 +87,9 @@ public:
 
 private:
   const RegionConfig* findRegion(uint16_t recordType) const;
+  bool readHeader(const RegionConfig& region, uint16_t slotIndex, SlotHeader& out) const;
+  bool validHeaderForRegion(const RegionConfig& region, const SlotHeader& header) const;
+  bool readLatestHeader(const RegionConfig& region, SlotHeader& out, uint16_t& slotIndex) const;
 
   IAt24cDevice* device_ = nullptr;
   RecordStoreConfig config_{};
