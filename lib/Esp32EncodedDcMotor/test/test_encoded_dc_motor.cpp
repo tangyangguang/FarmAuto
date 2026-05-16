@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include "Esp32EncodedDcMotor.h"
 
 class FakeDriver : public Esp32EncodedDcMotor::IMotorDriver {
@@ -11,11 +13,13 @@ public:
   Esp32EncodedDcMotor::MotorResult stop(Esp32EncodedDcMotor::EmergencyOutputMode) override {
     lastDirection = 0;
     lastPercent = 0;
+    stopCount++;
     return Esp32EncodedDcMotor::MotorResult::Ok;
   }
 
   int8_t lastDirection = 0;
   uint8_t lastPercent = 0;
+  int stopCount = 0;
 };
 
 class FakeEncoder : public Esp32EncodedDcMotor::IEncoderReader {
@@ -44,22 +48,22 @@ int main() {
   protection.maxRunPulses = 5000;
   Esp32EncodedDcMotor::MotorStopPolicy stopPolicy{};
 
-  if (motor.begin(driver, encoder, hardware, encoderConfig) != Esp32EncodedDcMotor::MotorResult::Ok) {
-    return 1;
-  }
-  if (motor.configure(kinematics, profile, protection, stopPolicy) != Esp32EncodedDcMotor::MotorResult::Ok) {
-    return 2;
-  }
-  if (motor.requestMovePulses(1000) != Esp32EncodedDcMotor::MotorResult::Ok) {
-    return 3;
-  }
+  assert(motor.begin(driver, encoder, hardware, encoderConfig) == Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(motor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(motor.requestMovePulses(1000) == Esp32EncodedDcMotor::MotorResult::Ok);
+
   motor.update(0);
   auto snapshot = motor.snapshot();
-  if (snapshot.state != Esp32EncodedDcMotor::MotorState::SoftStarting) {
-    return 4;
-  }
-  if (snapshot.targetPulses != 1000) {
-    return 5;
-  }
+  assert(snapshot.state == Esp32EncodedDcMotor::MotorState::SoftStarting);
+  assert(snapshot.targetPulses == 1000);
+
+  encoder.position = 1000;
+  motor.update(1200);
+  snapshot = motor.snapshot();
+  assert(snapshot.state == Esp32EncodedDcMotor::MotorState::Idle);
+  assert(snapshot.remainingPulses == 0);
+  assert(driver.stopCount == 1);
+
   return 0;
 }

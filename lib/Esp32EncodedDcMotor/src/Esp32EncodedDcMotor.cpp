@@ -95,6 +95,26 @@ void EncodedDcMotor::update(uint32_t nowMs) {
   snapshot_.elapsedMs = nowMs - commandStartMs_;
   snapshot_.lastUpdateMs = nowMs;
 
+  const bool reachedTarget =
+      (snapshot_.direction == MotorDirection::Forward &&
+       snapshot_.positionPulses >= snapshot_.targetPulses) ||
+      (snapshot_.direction == MotorDirection::Reverse &&
+       snapshot_.positionPulses <= snapshot_.targetPulses);
+  if ((snapshot_.state == MotorState::SoftStarting || snapshot_.state == MotorState::Running ||
+       snapshot_.state == MotorState::SoftStopping) &&
+      reachedTarget) {
+    snapshot_.lastCommandResult = driver_->stop(stopPolicy_.emergencyOutputMode);
+    snapshot_.state = MotorState::Idle;
+    snapshot_.activeCommand = MotorCommand::None;
+    snapshot_.direction = MotorDirection::Stopped;
+    snapshot_.targetSpeedPercent = 0;
+    snapshot_.currentSpeedPercent = 0;
+    snapshot_.driverOutputPercent = 0;
+    snapshot_.remainingPulses = 0;
+    updateTrace(nowMs);
+    return;
+  }
+
   if (snapshot_.state == MotorState::SoftStarting || snapshot_.state == MotorState::Running) {
     const uint8_t output = outputForElapsed(snapshot_.elapsedMs);
     const int8_t direction = static_cast<int8_t>(snapshot_.direction);
