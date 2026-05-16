@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-FarmAuto 当前已进入公共库源码阶段。已经完成：
+FarmAuto 当前已进入源码阶段。已经完成：
 
 - 工作区目标和约束。
 - Esp32FarmDoor / Esp32FarmFeeder 初步应用边界。
@@ -12,8 +12,12 @@ FarmAuto 当前已进入公共库源码阶段。已经完成：
 - 持久化、版本和升级原则。
 - `lib/Esp32At24cRecordStore/`、`lib/Esp32EncodedDcMotor/`、`lib/Esp32MotorCurrentGuard/` 源码骨架。
 - 三个公共库的 host 测试入口 `tools/run_host_tests.sh`。
+- `apps/Esp32FarmDoor/` 和 `apps/Esp32FarmFeeder/` 最小可编译应用工程。
+- 两个应用的业务状态机、业务记录编码、Flash 记录轮转和基础 Web/API 骨架。
+- 自动门恢复状态、喂食计划、料桶/通道基础状态的固定 payload 编解码。
+- 两个应用各自独立的 AT24C128 记录区布局常量和容量校验测试。
 
-两个应用项目暂不创建源码工程，待公共库继续完善并完成 Esp32Base 能力实测后再进入。
+当前源码仍不输出真实电机 PWM，不读取真实编码器，也不向 AT24C128 硬件写入数据；硬件适配需要实机验证后继续。
 
 ## 总体阶段
 

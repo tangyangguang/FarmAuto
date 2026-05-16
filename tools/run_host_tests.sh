@@ -59,6 +59,14 @@ c++ -std=c++17 \
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
   -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_storage_layout.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorStorageLayout.cpp" \
+  -o /tmp/farmauto_test_door_storage_layout
+/tmp/farmauto_test_door_storage_layout
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
+  -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_record_file_store.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorRecordFileStore.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorRecordCodec.cpp" \
@@ -104,6 +112,16 @@ c++ -std=c++17 \
   "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
   -o /tmp/farmauto_test_feeder_bucket_codec
 /tmp/farmauto_test_feeder_bucket_codec
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_storage_layout.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederStorageLayout.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederBucketCodec.cpp" \
+  "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
+  -o /tmp/farmauto_test_feeder_storage_layout
+/tmp/farmauto_test_feeder_storage_layout
 
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
