@@ -69,5 +69,21 @@ int main() {
   assert(batch.channels[0].targetPulses == 4320);
   assert(batch.channels[0].estimatedGramsX100 == 7000);
 
+  FeederTargetSnapshot persisted;
+  persisted.channels[0].mode = FeederTargetMode::Grams;
+  persisted.channels[0].targetGramsX100 = 5000;
+  persisted.channels[1].mode = FeederTargetMode::Revolutions;
+  persisted.channels[1].targetRevolutionsX100 = 125;
+  assert(targets.restore(persisted) == FeederTargetResult::Ok);
+  FeederTargetSnapshot restored = targets.snapshot();
+  assert(restored.channels[0].mode == FeederTargetMode::Grams);
+  assert(restored.channels[0].targetGramsX100 == 5000);
+  assert(restored.channels[1].mode == FeederTargetMode::Revolutions);
+  assert(restored.channels[1].targetRevolutionsX100 == 125);
+
+  persisted.channels[2].mode = FeederTargetMode::Grams;
+  persisted.channels[2].targetGramsX100 = 0;
+  assert(targets.restore(persisted) == FeederTargetResult::InvalidArgument);
+
   return 0;
 }

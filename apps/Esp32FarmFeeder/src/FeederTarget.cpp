@@ -95,6 +95,21 @@ FeederTargetResult FeederTargetService::setTarget(uint8_t channelIndex,
   return FeederTargetResult::Ok;
 }
 
+FeederTargetResult FeederTargetService::restore(const FeederTargetSnapshot& snapshot) {
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    const FeederTargetRequest& request = snapshot.channels[i];
+    if (request.mode == FeederTargetMode::None && request.targetGramsX100 == 0 &&
+        request.targetRevolutionsX100 == 0) {
+      continue;
+    }
+    if (!validRequest(request)) {
+      return FeederTargetResult::InvalidArgument;
+    }
+  }
+  snapshot_ = snapshot;
+  return FeederTargetResult::Ok;
+}
+
 FeederTargetSnapshot FeederTargetService::snapshot() const {
   return snapshot_;
 }

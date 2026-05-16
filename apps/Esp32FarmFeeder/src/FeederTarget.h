@@ -37,6 +37,7 @@ struct FeederTargetBatch {
 class FeederTargetService {
  public:
   FeederTargetResult setTarget(uint8_t channelIndex, const FeederTargetRequest& request);
+  FeederTargetResult restore(const FeederTargetSnapshot& snapshot);
   FeederTargetSnapshot snapshot() const;
 
  private:

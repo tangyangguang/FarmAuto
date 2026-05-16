@@ -23,7 +23,8 @@ int main() {
   assert(kFeederAt24cRegions[1].recordType ==
          static_cast<uint16_t>(FeederAt24cRecordType::Today));
   assert(kFeederAt24cRegions[2].slotSize >= kFeederScheduleEncodedBytes);
-  assert(kFeederAt24cRegions[3].slotSize >= kFeederBucketEncodedBytes);
+  assert(kFeederAt24cRegions[3].slotSize >= kFeederTargetEncodedBytes);
+  assert(kFeederAt24cRegions[4].slotSize >= kFeederBucketEncodedBytes);
 
   return 0;
 }
