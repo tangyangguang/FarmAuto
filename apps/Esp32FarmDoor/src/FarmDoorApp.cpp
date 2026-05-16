@@ -31,9 +31,9 @@ Esp32MotorCurrentGuard::Ina240A2AnalogConfig g_currentSensor;
 Esp32MotorCurrentGuard::MotorCurrentGuardConfig g_currentGuard;
 Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
 
-static constexpr uint8_t kFarmDoorApiRouteCount = 7;
+static constexpr uint8_t kFarmDoorApiRouteCount = 9;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorApiRouteCount,
-              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 7");
+              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 9");
 
 bool ina240CompileEnabled() {
 #if FARMAUTO_FARMDOOR_ENABLE_INA240A2
@@ -169,6 +169,37 @@ bool readInt64Param(const char* name, int64_t& out) {
   return true;
 }
 
+bool hasParam(const char* name) {
+  char raw[2];
+  return Esp32BaseWeb::getParam(name, raw, sizeof(raw));
+}
+
+bool readInt64ParamOptional(const char* name, int64_t& out) {
+  char raw[24];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return true;
+  }
+  char* end = nullptr;
+  const long long value = strtoll(raw, &end, 10);
+  if (!end || *end != '\0') {
+    return false;
+  }
+  out = static_cast<int64_t>(value);
+  return true;
+}
+
+int64_t openTargetPulsesFromTurnsX100(int64_t turnsX100) {
+  return (kDefaultOutputPulsesPerRev * turnsX100) / 100;
+}
+
+int64_t turnsX100FromOpenTargetPulses(int64_t openTargetPulses) {
+  return (openTargetPulses * 100) / kDefaultOutputPulsesPerRev;
+}
+
+int64_t defaultMaxRunPulsesForTarget(int64_t openTargetPulses) {
+  return (openTargetPulses * 150) / 100;
+}
+
 bool readTrustLevelParam(PositionTrustLevel& out) {
   char raw[16];
   if (!Esp32BaseWeb::getParam("trustLevel", raw, sizeof(raw))) {
@@ -192,8 +223,28 @@ bool readTrustLevelParam(PositionTrustLevel& out) {
 
 void applyRuntimeConfigFromBase() {
 #if ESP32BASE_ENABLE_APP_CONFIG
+  const int32_t speedPercent = Esp32BaseConfig::getInt("door", "speed", 60);
+  const int32_t openTurnsX100 = Esp32BaseConfig::getInt("door", "openTurns", 500);
+  const int32_t maxRunMs = Esp32BaseConfig::getInt("door", "maxRunMs", 25000);
   const bool requestedCurrentGuard =
       Esp32BaseConfig::getBool("door", "currentGuard", false);
+
+  if (speedPercent >= 10 && speedPercent <= 100) {
+    g_motorProfile.speedPercent = static_cast<uint8_t>(speedPercent);
+  }
+  if (openTurnsX100 > 0) {
+    g_doorConfig.openTargetPulses = openTargetPulsesFromTurnsX100(openTurnsX100);
+    g_doorConfig.maxRunPulses = defaultMaxRunPulsesForTarget(g_doorConfig.openTargetPulses);
+    g_motorProtection.maxRunPulses = g_doorConfig.maxRunPulses;
+  }
+  if (maxRunMs > 0) {
+    g_doorConfig.maxRunMs = static_cast<uint32_t>(maxRunMs);
+    g_motorProtection.maxRunMs = g_doorConfig.maxRunMs;
+  }
+  const DoorSnapshot snapshot = g_door.snapshot();
+  if (snapshot.state != DoorState::Opening && snapshot.state != DoorState::Closing) {
+    g_door.configure(g_doorConfig);
+  }
   g_currentGuard.enabled = ina240CompileEnabled() && requestedCurrentGuard;
 #else
   g_currentGuard.enabled = false;
@@ -217,6 +268,57 @@ void sendCommandResultJson(DoorCommandResult result) {
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
 #endif
+}
+
+void sendTravelResultJson(DoorCommandResult result, bool configSaved) {
+#if ESP32BASE_ENABLE_WEB
+  const DoorSnapshot snapshot = g_door.snapshot();
+  Esp32BaseWeb::beginJson(httpCodeFor(result));
+  Esp32BaseWeb::sendChunk("{\"result\":\"");
+  Esp32BaseWeb::sendChunk(commandResultName(result));
+  Esp32BaseWeb::sendChunk("\",\"state\":\"");
+  Esp32BaseWeb::sendChunk(stateName(snapshot.state));
+  Esp32BaseWeb::sendChunk("\",\"openTargetPulses\":");
+  sendInt64(snapshot.openTargetPulses);
+  Esp32BaseWeb::sendChunk(",\"openTurnsX100\":");
+  sendInt64(turnsX100FromOpenTargetPulses(snapshot.openTargetPulses));
+  Esp32BaseWeb::sendChunk(",\"maxRunPulses\":");
+  sendInt64(g_doorConfig.maxRunPulses);
+  Esp32BaseWeb::sendChunk(",\"configSaved\":");
+  Esp32BaseWeb::sendChunk(configSaved ? "true" : "false");
+  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+DoorCommandResult applyTravelUpdate(int64_t openTargetPulses,
+                                    int64_t maxRunPulses,
+                                    bool& configSaved) {
+  configSaved = false;
+  if (openTargetPulses <= g_doorConfig.closedPositionPulses || maxRunPulses <= 0) {
+    return DoorCommandResult::InvalidArgument;
+  }
+
+  const DoorControllerConfig oldDoorConfig = g_doorConfig;
+  const int64_t oldProtectionMaxRunPulses = g_motorProtection.maxRunPulses;
+  g_doorConfig.openTargetPulses = openTargetPulses;
+  g_doorConfig.maxRunPulses = maxRunPulses;
+  g_motorProtection.maxRunPulses = maxRunPulses;
+
+  const DoorCommandResult result = g_door.updateTravel(openTargetPulses, maxRunPulses);
+  if (result != DoorCommandResult::Ok) {
+    g_doorConfig = oldDoorConfig;
+    g_motorProtection.maxRunPulses = oldProtectionMaxRunPulses;
+    return result;
+  }
+
+#if ESP32BASE_ENABLE_APP_CONFIG
+  const int64_t turnsX100 = turnsX100FromOpenTargetPulses(openTargetPulses);
+  if (turnsX100 > 0 && turnsX100 <= 2000) {
+    configSaved = Esp32BaseConfig::setInt("door", "openTurns", static_cast<int32_t>(turnsX100));
+  }
+#endif
+  return result;
 }
 
 #if ESP32BASE_ENABLE_APP_CONFIG
@@ -348,6 +450,8 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::addApi("/api/app/door/close", FarmDoorApp::handleDoorClose);
   Esp32BaseWeb::addApi("/api/app/door/stop", FarmDoorApp::handleDoorStop);
   Esp32BaseWeb::addApi("/api/app/maintenance/set-position", FarmDoorApp::handleSetPosition);
+  Esp32BaseWeb::addApi("/api/app/maintenance/set-travel", FarmDoorApp::handleSetTravel);
+  Esp32BaseWeb::addApi("/api/app/maintenance/adjust-travel", FarmDoorApp::handleAdjustTravel);
   Esp32BaseWeb::addApi("/api/app/maintenance/clear-fault", FarmDoorApp::handleClearFault);
 #endif
 }
@@ -490,6 +594,70 @@ void FarmDoorApp::handleSetPosition() {
     return;
   }
   sendCommandResultJson(g_door.setTrustedPosition(positionPulses, trustLevel));
+#endif
+}
+
+void FarmDoorApp::handleSetTravel() {
+#if ESP32BASE_ENABLE_WEB
+  int64_t openTargetPulses = 0;
+  int64_t openTurnsX100 = 0;
+  const bool hasPulses = hasParam("openTargetPulses");
+  const bool hasTurns = hasParam("openTurnsX100");
+  if (hasPulses) {
+    if (!readInt64Param("openTargetPulses", openTargetPulses)) {
+      sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+      return;
+    }
+  } else if (hasTurns) {
+    if (!readInt64Param("openTurnsX100", openTurnsX100)) {
+      sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+      return;
+    }
+    openTargetPulses = openTargetPulsesFromTurnsX100(openTurnsX100);
+  } else {
+    sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+    return;
+  }
+
+  int64_t maxRunPulses = defaultMaxRunPulsesForTarget(openTargetPulses);
+  if (!readInt64ParamOptional("maxRunPulses", maxRunPulses)) {
+    sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+    return;
+  }
+
+  bool configSaved = false;
+  const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
+  sendTravelResultJson(result, configSaved);
+#endif
+}
+
+void FarmDoorApp::handleAdjustTravel() {
+#if ESP32BASE_ENABLE_WEB
+  int64_t deltaPulses = 0;
+  int64_t deltaTurnsX100 = 0;
+  const bool hasDeltaPulses = hasParam("deltaPulses");
+  const bool hasDeltaTurns = hasParam("deltaTurnsX100");
+  if (hasDeltaPulses) {
+    if (!readInt64Param("deltaPulses", deltaPulses)) {
+      sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+      return;
+    }
+  } else if (hasDeltaTurns) {
+    if (!readInt64Param("deltaTurnsX100", deltaTurnsX100)) {
+      sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+      return;
+    }
+    deltaPulses = openTargetPulsesFromTurnsX100(deltaTurnsX100);
+  } else {
+    sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+    return;
+  }
+
+  const int64_t openTargetPulses = g_door.snapshot().openTargetPulses + deltaPulses;
+  const int64_t maxRunPulses = defaultMaxRunPulsesForTarget(openTargetPulses);
+  bool configSaved = false;
+  const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
+  sendTravelResultJson(result, configSaved);
 #endif
 }
 
