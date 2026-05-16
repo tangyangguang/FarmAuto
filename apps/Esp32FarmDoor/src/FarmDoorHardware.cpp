@@ -31,7 +31,23 @@ FarmDoorReadOnlyDiagnostics FarmDoorHardware::readDiagnostics() {
   diagnostics.buttonStop = readDigital(pins_.buttonStop);
   diagnostics.encoderA = readDigital(pins_.encoderA);
   diagnostics.encoderB = readDigital(pins_.encoderB);
-  diagnostics.currentRawAdc = analogRead(pins_.currentAdc);
+  diagnostics.currentSampleCount = 8;
+  diagnostics.currentRawMin = 4095;
+  diagnostics.currentRawMax = 0;
+  int32_t sum = 0;
+  for (uint8_t i = 0; i < diagnostics.currentSampleCount; ++i) {
+    const int sample = analogRead(pins_.currentAdc);
+    if (sample < diagnostics.currentRawMin) {
+      diagnostics.currentRawMin = sample;
+    }
+    if (sample > diagnostics.currentRawMax) {
+      diagnostics.currentRawMax = sample;
+    }
+    sum += sample;
+    delay(1);
+  }
+  diagnostics.currentRawAvg = static_cast<int>(sum / diagnostics.currentSampleCount);
+  diagnostics.currentRawAdc = diagnostics.currentRawAvg;
   diagnostics.at24cOnline = i2cDeviceOnline(AT24C128_I2C_ADDRESS);
   return diagnostics;
 }

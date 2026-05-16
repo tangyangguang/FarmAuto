@@ -174,6 +174,18 @@ void FarmDoorApp::sendDiagnosticsJson() {
   char number[16];
   snprintf(number, sizeof(number), "%d", diagnostics.currentRawAdc);
   Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk(",\"rawMin\":");
+  snprintf(number, sizeof(number), "%d", diagnostics.currentRawMin);
+  Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk(",\"rawMax\":");
+  snprintf(number, sizeof(number), "%d", diagnostics.currentRawMax);
+  Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk(",\"rawAvg\":");
+  snprintf(number, sizeof(number), "%d", diagnostics.currentRawAvg);
+  Esp32BaseWeb::sendChunk(number);
+  Esp32BaseWeb::sendChunk(",\"sampleCount\":");
+  snprintf(number, sizeof(number), "%u", diagnostics.currentSampleCount);
+  Esp32BaseWeb::sendChunk(number);
   Esp32BaseWeb::sendChunk(",\"compileEnabled\":");
 #if FARMAUTO_FARMDOOR_ENABLE_INA240A2
   Esp32BaseWeb::sendChunk("true");

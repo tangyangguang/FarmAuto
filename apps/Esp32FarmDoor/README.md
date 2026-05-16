@@ -28,7 +28,7 @@
 `/api/app/diagnostics`
 
 - 只读硬件诊断接口，适合首次烧录后检查当前 PCB。
-- 返回按钮 GPIO 电平、编码器 A/B 当前电平、GPIO33 ADC 原始值、AT24C128 `0x50` 在线状态。
+- 返回按钮 GPIO 电平、编码器 A/B 当前电平、GPIO33 ADC 原始值和 8 次采样的 min/max/avg、AT24C128 `0x50` 在线状态。
 - 明确返回 `motorOutput.enabled=false`，不会输出 PWM，也不会驱动 AT8236。
 
 编译验证：
@@ -54,6 +54,6 @@ pio run -d apps/Esp32FarmDoor -t upload
 - `at24c.online` 是否为 `true`。
 - `buttons.open/close/stop` 按下和松开时是否变化。
 - `encoder.a/b` 手动转动电机输出轴时是否变化。
-- `currentSensor.rawAdc` 是否有稳定读数。
+- `currentSensor.rawAvg` 是否有稳定读数，`rawMin` 和 `rawMax` 差值是否较小。
 
 这些信息确认前，不建议启用任何电机输出或自动门动作。

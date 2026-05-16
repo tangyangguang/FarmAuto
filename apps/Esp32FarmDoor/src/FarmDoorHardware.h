@@ -25,6 +25,10 @@ struct FarmDoorReadOnlyDiagnostics {
   uint8_t encoderA = 0;
   uint8_t encoderB = 0;
   int currentRawAdc = 0;
+  int currentRawMin = 0;
+  int currentRawMax = 0;
+  int currentRawAvg = 0;
+  uint8_t currentSampleCount = 0;
   bool at24cOnline = false;
 };
 
