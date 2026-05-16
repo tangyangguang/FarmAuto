@@ -54,3 +54,37 @@ FeederResolvedTarget resolveFeederTarget(const FeederChannelBaseInfo& info,
   resolved.result = FeederTargetResult::InvalidArgument;
   return resolved;
 }
+
+FeederTargetResult FeederTargetService::setTarget(uint8_t channelIndex,
+                                                  const FeederTargetRequest& request) {
+  if (!validChannel(channelIndex) || !validRequest(request)) {
+    return FeederTargetResult::InvalidArgument;
+  }
+  FeederTargetRequest& target = snapshot_.channels[channelIndex];
+  target.mode = request.mode;
+  if (request.targetGramsX100 > 0) {
+    target.targetGramsX100 = request.targetGramsX100;
+  }
+  if (request.targetRevolutionsX100 > 0) {
+    target.targetRevolutionsX100 = request.targetRevolutionsX100;
+  }
+  return FeederTargetResult::Ok;
+}
+
+FeederTargetSnapshot FeederTargetService::snapshot() const {
+  return snapshot_;
+}
+
+bool FeederTargetService::validChannel(uint8_t channelIndex) {
+  return channelIndex < kFeederMaxChannels;
+}
+
+bool FeederTargetService::validRequest(const FeederTargetRequest& request) {
+  if (request.mode == FeederTargetMode::Grams) {
+    return request.targetGramsX100 > 0;
+  }
+  if (request.mode == FeederTargetMode::Revolutions) {
+    return request.targetRevolutionsX100 > 0;
+  }
+  return false;
+}

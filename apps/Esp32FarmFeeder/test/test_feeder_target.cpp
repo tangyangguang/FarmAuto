@@ -29,5 +29,17 @@ int main() {
   resolved = resolveFeederTarget(info, grams);
   assert(resolved.result == FeederTargetResult::NotCalibrated);
 
+  FeederTargetService targets;
+  assert(targets.setTarget(0, grams) == FeederTargetResult::Ok);
+  assert(targets.snapshot().channels[0].mode == FeederTargetMode::Grams);
+  assert(targets.snapshot().channels[0].targetGramsX100 == 7000);
+
+  assert(targets.setTarget(0, revolutions) == FeederTargetResult::Ok);
+  assert(targets.snapshot().channels[0].mode == FeederTargetMode::Revolutions);
+  assert(targets.snapshot().channels[0].targetGramsX100 == 7000);
+  assert(targets.snapshot().channels[0].targetRevolutionsX100 == 150);
+
+  assert(targets.setTarget(4, grams) == FeederTargetResult::InvalidArgument);
+
   return 0;
 }

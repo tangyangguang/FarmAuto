@@ -6,6 +6,7 @@
 #include "FeederBucket.h"
 #include "FeederController.h"
 #include "FeederSchedule.h"
+#include "FeederTarget.h"
 
 namespace {
 
@@ -13,6 +14,7 @@ FeederController g_feeder;
 FeederControllerConfig g_feederConfig;
 FeederScheduleService g_schedules;
 FeederBucketService g_buckets;
+FeederTargetService g_targets;
 
 const char* deviceStateName(FeederDeviceState state) {
   switch (state) {
@@ -146,6 +148,50 @@ void sendBaseInfoSummary(const FeederBucketSnapshot& snapshot) {
     Esp32BaseWeb::sendChunk(",\"capacityGramsX100\":");
     snprintf(number, sizeof(number), "%ld", static_cast<long>(info.capacityGramsX100));
     Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk("}");
+  }
+  Esp32BaseWeb::sendChunk("]");
+}
+
+const char* targetModeName(FeederTargetMode mode) {
+  switch (mode) {
+    case FeederTargetMode::None: return "None";
+    case FeederTargetMode::Grams: return "Grams";
+    case FeederTargetMode::Revolutions: return "Revolutions";
+  }
+  return "None";
+}
+
+void sendTargetSummary(const FeederTargetSnapshot& targets, const FeederBucketSnapshot& buckets) {
+  Esp32BaseWeb::sendChunk("[");
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    const FeederTargetRequest& target = targets.channels[i];
+    const FeederChannelBaseInfo& info = buckets.channels[i].baseInfo;
+    const FeederResolvedTarget resolved = resolveFeederTarget(info, target);
+    Esp32BaseWeb::sendChunk("{\"channel\":");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk(",\"enabled\":");
+    Esp32BaseWeb::sendChunk(info.enabled ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"targetMode\":\"");
+    Esp32BaseWeb::sendChunk(targetModeName(target.mode));
+    Esp32BaseWeb::sendChunk("\",\"targetGramsX100\":");
+    char number[16];
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(target.targetGramsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"targetRevolutionsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(target.targetRevolutionsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"targetPulses\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(resolved.targetPulses));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"estimatedGramsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(resolved.estimatedGramsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"calibrated\":");
+    Esp32BaseWeb::sendChunk(info.gramsPerRevX100 > 0 ? "true" : "false");
     Esp32BaseWeb::sendChunk("}");
   }
   Esp32BaseWeb::sendChunk("]");
@@ -356,6 +402,12 @@ void FarmFeederApp::configureStaticDefaults() {
     if (g_buckets.updateBaseInfo(i, channelInfo) != FeederBucketResult::Ok) {
       ESP32BASE_LOG_E("farmfeeder", "bucket_base_info_failed channel=%u", static_cast<unsigned>(i));
     }
+    FeederTargetRequest target;
+    target.mode = FeederTargetMode::Grams;
+    target.targetGramsX100 = 7000;
+    if (g_targets.setTarget(i, target) != FeederTargetResult::Ok) {
+      ESP32BASE_LOG_E("farmfeeder", "target_default_failed channel=%u", static_cast<unsigned>(i));
+    }
   }
 }
 
@@ -386,6 +438,8 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::addApi("/api/app/feeders/start", FarmFeederApp::handleFeederStart);
   Esp32BaseWeb::addApi("/api/app/feeders/stop", FarmFeederApp::handleFeederStop);
   Esp32BaseWeb::addApi("/api/app/feeders/stop-all", FarmFeederApp::handleFeederStopAll);
+  Esp32BaseWeb::addApi("/api/app/feeders/targets", FarmFeederApp::sendTargetsJson);
+  Esp32BaseWeb::addApi("/api/app/feeders/target", FarmFeederApp::handleFeederTarget);
   Esp32BaseWeb::addApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
   Esp32BaseWeb::addApi("/api/app/schedules/create", FarmFeederApp::handleScheduleCreate);
   Esp32BaseWeb::addApi("/api/app/schedules/update", FarmFeederApp::handleScheduleUpdate);
@@ -460,6 +514,32 @@ void FarmFeederApp::sendBaseInfoJson() {
   sendBaseInfoSummary(g_buckets.snapshot());
   Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::sendTargetsJson() {
+#if ESP32BASE_ENABLE_WEB
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"channels\":");
+  sendTargetSummary(g_targets.snapshot(), g_buckets.snapshot());
+  Esp32BaseWeb::sendChunk("}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::handleFeederTarget() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channel = 0;
+  FeederTargetRequest request;
+  if (!readUint8Param("channel", channel) || !readTargetModeParam("targetMode", request.mode) ||
+      !readInt32ParamOptional("targetGramsX100", request.targetGramsX100) ||
+      !readInt32ParamOptional("targetRevolutionsX100", request.targetRevolutionsX100)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederTargetResult result = g_targets.setTarget(channel, request);
+  sendResultJson(result == FeederTargetResult::Ok ? 200 : 400,
+                 result == FeederTargetResult::Ok ? "Ok" : "InvalidArgument");
 #endif
 }
 
