@@ -2,16 +2,18 @@
 
 ## 当前状态
 
-FarmAuto 当前处于规划与架构阶段。已经完成：
+FarmAuto 当前已进入公共库源码阶段。已经完成：
 
 - 工作区目标和约束。
 - Esp32FarmDoor / Esp32FarmFeeder 初步应用边界。
 - `docs/apps/` 与 `docs/libs/` 文档分组。
-- 三个公共库的初步职责边界。
+- 三个公共库的职责边界和首版接口方向。
 - 公共库与 Esp32Base 的分工原则。
 - 持久化、版本和升级原则。
+- `lib/Esp32At24cRecordStore/`、`lib/Esp32EncodedDcMotor/`、`lib/Esp32MotorCurrentGuard/` 源码骨架。
+- 三个公共库的 host 测试入口 `tools/run_host_tests.sh`。
 
-两个应用项目的具体需求仍需继续沟通完善，暂不进入最终需求冻结和编码阶段。
+两个应用项目暂不创建源码工程，待公共库继续完善并完成 Esp32Base 能力实测后再进入。
 
 ## 总体阶段
 
@@ -22,13 +24,9 @@ FarmAuto 当前处于规划与架构阶段。已经完成：
 - 明确 monorepo 结构。
 - 明确应用和公共库边界。
 - 明确 Esp32Base 与 FarmAuto 公共库的分工。
-- 明确当前阶段不写源码、不创建 PlatformIO 工程。
+- 明确文档和目录边界，不创建应用工程。
 
-当前阶段剩余工作：
-
-- 继续完善两个应用项目的需求设计。
-- 明确每个应用的首版验收标准。
-- 明确实机实验项和默认参数来源。
+本阶段已完成。后续如发现新约束，直接补充到对应正式文档。
 
 完成标准：
 
@@ -68,6 +66,8 @@ FarmAuto 当前处于规划与架构阶段。已经完成：
 - 创建 `lib/Esp32MotorCurrentGuard/`。
 - 创建 `lib/Esp32At24cRecordStore/`。
 
+状态：已完成。
+
 产物：
 
 - 最小 Arduino/PlatformIO library 结构。
@@ -86,6 +86,7 @@ FarmAuto 当前处于规划与架构阶段。已经完成：
 目标：
 
 - 实现可独立验证的公共能力。
+- 当前已完成第一批 host 可验证能力，后续继续补硬件适配和边界测试。
 
 建议顺序：
 

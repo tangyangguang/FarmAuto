@@ -96,15 +96,15 @@
 lib/<LibraryName>/
   library.json
   README.md
-  CHANGELOG.md
-  include/<LibraryName>/
-    <public headers>
+  include/
+    <LibraryName>.h
   src/
     <implementation files>
   examples/
     <example_name>/
-      platformio.ini
-      src/main.cpp
+      <example_name>.ino
+  test/
+    test_<library>.cpp
 ```
 
 约束：
@@ -112,7 +112,8 @@ lib/<LibraryName>/
 - `include/` 只放稳定公共头文件。
 - `src/` 放实现和私有头文件。
 - `examples/` 不依赖 FarmAuto 应用代码，不包含具体应用业务词汇。
-- `library.json` 明确 platform、framework、dependencies、export.exclude。
+- `test/` 放 host 可编译的最小单元测试。
+- `library.json` 明确 platform、framework 和必要编译参数。
 - 首版不创建多余脚手架；只有真实需要的 examples 才落地。
 
 ## FarmAuto 如何引用独立库
