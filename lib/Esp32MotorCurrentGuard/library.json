@@ -3,16 +3,9 @@
   "version": "0.1.0",
   "description": "ESP32 motor current guard primitives for INA240A2-style current sensing.",
   "keywords": ["esp32", "motor", "current", "ina240", "guard"],
-  "authors": [
-    {
-      "name": "FarmAuto"
-    }
-  ],
-  "license": "UNLICENSED",
   "frameworks": ["arduino"],
   "platforms": ["espressif32"],
   "build": {
-    "includeDir": "include",
-    "srcDir": "src"
+    "flags": ["-std=gnu++17"]
   }
 }
