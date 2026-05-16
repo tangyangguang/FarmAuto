@@ -6,6 +6,13 @@
 using namespace Esp32MotorCurrentGuard;
 
 int main() {
+  Ina240A2AnalogConfig inaConfig;
+  inaConfig.amplifierGain = 50.0f;
+  inaConfig.senseResistorMilliOhm = 5.0f;
+  inaConfig.zeroOffsetMv = 1650;
+  assert(currentMaFromIna240A2Voltage(inaConfig, 1900) == 1000);
+  assert(currentMaFromIna240A2Voltage(inaConfig, 1400) == -1000);
+
   MotorCurrentGuard guard;
 
   MotorCurrentGuardConfig config;

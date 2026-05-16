@@ -2,6 +2,16 @@
 
 namespace Esp32MotorCurrentGuard {
 
+int32_t currentMaFromIna240A2Voltage(const Ina240A2AnalogConfig& config, int32_t voltageMv) {
+  if (config.amplifierGain <= 0.0f || config.senseResistorMilliOhm <= 0.0f) {
+    return 0;
+  }
+  const int32_t deltaMv = config.bidirectional ? (voltageMv - config.zeroOffsetMv) : voltageMv;
+  const float currentMa =
+      static_cast<float>(deltaMv) * 1000.0f / (config.amplifierGain * config.senseResistorMilliOhm);
+  return static_cast<int32_t>(currentMa >= 0 ? currentMa + 0.5f : currentMa - 0.5f);
+}
+
 CurrentGuardResult MotorCurrentGuard::configure(const MotorCurrentGuardConfig& config) {
   if (isInvalidConfig(config)) {
     return CurrentGuardResult::InvalidConfig;

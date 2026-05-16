@@ -52,6 +52,8 @@ struct Ina240A2AnalogConfig {
   bool bidirectional = true;
 };
 
+int32_t currentMaFromIna240A2Voltage(const Ina240A2AnalogConfig& config, int32_t voltageMv);
+
 struct MotorCurrentGuardConfig {
   bool enabled = false;
   int32_t warningThresholdMa = 0;
