@@ -13,6 +13,18 @@ uint32_t readU32(const uint8_t* bytes) {
          (static_cast<uint32_t>(bytes[2]) << 16) | (static_cast<uint32_t>(bytes[3]) << 24);
 }
 
+uint64_t readU64(const uint8_t* bytes) {
+  uint64_t value = 0;
+  for (uint8_t i = 0; i < 8; ++i) {
+    value |= static_cast<uint64_t>(bytes[i]) << (i * 8);
+  }
+  return value;
+}
+
+int32_t readI32(const uint8_t* bytes) {
+  return static_cast<int32_t>(readU32(bytes));
+}
+
 void writeU16(uint8_t* bytes, uint16_t value) {
   bytes[0] = static_cast<uint8_t>(value & 0xFFu);
   bytes[1] = static_cast<uint8_t>((value >> 8) & 0xFFu);
@@ -53,7 +65,7 @@ void encodePayload(const FeederRecord& record, uint8_t* payload) {
   payload[11] = record.busyMask;
   payload[12] = record.faultMask;
   payload[13] = record.skippedMask;
-  payload[14] = 0;
+  payload[14] = record.planId;
   payload[15] = 0;
   writeI32(payload + 16, record.targetPulses);
   writeI32(payload + 20, record.estimatedGramsX100);
@@ -139,5 +151,35 @@ FeederRecordCodecResult verifyFeederEncodedRecord(const uint8_t* data, std::size
     return FeederRecordCodecResult::CrcMismatch;
   }
 
+  return FeederRecordCodecResult::Ok;
+}
+
+FeederRecordCodecResult decodeFeederEncodedRecord(const uint8_t* data,
+                                                  std::size_t length,
+                                                  FeederRecord& out) {
+  const FeederRecordCodecResult verifyResult = verifyFeederEncodedRecord(data, length);
+  if (verifyResult != FeederRecordCodecResult::Ok) {
+    return verifyResult;
+  }
+
+  const uint8_t* payload = data + kFeederRecordHeaderSize;
+  FeederRecord record;
+  record.type = static_cast<FeederRecordType>(data[8]);
+  record.result = static_cast<FeederRecordResult>(data[9]);
+  record.sequence = readU32(data + 12);
+  record.unixTime = static_cast<uint32_t>(readU64(data + 16));
+  record.bootId = readU32(payload + 0);
+  record.uptimeSec = readU32(payload + 4);
+  record.channel = payload[8];
+  record.requestedMask = payload[9];
+  record.successMask = payload[10];
+  record.busyMask = payload[11];
+  record.faultMask = payload[12];
+  record.skippedMask = payload[13];
+  record.planId = payload[14];
+  record.targetPulses = readI32(payload + 16);
+  record.estimatedGramsX100 = readI32(payload + 20);
+  record.actualPulses = readI32(payload + 24);
+  out = record;
   return FeederRecordCodecResult::Ok;
 }

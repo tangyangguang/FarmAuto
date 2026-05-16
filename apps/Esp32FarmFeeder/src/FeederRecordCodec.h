@@ -34,3 +34,7 @@ FeederRecordEncodeResult encodeFeederRecord(const FeederRecord& record,
                                             std::size_t& encodedLength);
 
 FeederRecordCodecResult verifyFeederEncodedRecord(const uint8_t* data, std::size_t length);
+
+FeederRecordCodecResult decodeFeederEncodedRecord(const uint8_t* data,
+                                                  std::size_t length,
+                                                  FeederRecord& out);
