@@ -74,6 +74,7 @@ class FeederScheduleService {
   FeederScheduleResult cancelSkipToday(uint8_t planId);
   FeederScheduleResult markAttempted(uint8_t planId);
   FeederScheduleResult markExecuted(uint8_t planId);
+  void clearToday();
   FeederScheduleTick evaluate(uint16_t currentMinutes, bool timeValid);
   FeederPlanState nextPlan(uint16_t currentMinutes) const;
   FeederScheduleSnapshot snapshot() const;

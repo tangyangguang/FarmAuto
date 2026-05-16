@@ -13,7 +13,8 @@ enum class FeederRecordType : uint8_t {
   ChannelStarted,
   ChannelStopped,
   BatchCompleted,
-  FaultCleared
+  FaultCleared,
+  TodayCleared
 };
 
 enum class FeederRecordResult : uint8_t {

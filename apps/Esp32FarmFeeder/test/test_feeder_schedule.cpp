@@ -56,6 +56,12 @@ int main() {
   assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
   assert(schedules.snapshot().plans[1].scheduleMissedToday);
 
+  assert(schedules.skipToday(2) == FeederScheduleResult::Ok);
+  schedules.clearToday();
+  assert(!schedules.snapshot().plans[0].scheduleMissedToday);
+  assert(!schedules.snapshot().plans[1].scheduleMissedToday);
+  assert(!schedules.snapshot().plans[1].skipToday);
+
   assert(schedules.skipToday(99) == FeederScheduleResult::NotFound);
   assert(schedules.deletePlan(1) == FeederScheduleResult::Ok);
   assert(schedules.snapshot().planCount == 1);

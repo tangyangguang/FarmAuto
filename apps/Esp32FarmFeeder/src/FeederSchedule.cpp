@@ -97,6 +97,15 @@ FeederScheduleResult FeederScheduleService::markExecuted(uint8_t planId) {
   return FeederScheduleResult::Ok;
 }
 
+void FeederScheduleService::clearToday() {
+  for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
+    snapshot_.plans[i].skipToday = false;
+    snapshot_.plans[i].scheduleAttemptedToday = false;
+    snapshot_.plans[i].todayExecuted = false;
+    snapshot_.plans[i].scheduleMissedToday = false;
+  }
+}
+
 FeederScheduleTick FeederScheduleService::evaluate(uint16_t currentMinutes, bool timeValid) {
   FeederScheduleTick tick;
   if (!timeValid) {
