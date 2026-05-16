@@ -26,7 +26,7 @@
 | Web / API | `Esp32BaseWeb` route、auth、chunked response、JSON helpers | 业务 API 用 `/api/app/*`；系统页面保持 `/esp32base/*` |
 | Web Auth | `Esp32BaseWeb::checkAuth()`、内置 `/esp32base/auth` | 正式设备复用基础认证，不做独立用户系统 |
 | OTA | `Esp32BaseOta`、`/esp32base/ota` | FarmAuto 不实现 OTA 页面、上传、回滚或 mark-valid 逻辑 |
-| LittleFS 文件 API | `Esp32BaseFs` | 多年业务记录后续通过该 API 实现，不直接操作 LittleFS |
+| LittleFS 文件 API | `Esp32BaseFs` | 多年业务记录通过该 API 实现，不直接操作 LittleFS |
 | 系统重启 | `Esp32BaseSystem::restart(reason)` | 应用如需重启必须走基础库生命周期 |
 | Watchdog / Health | `Esp32BaseWatchdog`、`Esp32BaseHealth` | 不自己喂狗或做系统健康页 |
 | 事件总线 | `Esp32BaseBus` | 只有多个模块确实需要解耦事件时再用；当前不强行引入 |
@@ -36,7 +36,7 @@
 | 项目 | 当前状态 |
 | --- | --- |
 | `apps/Esp32FarmDoor` | 使用 Esp32Base FULL profile、Web API helper、App Config、日志；未直接使用 WiFi/WebServer/LittleFS/Preferences/NTP/OTA |
-| `apps/Esp32FarmFeeder` | 使用 Esp32Base FULL profile、Web API helper、App Config、日志、NTP snapshot；未直接实现基础网络或文件系统功能 |
+| `apps/Esp32FarmFeeder` | 使用 Esp32Base FULL profile、Web API helper、App Config、日志、NTP snapshot、Esp32BaseFs 文件 API；未直接实现基础网络或文件系统功能 |
 | `lib/*` 公共库 | 核心逻辑不依赖 Esp32Base，保持可独立复用；日志、Web、配置由应用薄接入 |
 
 `platformio.ini` 中列出 `WiFi`、`WebServer`、`LittleFS` 等库是因为 Esp32Base FULL profile 的链接依赖，不代表 FarmAuto 应用代码可以直接使用这些底层库。
@@ -69,5 +69,6 @@
 
 - FarmFeeder API 路由数已超过 Esp32Base 默认 16，但 Esp32Base 明确支持 `ESP32BASE_WEB_MAX_ROUTES` 编译期配置；当前应用设置为 32，属于正确复用基础库能力，不需要改基础库。
 - FarmFeeder 计划执行已改为读取 `Esp32BaseNtp::snapshot()`，不再需要任何应用级 NTP 设计。
-- 长期记录后续应使用 `Esp32BaseFs`，并避免在 HTTP handler 中全量扫描或长时间阻塞。
+- 喂食器长期记录已使用 `Esp32BaseFs::appendBytes()`、`fileSize()`、`readBytesAt()`、`mkdir()` 和 `exists()`，没有直接操作 LittleFS。
+- 长期记录分页读取必须继续避免在 HTTP handler 中全量扫描或长时间阻塞；当前喂食器记录查询按 `start` / `limit` / `nextIndex` 分批读取。
 - 危险操作二次确认当前文档仍规划为应用内最小 token；如果两个应用大量重复后再评估是否沉淀到 Esp32Base。
