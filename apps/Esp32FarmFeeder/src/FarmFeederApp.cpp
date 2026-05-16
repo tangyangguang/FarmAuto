@@ -220,10 +220,6 @@ bool readTargetModeParam(const char* name, FeederTargetMode& out) {
   return false;
 }
 
-bool readAction(char* out, size_t len) {
-  return Esp32BaseWeb::getParam("action", out, len) && out[0] != '\0';
-}
-
 const char* bucketResultName(FeederBucketResult result) {
   switch (result) {
     case FeederBucketResult::Ok: return "Ok";
@@ -279,18 +275,6 @@ void sendStartResultJson(const FeederStartResult& result) {
   sendUint8(result.skippedMask);
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
-}
-
-bool readChannelMaskParam(uint8_t& channelMask) {
-  if (readUint8Param("channelMask", channelMask)) {
-    return true;
-  }
-  uint8_t channel = 0;
-  if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
-    return false;
-  }
-  channelMask = static_cast<uint8_t>(1U << channel);
-  return true;
 }
 
 bool readPlanConfigFromParams(FeederPlanConfig& config) {
@@ -398,11 +382,20 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   Esp32BaseWeb::addApi("/api/app/status", FarmFeederApp::sendStatusJson);
-  Esp32BaseWeb::addApi("/api/app/feeders/control", FarmFeederApp::handleFeederControl);
+  Esp32BaseWeb::addApi("/api/app/feeders/manual-start", FarmFeederApp::handleFeederManualStart);
+  Esp32BaseWeb::addApi("/api/app/feeders/start", FarmFeederApp::handleFeederStart);
+  Esp32BaseWeb::addApi("/api/app/feeders/stop", FarmFeederApp::handleFeederStop);
+  Esp32BaseWeb::addApi("/api/app/feeders/stop-all", FarmFeederApp::handleFeederStopAll);
   Esp32BaseWeb::addApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
-  Esp32BaseWeb::addApi("/api/app/schedules/action", FarmFeederApp::handleScheduleAction);
+  Esp32BaseWeb::addApi("/api/app/schedules/create", FarmFeederApp::handleScheduleCreate);
+  Esp32BaseWeb::addApi("/api/app/schedules/update", FarmFeederApp::handleScheduleUpdate);
+  Esp32BaseWeb::addApi("/api/app/schedules/delete", FarmFeederApp::handleScheduleDelete);
+  Esp32BaseWeb::addApi("/api/app/schedule-occurrence/skip", FarmFeederApp::handleScheduleSkip);
+  Esp32BaseWeb::addApi("/api/app/schedule-occurrence/cancel-skip", FarmFeederApp::handleScheduleCancelSkip);
   Esp32BaseWeb::addApi("/api/app/buckets", FarmFeederApp::sendBucketsJson);
-  Esp32BaseWeb::addApi("/api/app/buckets/action", FarmFeederApp::handleBucketAction);
+  Esp32BaseWeb::addApi("/api/app/buckets/set-remaining", FarmFeederApp::handleBucketSetRemaining);
+  Esp32BaseWeb::addApi("/api/app/buckets/add-feed", FarmFeederApp::handleBucketAddFeed);
+  Esp32BaseWeb::addApi("/api/app/buckets/mark-full", FarmFeederApp::handleBucketMarkFull);
   Esp32BaseWeb::addApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
   Esp32BaseWeb::addApi("/api/app/base-info/channel", FarmFeederApp::handleBaseInfoChannel);
 #endif
@@ -470,45 +463,57 @@ void FarmFeederApp::sendBaseInfoJson() {
 #endif
 }
 
-void FarmFeederApp::handleFeederControl() {
+void FarmFeederApp::handleFeederManualStart() {
 #if ESP32BASE_ENABLE_WEB
-  char action[18];
-  if (!readAction(action, sizeof(action))) {
-    sendResultJson(400, "InvalidArgument");
-    return;
-  }
-  if (strcmp(action, "stop-all") == 0) {
-    const FeederCommandResult result = g_feeder.stopAll();
-    sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
-    return;
-  }
   uint8_t channelMask = 0;
-  if (!readChannelMaskParam(channelMask)) {
+  if (!readUint8Param("channelMask", channelMask)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
-
-  if (strcmp(action, "manual-start") == 0 || strcmp(action, "start") == 0) {
-    sendStartResultJson(g_feeder.startChannels(channelMask, FeederRunSource::Manual));
-    return;
-  }
-  if (strcmp(action, "stop") == 0) {
-    const FeederCommandResult result = g_feeder.stopChannels(channelMask);
-    sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
-    return;
-  }
-  sendResultJson(400, "InvalidArgument");
+  sendStartResultJson(g_feeder.startChannels(channelMask, FeederRunSource::Manual));
 #endif
 }
 
-void FarmFeederApp::handleScheduleAction() {
+void FarmFeederApp::handleFeederStart() {
 #if ESP32BASE_ENABLE_WEB
-  char action[18];
-  if (!readAction(action, sizeof(action))) {
-    sendResultJson(400, "InvalidArgument");
-    return;
+  uint8_t channelMask = 0;
+  if (!readUint8Param("channelMask", channelMask)) {
+    uint8_t channel = 0;
+    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+      sendResultJson(400, "InvalidArgument");
+      return;
+    }
+    channelMask = static_cast<uint8_t>(1U << channel);
   }
-  if (strcmp(action, "create") == 0) {
+  sendStartResultJson(g_feeder.startChannels(channelMask, FeederRunSource::Manual));
+#endif
+}
+
+void FarmFeederApp::handleFeederStop() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channelMask = 0;
+  if (!readUint8Param("channelMask", channelMask)) {
+    uint8_t channel = 0;
+    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+      sendResultJson(400, "InvalidArgument");
+      return;
+    }
+    channelMask = static_cast<uint8_t>(1U << channel);
+  }
+  const FeederCommandResult result = g_feeder.stopChannels(channelMask);
+  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleFeederStopAll() {
+#if ESP32BASE_ENABLE_WEB
+  const FeederCommandResult result = g_feeder.stopAll();
+  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleScheduleCreate() {
+#if ESP32BASE_ENABLE_WEB
   FeederPlanConfig config;
   if (!readPlanConfigFromParams(config)) {
     sendResultJson(400, "InvalidArgument");
@@ -522,9 +527,11 @@ void FarmFeederApp::handleScheduleAction() {
   sendUint8(mutation.planId);
   Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
-    return;
-  }
-  if (strcmp(action, "update") == 0) {
+#endif
+}
+
+void FarmFeederApp::handleScheduleUpdate() {
+#if ESP32BASE_ENABLE_WEB
   uint8_t planId = 0;
   FeederPlanConfig config;
   if (!readUint8Param("planId", planId) || !readPlanConfigFromParams(config)) {
@@ -533,9 +540,11 @@ void FarmFeederApp::handleScheduleAction() {
   }
   const FeederScheduleResult result = g_schedules.updatePlan(planId, config);
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 400, scheduleResultName(result));
-    return;
-  }
-  if (strcmp(action, "delete") == 0) {
+#endif
+}
+
+void FarmFeederApp::handleScheduleDelete() {
+#if ESP32BASE_ENABLE_WEB
   uint8_t planId = 0;
   if (!readUint8Param("planId", planId)) {
     sendResultJson(400, "InvalidArgument");
@@ -543,9 +552,11 @@ void FarmFeederApp::handleScheduleAction() {
   }
   const FeederScheduleResult result = g_schedules.deletePlan(planId);
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
-    return;
-  }
-  if (strcmp(action, "skip") == 0) {
+#endif
+}
+
+void FarmFeederApp::handleScheduleSkip() {
+#if ESP32BASE_ENABLE_WEB
   uint8_t planId = 0;
   if (!readUint8Param("planId", planId)) {
     sendResultJson(400, "InvalidArgument");
@@ -553,9 +564,11 @@ void FarmFeederApp::handleScheduleAction() {
   }
   const FeederScheduleResult result = g_schedules.skipToday(planId);
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
-    return;
-  }
-  if (strcmp(action, "cancel-skip") == 0) {
+#endif
+}
+
+void FarmFeederApp::handleScheduleCancelSkip() {
+#if ESP32BASE_ENABLE_WEB
   uint8_t planId = 0;
   if (!readUint8Param("planId", planId)) {
     sendResultJson(400, "InvalidArgument");
@@ -563,51 +576,44 @@ void FarmFeederApp::handleScheduleAction() {
   }
   const FeederScheduleResult result = g_schedules.cancelSkipToday(planId);
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
-    return;
-  }
-  sendResultJson(400, "InvalidArgument");
 #endif
 }
 
-void FarmFeederApp::handleBucketAction() {
+void FarmFeederApp::handleBucketSetRemaining() {
 #if ESP32BASE_ENABLE_WEB
-  char action[18];
-  if (!readAction(action, sizeof(action))) {
+  uint8_t channel = 0;
+  int32_t remainGramsX100 = 0;
+  if (!readUint8Param("channel", channel) || !readInt32Param("remainGramsX100", remainGramsX100)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  const FeederBucketResult result = g_buckets.setRemaining(channel, remainGramsX100, 0);
+  sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleBucketAddFeed() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channel = 0;
+  int32_t addedGramsX100 = 0;
+  if (!readUint8Param("channel", channel) || !readInt32Param("addedGramsX100", addedGramsX100)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederBucketResult result = g_buckets.addFeed(channel, addedGramsX100, 0);
+  sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleBucketMarkFull() {
+#if ESP32BASE_ENABLE_WEB
   uint8_t channel = 0;
   if (!readUint8Param("channel", channel)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
-
-  if (strcmp(action, "set-remaining") == 0) {
-    int32_t remainGramsX100 = 0;
-    if (!readInt32Param("remainGramsX100", remainGramsX100)) {
-      sendResultJson(400, "InvalidArgument");
-      return;
-    }
-    const FeederBucketResult result = g_buckets.setRemaining(channel, remainGramsX100, 0);
-    sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
-    return;
-  }
-  if (strcmp(action, "add-feed") == 0) {
-    int32_t addedGramsX100 = 0;
-    if (!readInt32Param("addedGramsX100", addedGramsX100)) {
-      sendResultJson(400, "InvalidArgument");
-      return;
-    }
-    const FeederBucketResult result = g_buckets.addFeed(channel, addedGramsX100, 0);
-    sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
-    return;
-  }
-  if (strcmp(action, "mark-full") == 0) {
-    const FeederBucketResult result = g_buckets.markFull(channel, 0);
-    sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
-    return;
-  }
-  sendResultJson(400, "InvalidArgument");
+  const FeederBucketResult result = g_buckets.markFull(channel, 0);
+  sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
 }
 

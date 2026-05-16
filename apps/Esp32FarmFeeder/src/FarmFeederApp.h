@@ -13,9 +13,18 @@ class FarmFeederApp {
   static void sendSchedulesJson();
   static void sendBucketsJson();
   static void sendBaseInfoJson();
-  static void handleFeederControl();
-  static void handleScheduleAction();
-  static void handleBucketAction();
+  static void handleFeederManualStart();
+  static void handleFeederStart();
+  static void handleFeederStop();
+  static void handleFeederStopAll();
+  static void handleScheduleCreate();
+  static void handleScheduleUpdate();
+  static void handleScheduleDelete();
+  static void handleScheduleSkip();
+  static void handleScheduleCancelSkip();
+  static void handleBucketSetRemaining();
+  static void handleBucketAddFeed();
+  static void handleBucketMarkFull();
   static void handleBaseInfoChannel();
 };
 
