@@ -19,15 +19,15 @@
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>操作确认</h1><div class="subtle">喂食器危险操作二次确认页面原型。</div></div><a class="button" href="feeder-dashboard.html">返回首页</a></div>
+      <div class="topbar"><div class="title-block"><h1>操作确认</h1><div class="subtle">通用确认页，实际进入时由来源页面带入动作和影响。</div></div><a class="button" href="feeder-dashboard.html">返回首页</a></div>
       <section class="section">
         <div class="section-header"><h2>确认即将执行的操作</h2><span class="pill danger">需要确认</span></div>
         <div class="section-body">
           <div class="confirm-box">
             <dl>
-              <dt>操作</dt><dd>开始所选通道手动下料</dd>
-              <dt>目标</dt><dd>通道 1：70g，新命令，不续接断电前未完成投喂</dd>
-              <dt>影响</dt><dd>鸡群可能被再次吸引到喂食位置。请确认当前时间和现场情况适合重新下料。</dd>
+              <dt>操作</dt><dd>示例：开始所选通道手动下料 / 跳过某次计划 / 删除计划 / 清除故障</dd>
+              <dt>目标</dt><dd>示例：通道 1：70g；或 2026-05-17 12:30 中午补喂；或计划“傍晚少量”。</dd>
+              <dt>影响</dt><dd>页面必须清楚说明本次动作影响范围。手动下料会启动电机；跳过本次只影响该执行实例；删除计划会移除长期蓝本。</dd>
             </dl>
             <div class="field"><label>确认输入</label><input class="input" value="我确认"></div>
             <div class="actions"><button class="button danger">确认执行</button><a class="button" href="feeder-dashboard.html">取消</a></div>

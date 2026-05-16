@@ -26,7 +26,7 @@
           <div class="metric-grid">
             <div class="metric"><div class="metric-label">当前位置</div><div class="metric-value">0.00 圈</div></div>
             <div class="metric"><div class="metric-label">当前开门目标</div><div class="metric-value">5.00 圈</div></div>
-            <div class="metric"><div class="metric-label">每圈信号数</div><div class="metric-value">4320</div></div>
+            <div class="metric"><div class="metric-label">每圈信号数</div><div class="metric-value">2096</div></div>
             <div class="metric"><div class="metric-label">运行状态</div><div class="metric-value">待机</div></div>
           </div>
           <div class="form-grid">
@@ -46,7 +46,33 @@
             <a class="button" href="farmdoor-confirm.html">把当前位置标为关门基准（清零）…</a>
             <a class="button primary" href="farmdoor-confirm.html">用当前位置更新开门目标…</a>
           </div>
-          <div class="page-note">这里用于远程调整门板位置并保存关门基准或开门目标。电机速度、保护上限等低频参数由基础库配置页面管理，本业务页不重复做参数入口。</div>
+          <div class="page-note">这里用于远程调整门板位置并保存关门基准或开门目标。每圈信号数来自自动门配置，当前示例使用 2096。</div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>行程设置与验证</h2><span class="subtle">无限位首版的远程维护核心流程</span></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>直接设置开门行程</label>
+              <div class="input-with-unit"><input class="input" type="number" min="0.1" max="20" step="0.05" value="5.00"><span class="input-unit">圈</span></div>
+            </div>
+            <div class="field">
+              <label>微调步长</label>
+              <div class="input-with-unit"><input class="input" type="number" min="0.01" max="1" step="0.01" value="0.05"><span class="input-unit">圈</span></div>
+            </div>
+            <div class="field">
+              <label>验证速度</label>
+              <div class="input-with-unit"><input class="input" type="number" min="10" max="50" step="5" value="20"><span class="input-unit">%</span></div>
+            </div>
+          </div>
+          <div class="actions">
+            <a class="button" href="farmdoor-confirm.html">保存直接设置的行程…</a>
+            <a class="button" href="farmdoor-confirm.html">开门目标 + 微调…</a>
+            <a class="button" href="farmdoor-confirm.html">开门目标 - 微调…</a>
+            <a class="button primary" href="farmdoor-confirm.html">低速验证开门行程…</a>
+          </div>
+          <div class="page-note">行程设置、微调和低速验证都属于危险操作，必须二次确认并记录业务事件。电机速度、保护上限等低频参数仍由基础库配置页面管理。</div>
         </div>
       </section>
     </main>

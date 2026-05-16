@@ -49,7 +49,7 @@
           <div class="page-note">以下操作只用于自动门业务诊断，不修改配置，不清空数据。</div>
           <table class="data-table">
             <tbody>
-              <tr><td data-label="操作">电流零点校准</td><td data-label="作用">未来安装 INA240A2 后，在电机不运行时采样零点，减少电流保护误判。首版未安装电流检测时不显示。</td><td data-label="入口"><button class="button" disabled>未安装</button></td></tr>
+              <tr><td data-label="操作">电流零点校准</td><td data-label="作用">目标 PCB 若已安装 INA240A2，则在电机不运行时采样零点，减少电流保护误判；是否作为首版启用项需硬件确认。</td><td data-label="入口"><a class="button" href="farmdoor-confirm.html">校准…</a></td></tr>
               <tr><td data-label="操作">业务恢复快照检查</td><td data-label="作用">检查自动门断电恢复用的 AT24C 记录是否可读、CRC 是否正常、最新位置是否可信。</td><td data-label="入口"><button class="button">检查</button></td></tr>
               <tr><td data-label="操作">运行记录检查</td><td data-label="作用">检查业务记录分页索引是否可读、最近记录是否连续。</td><td data-label="入口"><button class="button">检查</button></td></tr>
             </tbody>

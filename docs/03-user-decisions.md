@@ -37,6 +37,7 @@
 | C16 | 自动门第一版无限位保护余量 | 已确认：`maxRunPulses` 和 `maxCloseUnwindPulses` 初始为开门目标的 150%；下一阶段有上限位后可缩紧 | `docs/apps/14-configuration-and-defaults.md` | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | 暂无需回复 |
 | C17 | OTA 策略 | OTA 由 Esp32Base 提供，FarmAuto 不实现 OTA 业务逻辑；FarmAuto 只在源码前确认基础库 OTA 能力可用 | `docs/apps/23-esp32base-web-integration.md` | Esp32Base `docs/05_ota.md` | 暂无需回复 |
 | C18 | 记录页时间范围筛选 | 推荐作为首版必须能力，导出仍非首版必须 | `docs/apps/13-web-api-and-maintenance.md` | `docs/apps/19-web-page-prototypes.md`、`docs/apps/26-web-prototype-review.md` | 暂按推荐执行，若反对请说明 |
+| C19 | 自动门 INA240A2 是否首版启用 | 待确认：如果目标 PCB 已装 INA240A2，则首版启用电流零点校准和电流保护；如果未装，则文档降级为预留 | `docs/apps/10-esp32-farmdoor-rewrite-plan.md` | `docs/prototypes/web/farmdoor-diagnostics.html`、`docs/apps/24-esp32-farmdoor-web-api.md` | 需要确认目标 PCB 是否已安装 INA240A2 |
 
 ## 公共库决策
 
