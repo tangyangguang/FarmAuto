@@ -169,6 +169,9 @@ bool FeederScheduleService::planCanRunToday(const FeederPlanState& plan) const {
 }
 
 bool FeederScheduleService::hasRunnableTarget(const FeederPlanConfig& config) {
+  if (!config.enabled) {
+    return !config.timeConfigured || config.timeMinutes < 24 * 60;
+  }
   if (config.channelMask == 0 || !config.timeConfigured || config.timeMinutes >= 24 * 60) {
     return false;
   }
