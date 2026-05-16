@@ -30,6 +30,8 @@ static constexpr uint8_t kFarmFeederApiRouteCount = 24;
 static constexpr const char* kFeederRecordRootDir = "/records";
 static constexpr const char* kFeederRecordDir = "/records/feeder";
 static constexpr const char* kFeederRecordCurrentPath = "/records/feeder/current.far";
+static constexpr uint32_t kFeederRecordMaxCurrentBytes = 64UL * 1024UL;
+static constexpr uint8_t kFeederRecordMaxArchives = 16;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
               "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 24");
 
@@ -180,8 +182,20 @@ bool appendFeederRecordBytes(const char* path, const uint8_t* data, std::size_t 
   return Esp32BaseFs::appendBytes(path, data, length);
 }
 
+bool feederRecordPathExists(const char* path, void*) {
+  return Esp32BaseFs::exists(path);
+}
+
 int64_t feederRecordFileSize(const char* path, void*) {
   return Esp32BaseFs::fileSize(path);
+}
+
+bool removeFeederRecordFile(const char* path, void*) {
+  return Esp32BaseFs::removeFile(path);
+}
+
+bool renameFeederRecordFile(const char* from, const char* to, void*) {
+  return Esp32BaseFs::rename(from, to);
 }
 
 bool readFeederRecordBytesAt(const char* path,
@@ -216,6 +230,20 @@ void recordBusinessEvent(const FeederRecord& record) {
 #if ESP32BASE_ENABLE_FS
   if (!ensureRecordStorageReady()) {
     return;
+  }
+  const FeederRecordRotateResult rotateResult =
+      rotateFeederRecordPathIfNeeded(kFeederRecordCurrentPath,
+                                     kFeederRecordMaxCurrentBytes,
+                                     kFeederRecordMaxArchives,
+                                     kFeederRecordEncodedMaxBytes,
+                                     feederRecordFileSize,
+                                     feederRecordPathExists,
+                                     removeFeederRecordFile,
+                                     renameFeederRecordFile,
+                                     nullptr);
+  if (rotateResult != FeederRecordRotateResult::Ok) {
+    ESP32BASE_LOG_W("farmfeeder", "record_rotate_failed result=%u",
+                    static_cast<unsigned>(rotateResult));
   }
   const FeederRecordWriteResult result = appendFeederRecordToPath(
       stored, kFeederRecordCurrentPath, appendFeederRecordBytes, nullptr);

@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "FeederRecordFileStore.h"
 
@@ -11,6 +12,16 @@ struct CaptureAppender {
   uint8_t bytes[kFeederRecordEncodedMaxBytes * 4] = {};
   std::size_t length = 0;
   bool fail = false;
+};
+
+struct RotationCapture {
+  bool currentExists = true;
+  int64_t currentSize = 0;
+  char removed[4][96] = {};
+  uint8_t removedCount = 0;
+  char renameFrom[4][96] = {};
+  char renameTo[4][96] = {};
+  uint8_t renamedCount = 0;
 };
 
 bool appendCapture(const char* path, const uint8_t* data, std::size_t length, void* user) {
@@ -55,6 +66,52 @@ bool readCapture(const char*,
   if (readLength) {
     *readLength = n;
   }
+  return true;
+}
+
+bool existsRotate(const char* path, void* user) {
+  RotationCapture* capture = static_cast<RotationCapture*>(user);
+  if (capture == nullptr || path == nullptr) {
+    return false;
+  }
+  if (strcmp(path, "/records/feeder/current.far") == 0) {
+    return capture->currentExists;
+  }
+  return true;
+}
+
+int64_t fileSizeRotate(const char* path, void* user) {
+  RotationCapture* capture = static_cast<RotationCapture*>(user);
+  if (capture == nullptr || path == nullptr) {
+    return -1;
+  }
+  if (strcmp(path, "/records/feeder/current.far") == 0) {
+    return capture->currentSize;
+  }
+  return -1;
+}
+
+bool removeRotate(const char* path, void* user) {
+  RotationCapture* capture = static_cast<RotationCapture*>(user);
+  if (capture == nullptr || path == nullptr || capture->removedCount >= 4) {
+    return false;
+  }
+  std::strncpy(capture->removed[capture->removedCount], path,
+               sizeof(capture->removed[capture->removedCount]) - 1);
+  ++capture->removedCount;
+  return true;
+}
+
+bool renameRotate(const char* from, const char* to, void* user) {
+  RotationCapture* capture = static_cast<RotationCapture*>(user);
+  if (capture == nullptr || from == nullptr || to == nullptr || capture->renamedCount >= 4) {
+    return false;
+  }
+  std::strncpy(capture->renameFrom[capture->renamedCount], from,
+               sizeof(capture->renameFrom[capture->renamedCount]) - 1);
+  std::strncpy(capture->renameTo[capture->renamedCount], to,
+               sizeof(capture->renameTo[capture->renamedCount]) - 1);
+  ++capture->renamedCount;
   return true;
 }
 
@@ -149,6 +206,25 @@ int main() {
                               readCapture,
                               &capture,
                               page) == FeederRecordReadResult::InvalidArgument);
+
+  RotationCapture rotate;
+  rotate.currentSize = static_cast<int64_t>(kFeederRecordEncodedMaxBytes * 3);
+  assert(rotateFeederRecordPathIfNeeded("/records/feeder/current.far",
+                                        static_cast<uint32_t>(kFeederRecordEncodedMaxBytes * 3),
+                                        2,
+                                        kFeederRecordEncodedMaxBytes,
+                                        fileSizeRotate,
+                                        existsRotate,
+                                        removeRotate,
+                                        renameRotate,
+                                        &rotate) == FeederRecordRotateResult::Ok);
+  assert(rotate.removedCount == 1);
+  assert(strcmp(rotate.removed[0], "/records/feeder/current.far.2") == 0);
+  assert(rotate.renamedCount == 2);
+  assert(strcmp(rotate.renameFrom[0], "/records/feeder/current.far.1") == 0);
+  assert(strcmp(rotate.renameTo[0], "/records/feeder/current.far.2") == 0);
+  assert(strcmp(rotate.renameFrom[1], "/records/feeder/current.far") == 0);
+  assert(strcmp(rotate.renameTo[1], "/records/feeder/current.far.1") == 0);
 
   return 0;
 }

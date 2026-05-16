@@ -20,6 +20,14 @@ enum class DoorRecordReadResult : uint8_t {
   CrcMismatch
 };
 
+enum class DoorRecordRotateResult : uint8_t {
+  Ok,
+  InvalidArgument,
+  FileSizeFailed,
+  RemoveFailed,
+  RenameFailed
+};
+
 static constexpr uint8_t kDoorRecordPageMaxRecords = 16;
 
 struct DoorRecordPage {
@@ -51,10 +59,26 @@ using DoorRecordReadBytesAt = bool (*)(const char* path,
                                        std::size_t* readLength,
                                        void* user);
 
+using DoorRecordFileExists = bool (*)(const char* path, void* user);
+
+using DoorRecordRemoveFile = bool (*)(const char* path, void* user);
+
+using DoorRecordRenameFile = bool (*)(const char* from, const char* to, void* user);
+
 DoorRecordWriteResult appendDoorRecordToPath(const DoorRecord& record,
                                              const char* path,
                                              DoorRecordAppendBytes appendBytes,
                                              void* user);
+
+DoorRecordRotateResult rotateDoorRecordPathIfNeeded(const char* currentPath,
+                                                    uint32_t maxBytes,
+                                                    uint8_t maxArchives,
+                                                    std::size_t nextAppendBytes,
+                                                    DoorRecordFileSize fileSize,
+                                                    DoorRecordFileExists exists,
+                                                    DoorRecordRemoveFile removeFile,
+                                                    DoorRecordRenameFile renameFile,
+                                                    void* user);
 
 DoorRecordReadResult readDoorRecordPage(const char* path,
                                         uint32_t startIndex,

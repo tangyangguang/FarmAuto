@@ -41,6 +41,8 @@ static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorApiRouteCount,
 static constexpr const char* kDoorRecordRootDir = "/records";
 static constexpr const char* kDoorRecordDir = "/records/door";
 static constexpr const char* kDoorRecordCurrentPath = "/records/door/current.dar";
+static constexpr uint32_t kDoorRecordMaxCurrentBytes = 64UL * 1024UL;
+static constexpr uint8_t kDoorRecordMaxArchives = 16;
 
 bool ina240CompileEnabled() {
 #if FARMAUTO_FARMDOOR_ENABLE_INA240A2
@@ -313,8 +315,20 @@ bool appendDoorRecordBytes(const char* path, const uint8_t* data, std::size_t le
   return Esp32BaseFs::appendBytes(path, data, length);
 }
 
+bool doorRecordPathExists(const char* path, void*) {
+  return Esp32BaseFs::exists(path);
+}
+
 int64_t doorRecordFileSize(const char* path, void*) {
   return Esp32BaseFs::fileSize(path);
+}
+
+bool removeDoorRecordFile(const char* path, void*) {
+  return Esp32BaseFs::removeFile(path);
+}
+
+bool renameDoorRecordFile(const char* from, const char* to, void*) {
+  return Esp32BaseFs::rename(from, to);
 }
 
 bool readDoorRecordBytesAt(const char* path,
@@ -349,6 +363,20 @@ void recordBusinessEvent(const DoorRecord& record) {
 #if ESP32BASE_ENABLE_FS
   if (!ensureRecordStorageReady()) {
     return;
+  }
+  const DoorRecordRotateResult rotateResult =
+      rotateDoorRecordPathIfNeeded(kDoorRecordCurrentPath,
+                                   kDoorRecordMaxCurrentBytes,
+                                   kDoorRecordMaxArchives,
+                                   kDoorRecordEncodedMaxBytes,
+                                   doorRecordFileSize,
+                                   doorRecordPathExists,
+                                   removeDoorRecordFile,
+                                   renameDoorRecordFile,
+                                   nullptr);
+  if (rotateResult != DoorRecordRotateResult::Ok) {
+    ESP32BASE_LOG_W("farmdoor", "record_rotate_failed result=%u",
+                    static_cast<unsigned>(rotateResult));
   }
   const DoorRecordWriteResult result = appendDoorRecordToPath(
       stored, kDoorRecordCurrentPath, appendDoorRecordBytes, nullptr);

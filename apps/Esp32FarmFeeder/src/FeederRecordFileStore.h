@@ -20,6 +20,14 @@ enum class FeederRecordReadResult : uint8_t {
   CrcMismatch
 };
 
+enum class FeederRecordRotateResult : uint8_t {
+  Ok,
+  InvalidArgument,
+  FileSizeFailed,
+  RemoveFailed,
+  RenameFailed
+};
+
 static constexpr uint8_t kFeederRecordPageMaxRecords = 16;
 
 struct FeederRecordPage {
@@ -51,10 +59,26 @@ using FeederRecordReadBytesAt = bool (*)(const char* path,
                                          std::size_t* readLength,
                                          void* user);
 
+using FeederRecordFileExists = bool (*)(const char* path, void* user);
+
+using FeederRecordRemoveFile = bool (*)(const char* path, void* user);
+
+using FeederRecordRenameFile = bool (*)(const char* from, const char* to, void* user);
+
 FeederRecordWriteResult appendFeederRecordToPath(const FeederRecord& record,
                                                  const char* path,
                                                  FeederRecordAppendBytes appendBytes,
                                                  void* user);
+
+FeederRecordRotateResult rotateFeederRecordPathIfNeeded(const char* currentPath,
+                                                        uint32_t maxBytes,
+                                                        uint8_t maxArchives,
+                                                        std::size_t nextAppendBytes,
+                                                        FeederRecordFileSize fileSize,
+                                                        FeederRecordFileExists exists,
+                                                        FeederRecordRemoveFile removeFile,
+                                                        FeederRecordRenameFile renameFile,
+                                                        void* user);
 
 FeederRecordReadResult readFeederRecordPage(const char* path,
                                             uint32_t startIndex,

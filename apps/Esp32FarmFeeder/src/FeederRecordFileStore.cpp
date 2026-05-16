@@ -1,9 +1,20 @@
 #include "FeederRecordFileStore.h"
 
+#include <cstdio>
+
 namespace {
 
 bool validPath(const char* path) {
   return path != nullptr && path[0] == '/';
+}
+
+bool archivePath(const char* currentPath, uint8_t archiveIndex, char* out, std::size_t outSize) {
+  if (!validPath(currentPath) || archiveIndex == 0 || out == nullptr || outSize == 0) {
+    return false;
+  }
+  const int written =
+      std::snprintf(out, outSize, "%s.%u", currentPath, static_cast<unsigned>(archiveIndex));
+  return written > 0 && static_cast<std::size_t>(written) < outSize;
 }
 
 }  // namespace
@@ -27,6 +38,60 @@ FeederRecordWriteResult appendFeederRecordToPath(const FeederRecord& record,
 
   return appendBytes(path, encoded, encodedLength, user) ? FeederRecordWriteResult::Ok
                                                         : FeederRecordWriteResult::WriteFailed;
+}
+
+FeederRecordRotateResult rotateFeederRecordPathIfNeeded(const char* currentPath,
+                                                        uint32_t maxBytes,
+                                                        uint8_t maxArchives,
+                                                        std::size_t nextAppendBytes,
+                                                        FeederRecordFileSize fileSize,
+                                                        FeederRecordFileExists exists,
+                                                        FeederRecordRemoveFile removeFile,
+                                                        FeederRecordRenameFile renameFile,
+                                                        void* user) {
+  if (!validPath(currentPath) || maxBytes == 0 || maxArchives == 0 ||
+      nextAppendBytes > maxBytes || fileSize == nullptr || exists == nullptr ||
+      removeFile == nullptr || renameFile == nullptr) {
+    return FeederRecordRotateResult::InvalidArgument;
+  }
+  if (!exists(currentPath, user)) {
+    return FeederRecordRotateResult::Ok;
+  }
+
+  const int64_t size = fileSize(currentPath, user);
+  if (size < 0) {
+    return FeederRecordRotateResult::FileSizeFailed;
+  }
+  if (size + static_cast<int64_t>(nextAppendBytes) <= static_cast<int64_t>(maxBytes)) {
+    return FeederRecordRotateResult::Ok;
+  }
+
+  char oldestPath[96];
+  if (!archivePath(currentPath, maxArchives, oldestPath, sizeof(oldestPath))) {
+    return FeederRecordRotateResult::InvalidArgument;
+  }
+  if (exists(oldestPath, user) && !removeFile(oldestPath, user)) {
+    return FeederRecordRotateResult::RemoveFailed;
+  }
+
+  for (uint8_t index = maxArchives; index > 1; --index) {
+    char fromPath[96];
+    char toPath[96];
+    if (!archivePath(currentPath, static_cast<uint8_t>(index - 1), fromPath, sizeof(fromPath)) ||
+        !archivePath(currentPath, index, toPath, sizeof(toPath))) {
+      return FeederRecordRotateResult::InvalidArgument;
+    }
+    if (exists(fromPath, user) && !renameFile(fromPath, toPath, user)) {
+      return FeederRecordRotateResult::RenameFailed;
+    }
+  }
+
+  char firstArchivePath[96];
+  if (!archivePath(currentPath, 1, firstArchivePath, sizeof(firstArchivePath))) {
+    return FeederRecordRotateResult::InvalidArgument;
+  }
+  return renameFile(currentPath, firstArchivePath, user) ? FeederRecordRotateResult::Ok
+                                                        : FeederRecordRotateResult::RenameFailed;
 }
 
 FeederRecordReadResult readFeederRecordPage(const char* path,
