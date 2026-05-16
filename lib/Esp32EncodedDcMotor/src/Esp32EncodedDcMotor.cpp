@@ -54,8 +54,15 @@ MotorResult EncodedDcMotor::requestStop() {
     return MotorResult::NotInitialized;
   }
   snapshot_.activeCommand = MotorCommand::Stop;
-  snapshot_.state = profile_.softStopMs > 0 ? MotorState::SoftStopping : MotorState::Idle;
   snapshot_.targetSpeedPercent = 0;
+  if (profile_.softStopMs > 0 &&
+      (snapshot_.state == MotorState::SoftStarting || snapshot_.state == MotorState::Running)) {
+    snapshot_.state = MotorState::SoftStopping;
+    stopStartMs_ = snapshot_.lastUpdateMs;
+    snapshot_.lastCommandResult = MotorResult::Ok;
+    return MotorResult::Ok;
+  }
+  snapshot_.state = MotorState::Idle;
   snapshot_.currentSpeedPercent = 0;
   snapshot_.driverOutputPercent = 0;
   snapshot_.direction = MotorDirection::Stopped;
@@ -149,6 +156,33 @@ void EncodedDcMotor::update(uint32_t nowMs) {
       snapshot_.currentSpeedPercent = profile_.speedPercent;
       snapshot_.driverOutputPercent = profile_.speedPercent;
     }
+  }
+
+  if (snapshot_.state == MotorState::SoftStopping) {
+    const uint32_t stopElapsedMs = nowMs - stopStartMs_;
+    if (profile_.softStopMs == 0 || stopElapsedMs >= profile_.softStopMs) {
+      snapshot_.lastCommandResult = driver_->stop(stopPolicy_.emergencyOutputMode);
+      snapshot_.state = MotorState::Idle;
+      snapshot_.activeCommand = MotorCommand::None;
+      snapshot_.direction = MotorDirection::Stopped;
+      snapshot_.currentSpeedPercent = 0;
+      snapshot_.driverOutputPercent = 0;
+      snapshot_.remainingPulses = snapshot_.targetPulses - snapshot_.positionPulses;
+      updateTrace(nowMs);
+      return;
+    }
+
+    const uint32_t scaled =
+        static_cast<uint32_t>(profile_.speedPercent) * (profile_.softStopMs - stopElapsedMs) /
+        profile_.softStopMs;
+    uint8_t output = static_cast<uint8_t>(scaled);
+    if (output < profile_.minEffectiveSpeedPercent) {
+      output = profile_.minEffectiveSpeedPercent;
+    }
+    snapshot_.lastCommandResult =
+        driver_->setOutput(static_cast<int8_t>(snapshot_.direction), output);
+    snapshot_.currentSpeedPercent = output;
+    snapshot_.driverOutputPercent = output;
   }
 
   updateTrace(nowMs);

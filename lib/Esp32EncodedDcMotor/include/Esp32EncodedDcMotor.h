@@ -218,6 +218,7 @@ private:
   MotorTracePoint trace_{};
   bool configured_ = false;
   uint32_t commandStartMs_ = 0;
+  uint32_t stopStartMs_ = 0;
 };
 
 }  // namespace Esp32EncodedDcMotor

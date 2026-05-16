@@ -76,5 +76,23 @@ int main() {
   assert(snapshot.faultReason == Esp32EncodedDcMotor::FaultReason::MaxRunPulses);
   assert(driver.stopCount == 2);
 
+  FakeDriver stopDriver;
+  FakeEncoder stopEncoder;
+  Esp32EncodedDcMotor::EncodedDcMotor stopMotor;
+  protection.maxRunPulses = 5000;
+  assert(stopMotor.begin(stopDriver, stopEncoder, hardware, encoderConfig) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(stopMotor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(stopMotor.requestMovePulses(1000) == Esp32EncodedDcMotor::MotorResult::Ok);
+  stopMotor.update(1000);
+  assert(stopMotor.snapshot().state == Esp32EncodedDcMotor::MotorState::Running);
+  assert(stopMotor.requestStop() == Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(stopMotor.snapshot().state == Esp32EncodedDcMotor::MotorState::SoftStopping);
+  assert(stopDriver.stopCount == 0);
+  stopMotor.update(1600);
+  assert(stopMotor.snapshot().state == Esp32EncodedDcMotor::MotorState::Idle);
+  assert(stopDriver.stopCount == 1);
+
   return 0;
 }
