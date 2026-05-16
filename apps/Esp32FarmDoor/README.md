@@ -36,3 +36,24 @@
 ```bash
 pio run -d apps/Esp32FarmDoor
 ```
+
+首次烧录建议流程：
+
+```bash
+pio run -d apps/Esp32FarmDoor -t upload
+```
+
+启动后先访问 Esp32Base 提供的网络/系统页面完成 WiFi 或 AP 模式确认，再访问：
+
+```text
+/api/app/diagnostics
+```
+
+先确认：
+
+- `at24c.online` 是否为 `true`。
+- `buttons.open/close/stop` 按下和松开时是否变化。
+- `encoder.a/b` 手动转动电机输出轴时是否变化。
+- `currentSensor.rawAdc` 是否有稳定读数。
+
+这些信息确认前，不建议启用任何电机输出或自动门动作。
