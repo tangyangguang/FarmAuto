@@ -34,5 +34,12 @@ int main() {
   assert(doorRecordResultFromCommand(DoorCommandResult::PositionUntrusted) ==
          DoorRecordResult::PositionUntrusted);
 
+  DoorRecordType type = DoorRecordType::CommandRequested;
+  assert(doorRecordTypeFromName("DoorTravelSet", type));
+  assert(type == DoorRecordType::TravelSet);
+  assert(doorRecordTypeFromName("TravelAdjusted", type));
+  assert(type == DoorRecordType::TravelAdjusted);
+  assert(!doorRecordTypeFromName("UnknownEvent", type));
+
   return 0;
 }

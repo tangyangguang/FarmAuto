@@ -59,3 +59,4 @@ class DoorRecordLog {
 };
 
 DoorRecordResult doorRecordResultFromCommand(DoorCommandResult result);
+bool doorRecordTypeFromName(const char* name, DoorRecordType& out);

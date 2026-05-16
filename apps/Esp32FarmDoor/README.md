@@ -40,6 +40,7 @@
 
 - `/api/app/events/recent` 返回 RAM 最近业务记录。
 - `/api/app/records` 优先返回 Flash 业务记录；无 Flash 数据时回退 RAM 最近记录。
+- `/api/app/records` 参数：`start`、`limit`、`startUnixTime`、`endUnixTime`、`eventType`。
 - 记录覆盖开门/关门/停止、位置标定、行程设置、行程微调和清除故障。
 
 `/api/app/door/open`

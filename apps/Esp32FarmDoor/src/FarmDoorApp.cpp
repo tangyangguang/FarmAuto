@@ -751,6 +751,14 @@ void FarmDoorApp::sendRecordsJson() {
     return;
   }
   query.limit = static_cast<uint8_t>(limitParam);
+  char eventType[32];
+  if (Esp32BaseWeb::getParam("eventType", eventType, sizeof(eventType)) && eventType[0] != '\0') {
+    if (!doorRecordTypeFromName(eventType, query.type)) {
+      sendCommandResultJson(DoorCommandResult::InvalidArgument);
+      return;
+    }
+    query.typeFilterEnabled = true;
+  }
 
   Esp32BaseWeb::beginJson(200);
 #if ESP32BASE_ENABLE_FS
