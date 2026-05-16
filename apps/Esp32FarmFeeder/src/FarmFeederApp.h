@@ -15,6 +15,9 @@ class FarmFeederApp {
   static void sendBaseInfoJson();
   static void handleScheduleSkip();
   static void handleScheduleCancelSkip();
+  static void handleBucketSetRemaining();
+  static void handleBucketAddFeed();
+  static void handleBucketMarkFull();
 };
 
 extern FarmFeederApp FarmFeeder;

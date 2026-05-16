@@ -165,6 +165,29 @@ bool readUint8Param(const char* name, uint8_t& out) {
   return true;
 }
 
+bool readInt32Param(const char* name, int32_t& out) {
+  char raw[16];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  char* end = nullptr;
+  const long value = strtol(raw, &end, 10);
+  if (!end || *end != '\0') {
+    return false;
+  }
+  out = static_cast<int32_t>(value);
+  return true;
+}
+
+const char* bucketResultName(FeederBucketResult result) {
+  switch (result) {
+    case FeederBucketResult::Ok: return "Ok";
+    case FeederBucketResult::InvalidArgument: return "InvalidArgument";
+    case FeederBucketResult::Underflow: return "Underflow";
+  }
+  return "InvalidArgument";
+}
+
 void sendResultJson(int code, const char* result) {
   Esp32BaseWeb::beginJson(code);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
@@ -255,6 +278,9 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::addApi("/api/app/schedule-occurrence/skip", FarmFeederApp::handleScheduleSkip);
   Esp32BaseWeb::addApi("/api/app/schedule-occurrence/cancel-skip", FarmFeederApp::handleScheduleCancelSkip);
   Esp32BaseWeb::addApi("/api/app/buckets", FarmFeederApp::sendBucketsJson);
+  Esp32BaseWeb::addApi("/api/app/buckets/set-remaining", FarmFeederApp::handleBucketSetRemaining);
+  Esp32BaseWeb::addApi("/api/app/buckets/add-feed", FarmFeederApp::handleBucketAddFeed);
+  Esp32BaseWeb::addApi("/api/app/buckets/mark-full", FarmFeederApp::handleBucketMarkFull);
   Esp32BaseWeb::addApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
 #endif
 }
@@ -342,5 +368,43 @@ void FarmFeederApp::handleScheduleCancelSkip() {
   }
   const FeederScheduleResult result = g_schedules.cancelSkipToday(planId);
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleBucketSetRemaining() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channel = 0;
+  int32_t remainGramsX100 = 0;
+  if (!readUint8Param("channel", channel) || !readInt32Param("remainGramsX100", remainGramsX100)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederBucketResult result = g_buckets.setRemaining(channel, remainGramsX100, 0);
+  sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleBucketAddFeed() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channel = 0;
+  int32_t addedGramsX100 = 0;
+  if (!readUint8Param("channel", channel) || !readInt32Param("addedGramsX100", addedGramsX100)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederBucketResult result = g_buckets.addFeed(channel, addedGramsX100, 0);
+  sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleBucketMarkFull() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channel = 0;
+  if (!readUint8Param("channel", channel)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederBucketResult result = g_buckets.markFull(channel, 0);
+  sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
 }
