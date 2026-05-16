@@ -9,6 +9,7 @@
 #include <cstring>
 
 #include "DoorController.h"
+#include "DoorRecordFileStore.h"
 #include "DoorRecordLog.h"
 #include "FarmDoorHardware.h"
 
@@ -22,6 +23,7 @@ constexpr int64_t kDefaultMaxRunPulses = (kDefaultOpenTargetPulses * 150) / 100;
 
 DoorController g_door;
 DoorRecordLog g_records;
+bool g_recordStorageReady = false;
 DoorControllerConfig g_doorConfig;
 Esp32EncodedDcMotor::MotorHardwareConfig g_motorHardware;
 Esp32EncodedDcMotor::EncoderBackendConfig g_encoderBackend;
@@ -36,6 +38,9 @@ Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
 static constexpr uint8_t kFarmDoorApiRouteCount = 11;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorApiRouteCount,
               "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 11");
+static constexpr const char* kDoorRecordRootDir = "/records";
+static constexpr const char* kDoorRecordDir = "/records/door";
+static constexpr const char* kDoorRecordCurrentPath = "/records/door/current.dar";
 
 bool ina240CompileEnabled() {
 #if FARMAUTO_FARMDOOR_ENABLE_INA240A2
@@ -194,8 +199,7 @@ bool readInt64Param(const char* name, int64_t& out) {
 }
 
 bool hasParam(const char* name) {
-  char raw[2];
-  return Esp32BaseWeb::getParam(name, raw, sizeof(raw));
+  return Esp32BaseWeb::hasParam(name);
 }
 
 bool readInt64ParamOptional(const char* name, int64_t& out) {
@@ -210,6 +214,24 @@ bool readInt64ParamOptional(const char* name, int64_t& out) {
   }
   out = static_cast<int64_t>(value);
   return true;
+}
+
+bool readUint32Param(const char* name, uint32_t& out) {
+  char raw[16];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  char* end = nullptr;
+  const unsigned long value = strtoul(raw, &end, 10);
+  if (!end || *end != '\0') {
+    return false;
+  }
+  out = static_cast<uint32_t>(value);
+  return true;
+}
+
+bool readUint32ParamOptional(const char* name, uint32_t& out) {
+  return !Esp32BaseWeb::hasParam(name) || readUint32Param(name, out);
 }
 
 int64_t openTargetPulsesFromTurnsX100(int64_t turnsX100) {
@@ -286,8 +308,55 @@ DoorRecordTime currentRecordTime() {
   return time;
 }
 
+#if ESP32BASE_ENABLE_FS
+bool appendDoorRecordBytes(const char* path, const uint8_t* data, std::size_t length, void*) {
+  return Esp32BaseFs::appendBytes(path, data, length);
+}
+
+int64_t doorRecordFileSize(const char* path, void*) {
+  return Esp32BaseFs::fileSize(path);
+}
+
+bool readDoorRecordBytesAt(const char* path,
+                           uint32_t offset,
+                           uint8_t* out,
+                           std::size_t maxLength,
+                           std::size_t* readLength,
+                           void*) {
+  return Esp32BaseFs::readBytesAt(path, offset, out, maxLength, readLength);
+}
+
+bool ensureRecordStorageReady() {
+  if (g_recordStorageReady) {
+    return true;
+  }
+  if (!Esp32BaseFs::isReady()) {
+    return false;
+  }
+  if (!Esp32BaseFs::exists(kDoorRecordRootDir) && !Esp32BaseFs::mkdir(kDoorRecordRootDir)) {
+    return false;
+  }
+  if (!Esp32BaseFs::exists(kDoorRecordDir) && !Esp32BaseFs::mkdir(kDoorRecordDir)) {
+    return false;
+  }
+  g_recordStorageReady = true;
+  return true;
+}
+#endif
+
 void recordBusinessEvent(const DoorRecord& record) {
-  g_records.append(record, currentRecordTime());
+  const DoorRecord stored = g_records.append(record, currentRecordTime());
+#if ESP32BASE_ENABLE_FS
+  if (!ensureRecordStorageReady()) {
+    return;
+  }
+  const DoorRecordWriteResult result = appendDoorRecordToPath(
+      stored, kDoorRecordCurrentPath, appendDoorRecordBytes, nullptr);
+  if (result != DoorRecordWriteResult::Ok) {
+    ESP32BASE_LOG_W("farmdoor", "record_append_failed result=%u",
+                    static_cast<unsigned>(result));
+  }
+#endif
 }
 
 void sendRecordJson(const DoorRecord& record) {
@@ -643,7 +712,71 @@ void FarmDoorApp::sendRecentEventsJson() {
 
 void FarmDoorApp::sendRecordsJson() {
 #if ESP32BASE_ENABLE_WEB
-  sendRecordSnapshotJson("ram");
+  DoorRecordQuery query;
+  uint32_t limitParam = query.limit;
+  if (!readUint32ParamOptional("start", query.startIndex) ||
+      !readUint32ParamOptional("limit", limitParam) ||
+      !readUint32ParamOptional("startUnixTime", query.startUnixTime) ||
+      !readUint32ParamOptional("endUnixTime", query.endUnixTime) || limitParam == 0 ||
+      limitParam > kDoorRecordPageMaxRecords) {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+  query.limit = static_cast<uint8_t>(limitParam);
+
+  Esp32BaseWeb::beginJson(200);
+#if ESP32BASE_ENABLE_FS
+  DoorRecordPage page;
+  const DoorRecordReadResult readResult = readDoorRecordPage(kDoorRecordCurrentPath,
+                                                             query,
+                                                             doorRecordFileSize,
+                                                             readDoorRecordBytesAt,
+                                                             nullptr,
+                                                             page);
+  if (readResult == DoorRecordReadResult::Ok && page.totalRecords > 0) {
+    Esp32BaseWeb::sendChunk("{\"source\":\"flash\",\"start\":");
+    sendUint32(page.startIndex);
+    Esp32BaseWeb::sendChunk(",\"nextIndex\":");
+    sendUint32(page.nextIndex);
+    Esp32BaseWeb::sendChunk(",\"limit\":");
+    sendUint32(limitParam);
+    Esp32BaseWeb::sendChunk(",\"count\":");
+    sendUint32(page.count);
+    Esp32BaseWeb::sendChunk(",\"totalRecords\":");
+    sendUint32(page.totalRecords);
+    Esp32BaseWeb::sendChunk(",\"recordBytes\":");
+    sendUint32(kDoorRecordEncodedMaxBytes);
+    Esp32BaseWeb::sendChunk(",\"records\":[");
+    for (uint8_t i = 0; i < page.count; ++i) {
+      if (i > 0) {
+        Esp32BaseWeb::sendChunk(",");
+      }
+      sendRecordJson(page.records[i]);
+    }
+    Esp32BaseWeb::sendChunk("]}");
+    Esp32BaseWeb::endJson();
+    return;
+  }
+#endif
+
+  const DoorRecordSnapshot snapshot = g_records.snapshot();
+  Esp32BaseWeb::sendChunk("{\"source\":\"ram\",\"start\":0,\"limit\":");
+  sendUint32(kDoorRecentRecordCapacity);
+  Esp32BaseWeb::sendChunk(",\"count\":");
+  sendUint32(snapshot.count);
+  Esp32BaseWeb::sendChunk(",\"totalRecords\":");
+  sendUint32(snapshot.count);
+  Esp32BaseWeb::sendChunk(",\"capacity\":");
+  sendUint32(kDoorRecentRecordCapacity);
+  Esp32BaseWeb::sendChunk(",\"records\":[");
+  for (uint8_t i = 0; i < snapshot.count; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    sendRecordJson(snapshot.records[i]);
+  }
+  Esp32BaseWeb::sendChunk("]}");
+  Esp32BaseWeb::endJson();
 #endif
 }
 
