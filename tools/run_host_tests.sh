@@ -139,6 +139,7 @@ c++ -std=c++17 \
   -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_persistence_store.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederPersistenceStore.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederBucketCodec.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederScheduleCodec.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederTargetCodec.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederStorageLayout.cpp" \

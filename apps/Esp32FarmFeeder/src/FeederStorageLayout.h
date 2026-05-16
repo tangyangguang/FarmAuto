@@ -14,9 +14,10 @@ enum class FeederAt24cRecordType : uint16_t {
   Today = 2,
   Schedule = 3,
   ChannelTarget = 4,
-  Calibration = 5,
-  RecordIndex = 6,
-  SystemMeta = 7
+  BucketState = 5,
+  Calibration = 6,
+  RecordIndex = 7,
+  SystemMeta = 8
 };
 
 extern const Esp32At24cRecordStore::RecordStoreConfig kFeederAt24cConfig;

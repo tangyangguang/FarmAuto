@@ -34,6 +34,21 @@ Esp32At24cRecordStore::Result targetCodecResultToStoreResult(FeederTargetCodecRe
   return Esp32At24cRecordStore::Result::InvalidArgument;
 }
 
+Esp32At24cRecordStore::Result bucketCodecResultToStoreResult(FeederBucketCodecResult result) {
+  switch (result) {
+    case FeederBucketCodecResult::Ok: return Esp32At24cRecordStore::Result::Ok;
+    case FeederBucketCodecResult::InvalidArgument:
+      return Esp32At24cRecordStore::Result::InvalidArgument;
+    case FeederBucketCodecResult::BufferTooSmall:
+      return Esp32At24cRecordStore::Result::PayloadTooLarge;
+    case FeederBucketCodecResult::UnsupportedVersion:
+      return Esp32At24cRecordStore::Result::LayoutMismatch;
+    case FeederBucketCodecResult::CrcMismatch:
+      return Esp32At24cRecordStore::Result::CrcMismatch;
+  }
+  return Esp32At24cRecordStore::Result::InvalidArgument;
+}
+
 }  // namespace
 
 Esp32At24cRecordStore::Result saveFeederSchedule(
@@ -93,4 +108,33 @@ Esp32At24cRecordStore::Result loadFeederTargets(Esp32At24cRecordStore::RecordSto
     return readResult;
   }
   return targetCodecResultToStoreResult(decodeFeederTargetSnapshot(payload, length, out));
+}
+
+Esp32At24cRecordStore::Result saveFeederBuckets(Esp32At24cRecordStore::RecordStore& store,
+                                                const FeederBucketSnapshot& snapshot) {
+  uint8_t payload[kFeederBucketEncodedBytes] = {};
+  std::size_t encodedLength = 0;
+  const FeederBucketCodecResult encodeResult =
+      encodeFeederBucketSnapshot(snapshot, payload, sizeof(payload), encodedLength);
+  if (encodeResult != FeederBucketCodecResult::Ok) {
+    return bucketCodecResultToStoreResult(encodeResult);
+  }
+  return store.write(static_cast<uint16_t>(FeederAt24cRecordType::BucketState),
+                     payload,
+                     encodedLength);
+}
+
+Esp32At24cRecordStore::Result loadFeederBuckets(Esp32At24cRecordStore::RecordStore& store,
+                                                FeederBucketSnapshot& out) {
+  uint8_t payload[kFeederBucketEncodedBytes] = {};
+  std::size_t length = 0;
+  const Esp32At24cRecordStore::Result readResult =
+      store.readLatest(static_cast<uint16_t>(FeederAt24cRecordType::BucketState),
+                       payload,
+                       sizeof(payload),
+                       length);
+  if (readResult != Esp32At24cRecordStore::Result::Ok) {
+    return readResult;
+  }
+  return bucketCodecResultToStoreResult(decodeFeederBucketSnapshot(payload, length, out));
 }

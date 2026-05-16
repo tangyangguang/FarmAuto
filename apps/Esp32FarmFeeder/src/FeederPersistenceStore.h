@@ -2,6 +2,7 @@
 
 #include <Esp32At24cRecordStore.h>
 
+#include "FeederBucketCodec.h"
 #include "FeederScheduleCodec.h"
 #include "FeederTargetCodec.h"
 
@@ -17,3 +18,9 @@ Esp32At24cRecordStore::Result saveFeederTargets(Esp32At24cRecordStore::RecordSto
 
 Esp32At24cRecordStore::Result loadFeederTargets(Esp32At24cRecordStore::RecordStore& store,
                                                 FeederTargetSnapshot& out);
+
+Esp32At24cRecordStore::Result saveFeederBuckets(Esp32At24cRecordStore::RecordStore& store,
+                                                const FeederBucketSnapshot& snapshot);
+
+Esp32At24cRecordStore::Result loadFeederBuckets(Esp32At24cRecordStore::RecordStore& store,
+                                                FeederBucketSnapshot& out);

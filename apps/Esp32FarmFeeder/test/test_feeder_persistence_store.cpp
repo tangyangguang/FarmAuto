@@ -73,8 +73,34 @@ int main() {
   assert(restoredTargets.channels[1].mode == FeederTargetMode::Revolutions);
   assert(restoredTargets.channels[1].targetRevolutionsX100 == 125);
 
+  FeederBucketSnapshot buckets;
+  buckets.channels[0].baseInfo.enabled = true;
+  buckets.channels[0].baseInfo.outputPulsesPerRev = 4320;
+  buckets.channels[0].baseInfo.gramsPerRevX100 = 7000;
+  buckets.channels[0].baseInfo.capacityGramsX100 = 500000;
+  buckets.channels[0].remainGramsX100 = 125000;
+  buckets.channels[0].lastRefillUnixTime = 1800000001;
+  buckets.channels[1].baseInfo.enabled = true;
+  buckets.channels[1].baseInfo.outputPulsesPerRev = 4000;
+  buckets.channels[1].baseInfo.gramsPerRevX100 = 6500;
+  buckets.channels[1].baseInfo.capacityGramsX100 = 300000;
+  buckets.channels[1].remainGramsX100 = 0;
+  buckets.channels[1].underflow = true;
+
+  assert(saveFeederBuckets(store, buckets) == Esp32At24cRecordStore::Result::Ok);
+  FeederBucketSnapshot restoredBuckets;
+  assert(loadFeederBuckets(store, restoredBuckets) == Esp32At24cRecordStore::Result::Ok);
+  assert(restoredBuckets.channels[0].baseInfo.outputPulsesPerRev == 4320);
+  assert(restoredBuckets.channels[0].remainGramsX100 == 125000);
+  assert(restoredBuckets.channels[0].remainPercent == 25);
+  assert(restoredBuckets.channels[0].lastRefillUnixTime == 1800000001);
+  assert(restoredBuckets.channels[1].underflow);
+
   schedule.planCount = kFeederMaxPlans + 1;
   assert(saveFeederSchedule(store, schedule) == Esp32At24cRecordStore::Result::InvalidArgument);
+
+  buckets.channels[0].remainGramsX100 = 600000;
+  assert(saveFeederBuckets(store, buckets) == Esp32At24cRecordStore::Result::InvalidArgument);
 
   return 0;
 }
