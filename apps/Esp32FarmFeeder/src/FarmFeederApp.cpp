@@ -26,12 +26,12 @@ uint16_t g_lastScheduleMinute = 24 * 60;
 uint32_t g_lastScheduleDate = 0;
 bool g_recordStorageReady = false;
 
-static constexpr uint8_t kFarmFeederApiRouteCount = 22;
+static constexpr uint8_t kFarmFeederApiRouteCount = 24;
 static constexpr const char* kFeederRecordRootDir = "/records";
 static constexpr const char* kFeederRecordDir = "/records/feeder";
 static constexpr const char* kFeederRecordCurrentPath = "/records/feeder/current.far";
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
-              "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 22");
+              "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 24");
 
 void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   if (!Esp32BaseWeb::addApi(path, handler)) {
@@ -914,6 +914,8 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   addFarmFeederApi("/api/app/status", FarmFeederApp::sendStatusJson);
+  addFarmFeederApi("/api/app/diagnostics", FarmFeederApp::sendDiagnosticsJson);
+  addFarmFeederApi("/api/app/events/recent", FarmFeederApp::sendRecentEventsJson);
   addFarmFeederApi("/api/app/feeders/manual-start", FarmFeederApp::handleFeederManualStart);
   addFarmFeederApi("/api/app/feeders/start", FarmFeederApp::handleFeederStart);
   addFarmFeederApi("/api/app/feeders/stop", FarmFeederApp::handleFeederStop);
@@ -969,6 +971,63 @@ void FarmFeederApp::sendStatusJson() {
   Esp32BaseWeb::sendChunk(",\"buckets\":");
   sendBucketSummary(bucketSnapshot);
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::sendDiagnosticsJson() {
+#if ESP32BASE_ENABLE_WEB
+  const FeederSnapshot snapshot = g_feeder.snapshot();
+  const FeederScheduleSnapshot scheduleSnapshot = g_schedules.snapshot();
+  const FeederBucketSnapshot bucketSnapshot = g_buckets.snapshot();
+  const FeederTargetSnapshot targetSnapshot = g_targets.snapshot();
+  const FeederRecordSnapshot recordSnapshot = g_records.snapshot();
+
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmFeeder\",\"mode\":\"readOnlyDiagnostics\"");
+  Esp32BaseWeb::sendChunk(",\"state\":\"");
+  Esp32BaseWeb::sendChunk(deviceStateName(snapshot.state));
+  Esp32BaseWeb::sendChunk("\",\"installedChannelMask\":");
+  sendUint8(snapshot.installedChannelMask);
+  Esp32BaseWeb::sendChunk(",\"enabledChannelMask\":");
+  sendUint8(snapshot.enabledChannelMask);
+  Esp32BaseWeb::sendChunk(",\"runningChannelMask\":");
+  sendUint8(snapshot.runningChannelMask);
+  Esp32BaseWeb::sendChunk(",\"faultChannelMask\":");
+  sendUint8(snapshot.faultChannelMask);
+  Esp32BaseWeb::sendChunk(",\"schedule\":");
+  sendScheduleSummary(scheduleSnapshot);
+  Esp32BaseWeb::sendChunk(",\"buckets\":");
+  sendBucketSummary(bucketSnapshot);
+  Esp32BaseWeb::sendChunk(",\"targets\":");
+  sendTargetSummary(targetSnapshot, bucketSnapshot);
+  Esp32BaseWeb::sendChunk(",\"records\":{\"recentCount\":");
+  sendUint8(recordSnapshot.count);
+  Esp32BaseWeb::sendChunk(",\"recentCapacity\":");
+  sendUint8(kFeederRecentRecordCapacity);
+  Esp32BaseWeb::sendChunk(",\"flashReady\":");
+#if ESP32BASE_ENABLE_FS
+  Esp32BaseWeb::sendChunk(Esp32BaseFs::isReady() ? "true" : "false");
+#else
+  Esp32BaseWeb::sendChunk("false");
+#endif
+  Esp32BaseWeb::sendChunk("},\"currentSensors\":{\"installed\":false},");
+  Esp32BaseWeb::sendChunk("\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::sendRecentEventsJson() {
+#if ESP32BASE_ENABLE_WEB
+  const FeederRecordSnapshot snapshot = g_records.snapshot();
+  Esp32BaseWeb::beginJson(200);
+  Esp32BaseWeb::sendChunk("{\"source\":\"ram\",\"count\":");
+  sendUint8(snapshot.count);
+  Esp32BaseWeb::sendChunk(",\"capacity\":");
+  sendUint8(kFeederRecentRecordCapacity);
+  Esp32BaseWeb::sendChunk(",\"records\":");
+  sendRecordArray(snapshot);
+  Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
 #endif
 }

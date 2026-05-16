@@ -11,6 +11,8 @@ class FarmFeederApp {
   void configureBusinessShell();
   void handleScheduleTick();
   static void sendStatusJson();
+  static void sendDiagnosticsJson();
+  static void sendRecentEventsJson();
   static void sendSchedulesJson();
   static void sendBucketsJson();
   static void sendBaseInfoJson();
