@@ -179,6 +179,22 @@ bool readInt32Param(const char* name, int32_t& out) {
   return true;
 }
 
+bool readBoolParam(const char* name, bool& out) {
+  char raw[8];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  if (strcmp(raw, "true") == 0 || strcmp(raw, "1") == 0) {
+    out = true;
+    return true;
+  }
+  if (strcmp(raw, "false") == 0 || strcmp(raw, "0") == 0) {
+    out = false;
+    return true;
+  }
+  return false;
+}
+
 const char* bucketResultName(FeederBucketResult result) {
   switch (result) {
     case FeederBucketResult::Ok: return "Ok";
@@ -282,6 +298,7 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::addApi("/api/app/buckets/add-feed", FarmFeederApp::handleBucketAddFeed);
   Esp32BaseWeb::addApi("/api/app/buckets/mark-full", FarmFeederApp::handleBucketMarkFull);
   Esp32BaseWeb::addApi("/api/app/base-info", FarmFeederApp::sendBaseInfoJson);
+  Esp32BaseWeb::addApi("/api/app/base-info/channel", FarmFeederApp::handleBaseInfoChannel);
 #endif
 }
 
@@ -405,6 +422,31 @@ void FarmFeederApp::handleBucketMarkFull() {
     return;
   }
   const FeederBucketResult result = g_buckets.markFull(channel, 0);
+  sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleBaseInfoChannel() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channel = 0;
+  bool enabled = false;
+  int32_t outputPulsesPerRev = 0;
+  int32_t gramsPerRevX100 = 0;
+  int32_t capacityGramsX100 = 0;
+  if (!readUint8Param("channel", channel) || !readBoolParam("enabled", enabled) ||
+      !readInt32Param("outputPulsesPerRev", outputPulsesPerRev) ||
+      !readInt32Param("gramsPerRevX100", gramsPerRevX100) ||
+      !readInt32Param("capacityGramsX100", capacityGramsX100)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+
+  FeederChannelBaseInfo info;
+  info.enabled = enabled;
+  info.outputPulsesPerRev = outputPulsesPerRev;
+  info.gramsPerRevX100 = gramsPerRevX100;
+  info.capacityGramsX100 = capacityGramsX100;
+  const FeederBucketResult result = g_buckets.updateBaseInfo(channel, info);
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
 }

@@ -18,6 +18,7 @@ class FarmFeederApp {
   static void handleBucketSetRemaining();
   static void handleBucketAddFeed();
   static void handleBucketMarkFull();
+  static void handleBaseInfoChannel();
 };
 
 extern FarmFeederApp FarmFeeder;
