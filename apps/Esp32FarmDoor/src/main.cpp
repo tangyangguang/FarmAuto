@@ -114,6 +114,17 @@ void configureBusinessShell() {
   Esp32BaseWeb::setDeviceName("Esp32FarmDoor");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
+  Esp32BaseWeb::addApi("/api/app/status", []() {
+    Esp32BaseWeb::beginJson(200);
+    Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
+    Esp32BaseWeb::sendChunk("\"firmware\":\"");
+    Esp32BaseWeb::writeJsonEscaped(Esp32Base::firmwareVersion());
+    Esp32BaseWeb::sendChunk("\",\"state\":\"Skeleton\",");
+    Esp32BaseWeb::sendChunk("\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"enabled\":");
+    Esp32BaseWeb::sendChunk(g_currentGuard.enabled ? "true" : "false");
+    Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"}}");
+    Esp32BaseWeb::endJson();
+  });
 #endif
 }
 
