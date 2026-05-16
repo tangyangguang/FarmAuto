@@ -46,5 +46,13 @@ int main() {
   assert(guard.snapshot().state == CurrentGuardState::Fault);
   assert(guard.latestTracePoint().faultReason == CurrentFaultReason::OverCurrent);
 
+  normal.timestampMs = 40;
+  normal.sequence = 4;
+  assert(guard.update(normal, 40) == CurrentGuardResult::FaultActive);
+  assert(guard.snapshot().state == CurrentGuardState::Fault);
+
+  guard.reset();
+  assert(guard.snapshot().state == CurrentGuardState::Normal);
+
   return 0;
 }

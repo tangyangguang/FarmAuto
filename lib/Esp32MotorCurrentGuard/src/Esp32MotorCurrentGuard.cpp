@@ -51,6 +51,14 @@ CurrentGuardResult MotorCurrentGuard::update(const CurrentSample& sample, uint32
     return CurrentGuardResult::Disabled;
   }
 
+  if (snapshot_.state == CurrentGuardState::Fault ||
+      snapshot_.state == CurrentGuardState::SensorFault) {
+    snapshot_.lastSampleMs = nowMs;
+    snapshot_.rawCurrentMa = sample.currentMa;
+    updateTrace(sample);
+    return CurrentGuardResult::FaultActive;
+  }
+
   if (!sample.ok || sample.sampleLost || sample.sensorStatus != SensorStatus::Ok) {
     return handleSensorFault(sample, nowMs);
   }
