@@ -15,6 +15,7 @@ class FarmFeederApp {
   static void sendBucketsJson();
   static void sendBaseInfoJson();
   static void sendTargetsJson();
+  static void sendRecordsJson();
   static void handleFeederTarget();
   static void handleFeederManualStart();
   static void handleFeederStart();
