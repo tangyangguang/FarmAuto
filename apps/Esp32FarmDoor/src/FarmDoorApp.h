@@ -12,6 +12,11 @@ class FarmDoorApp {
   void configureBusinessShell();
   static void sendStatusJson();
   static void sendDiagnosticsJson();
+  static void handleDoorOpen();
+  static void handleDoorClose();
+  static void handleDoorStop();
+  static void handleSetPosition();
+  static void handleClearFault();
 };
 
 extern FarmDoorApp FarmDoor;

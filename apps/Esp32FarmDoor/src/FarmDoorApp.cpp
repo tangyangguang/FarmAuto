@@ -31,6 +31,10 @@ Esp32MotorCurrentGuard::Ina240A2AnalogConfig g_currentSensor;
 Esp32MotorCurrentGuard::MotorCurrentGuardConfig g_currentGuard;
 Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
 
+static constexpr uint8_t kFarmDoorApiRouteCount = 7;
+static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorApiRouteCount,
+              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 7");
+
 bool ina240CompileEnabled() {
 #if FARMAUTO_FARMDOOR_ENABLE_INA240A2
   return true;
@@ -115,6 +119,28 @@ const char* faultReasonName(DoorFaultReason reason) {
   return "Unknown";
 }
 
+const char* commandResultName(DoorCommandResult result) {
+  switch (result) {
+    case DoorCommandResult::Ok: return "Ok";
+    case DoorCommandResult::Busy: return "Busy";
+    case DoorCommandResult::InvalidArgument: return "InvalidArgument";
+    case DoorCommandResult::PositionUntrusted: return "PositionUntrusted";
+    case DoorCommandResult::FaultActive: return "FaultActive";
+  }
+  return "InvalidArgument";
+}
+
+int httpCodeFor(DoorCommandResult result) {
+  switch (result) {
+    case DoorCommandResult::Ok: return 200;
+    case DoorCommandResult::Busy: return 409;
+    case DoorCommandResult::PositionUntrusted: return 409;
+    case DoorCommandResult::FaultActive: return 409;
+    case DoorCommandResult::InvalidArgument: return 400;
+  }
+  return 400;
+}
+
 uint16_t positionPercent(const DoorSnapshot& snapshot) {
   if (snapshot.openTargetPulses <= 0) {
     return 0;
@@ -129,6 +155,41 @@ uint16_t positionPercent(const DoorSnapshot& snapshot) {
   return static_cast<uint16_t>(percent);
 }
 
+bool readInt64Param(const char* name, int64_t& out) {
+  char raw[24];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  char* end = nullptr;
+  const long long value = strtoll(raw, &end, 10);
+  if (!end || *end != '\0') {
+    return false;
+  }
+  out = static_cast<int64_t>(value);
+  return true;
+}
+
+bool readTrustLevelParam(PositionTrustLevel& out) {
+  char raw[16];
+  if (!Esp32BaseWeb::getParam("trustLevel", raw, sizeof(raw))) {
+    out = PositionTrustLevel::Trusted;
+    return true;
+  }
+  if (strcmp(raw, "Trusted") == 0 || strcmp(raw, "trusted") == 0) {
+    out = PositionTrustLevel::Trusted;
+    return true;
+  }
+  if (strcmp(raw, "Limited") == 0 || strcmp(raw, "limited") == 0) {
+    out = PositionTrustLevel::Limited;
+    return true;
+  }
+  if (strcmp(raw, "Untrusted") == 0 || strcmp(raw, "untrusted") == 0) {
+    out = PositionTrustLevel::Untrusted;
+    return true;
+  }
+  return false;
+}
+
 void applyRuntimeConfigFromBase() {
 #if ESP32BASE_ENABLE_APP_CONFIG
   const bool requestedCurrentGuard =
@@ -136,6 +197,25 @@ void applyRuntimeConfigFromBase() {
   g_currentGuard.enabled = ina240CompileEnabled() && requestedCurrentGuard;
 #else
   g_currentGuard.enabled = false;
+#endif
+}
+
+void sendCommandResultJson(DoorCommandResult result) {
+#if ESP32BASE_ENABLE_WEB
+  const DoorSnapshot snapshot = g_door.snapshot();
+  Esp32BaseWeb::beginJson(httpCodeFor(result));
+  Esp32BaseWeb::sendChunk("{\"result\":\"");
+  Esp32BaseWeb::sendChunk(commandResultName(result));
+  Esp32BaseWeb::sendChunk("\",\"state\":\"");
+  Esp32BaseWeb::sendChunk(stateName(snapshot.state));
+  Esp32BaseWeb::sendChunk("\",\"activeCommand\":\"");
+  Esp32BaseWeb::sendChunk(commandName(snapshot.activeCommand));
+  Esp32BaseWeb::sendChunk("\",\"positionPulses\":");
+  sendInt64(snapshot.positionPulses);
+  Esp32BaseWeb::sendChunk(",\"targetPulses\":");
+  sendInt64(snapshot.targetPulses);
+  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::endJson();
 #endif
 }
 
@@ -264,6 +344,11 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   Esp32BaseWeb::addApi("/api/app/status", FarmDoorApp::sendStatusJson);
   Esp32BaseWeb::addApi("/api/app/diagnostics", FarmDoorApp::sendDiagnosticsJson);
+  Esp32BaseWeb::addApi("/api/app/door/open", FarmDoorApp::handleDoorOpen);
+  Esp32BaseWeb::addApi("/api/app/door/close", FarmDoorApp::handleDoorClose);
+  Esp32BaseWeb::addApi("/api/app/door/stop", FarmDoorApp::handleDoorStop);
+  Esp32BaseWeb::addApi("/api/app/maintenance/set-position", FarmDoorApp::handleSetPosition);
+  Esp32BaseWeb::addApi("/api/app/maintenance/clear-fault", FarmDoorApp::handleClearFault);
 #endif
 }
 
@@ -356,5 +441,60 @@ void FarmDoorApp::sendDiagnosticsJson() {
   Esp32BaseWeb::sendChunk(boolJson(diagnostics.at24cOnline));
   Esp32BaseWeb::sendChunk("},\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmDoorApp::handleDoorOpen() {
+#if ESP32BASE_ENABLE_WEB
+  sendCommandResultJson(g_door.requestOpen());
+#endif
+}
+
+void FarmDoorApp::handleDoorClose() {
+#if ESP32BASE_ENABLE_WEB
+  sendCommandResultJson(g_door.requestClose());
+#endif
+}
+
+void FarmDoorApp::handleDoorStop() {
+#if ESP32BASE_ENABLE_WEB
+  const DoorSnapshot snapshot = g_door.snapshot();
+  sendCommandResultJson(g_door.requestStop(snapshot.positionPulses));
+#endif
+}
+
+void FarmDoorApp::handleSetPosition() {
+#if ESP32BASE_ENABLE_WEB
+  char position[16];
+  if (Esp32BaseWeb::getParam("position", position, sizeof(position))) {
+    if (strcmp(position, "closed") == 0 || strcmp(position, "Closed") == 0) {
+      sendCommandResultJson(g_door.markPositionClosed());
+      return;
+    }
+    if (strcmp(position, "open") == 0 || strcmp(position, "Open") == 0) {
+      sendCommandResultJson(g_door.markPositionOpen());
+      return;
+    }
+    if (strcmp(position, "unknown") == 0 || strcmp(position, "Unknown") == 0) {
+      sendCommandResultJson(g_door.setTrustedPosition(0, PositionTrustLevel::Untrusted));
+      return;
+    }
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+
+  int64_t positionPulses = 0;
+  PositionTrustLevel trustLevel = PositionTrustLevel::Trusted;
+  if (!readInt64Param("positionPulses", positionPulses) || !readTrustLevelParam(trustLevel)) {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+  sendCommandResultJson(g_door.setTrustedPosition(positionPulses, trustLevel));
+#endif
+}
+
+void FarmDoorApp::handleClearFault() {
+#if ESP32BASE_ENABLE_WEB
+  sendCommandResultJson(g_door.clearFault());
 #endif
 }
