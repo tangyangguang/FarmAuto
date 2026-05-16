@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder 通道设置</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link" href="feeder-schedule.html">计划</a>
+        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
+        <a class="nav-link active" href="feeder-channels.html">通道设置</a>
+        <a class="nav-link" href="feeder-records.html">记录</a>
+        <a class="nav-link" href="feeder-diagnostics.html">故障诊断</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div class="title-block"><h1>通道设置</h1><div class="subtle">每一路独立设置启用状态、名称、每圈信号数和每圈克数。</div></div></div>
+      <section class="section">
+        <div class="section-header"><h2>通道列表</h2><span class="subtle">一次只修改一个通道</span></div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>通道</th><th>名称</th><th>启用</th><th>每圈信号数</th><th>每圈克数</th><th>用于换算</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td data-label="通道">1</td><td data-label="名称">东侧料桶</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">70.0 克</td><td data-label="用于换算">70g = 1.00 圈</td><td data-label="操作"><button class="button primary">编辑通道 1</button></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="名称">中间料桶</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">68.0 克</td><td data-label="用于换算">70g ≈ 1.03 圈</td><td data-label="操作"><button class="button">编辑通道 2</button></td></tr>
+              <tr><td data-label="通道">3</td><td data-label="名称">西侧料桶</td><td data-label="启用"><span class="pill warn">停用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">70.0 克</td><td data-label="用于换算">停用时不参与计划</td><td data-label="操作"><button class="button">编辑通道 3</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>编辑通道 1</h2><span class="pill ok">当前选中</span></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>是否启用</label><select class="select"><option>启用</option><option>停用</option></select></div>
+            <div class="field"><label>通道名称</label><input class="input" value="东侧料桶"></div>
+            <div class="field"><label>电机每圈信号数</label><input class="input" type="number" min="1" step="1" value="4320"></div>
+            <div class="field"><label>每圈下料克数</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="70.0"><span class="input-unit">克</span></div></div>
+          </div>
+          <div class="page-note">这里是手工录入参数，不做实际运转测试。计划和手动投喂会用“每圈信号数”和“每圈克数”在克数与圈数之间换算。</div>
+          <div class="actions"><button class="button primary">保存通道 1</button><button class="button">取消</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

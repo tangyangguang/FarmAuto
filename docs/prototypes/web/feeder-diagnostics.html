@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder 诊断</title>
+  <title>Esp32FarmFeeder 故障诊断</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,18 +12,17 @@
       <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
-        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-schedule.html">计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
-        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
-        <a class="nav-link" href="feeder-maintenance.html">维护</a>
+        <a class="nav-link" href="feeder-channels.html">通道设置</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
-        <a class="nav-link active" href="feeder-diagnostics.html">诊断</a>
+        <a class="nav-link active" href="feeder-diagnostics.html">故障诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">只展示喂食器业务相关的健康状态和排障信息。</div></div></div>
+      <div class="topbar"><div class="title-block"><h1>故障诊断</h1><div class="subtle">只展示喂食器业务相关的健康状态和排障信息。</div></div></div>
       <section class="section">
-        <div class="section-header"><h2>硬件与存储</h2></div>
+        <div class="section-header"><h2>健康摘要</h2></div>
         <div class="section-body">
           <div class="metric-grid">
             <div class="metric"><div class="metric-label">AT24C</div><div class="metric-value">在线</div></div>
@@ -31,29 +30,30 @@
             <div class="metric"><div class="metric-label">Flash 剩余</div><div class="metric-value">28%</div></div>
             <div class="metric"><div class="metric-label">电流采集硬件</div><div class="metric-value small">未安装</div></div>
           </div>
+          <div class="page-note">本页只显示喂食器业务诊断，不包含系统级日志、升级、无线网络和文件系统管理入口。</div>
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>通道诊断</h2></div>
+        <div class="section-header"><h2>通道故障诊断</h2></div>
         <div class="section-body">
           <table class="data-table">
             <thead><tr><th>通道</th><th>电机</th><th>编码器</th><th>最近故障</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="电机">待机</td><td data-label="编码器">正常</td><td data-label="最近故障">断电中断</td><td data-label="操作"><a class="button" href="feeder-maintenance.html">处理</a></td></tr>
+              <tr><td data-label="通道">1</td><td data-label="电机">待机</td><td data-label="编码器">正常</td><td data-label="最近故障">断电中断</td><td data-label="操作"><a class="button" href="feeder-confirm.html">重新投喂…</a></td></tr>
               <tr><td data-label="通道">2</td><td data-label="电机">下料中</td><td data-label="编码器">正在计数</td><td data-label="最近故障">无</td><td data-label="操作"><button class="button danger">停止</button></td></tr>
-              <tr id="channel-3"><td data-label="通道">3</td><td data-label="电机">故障</td><td data-label="编码器">无脉冲</td><td data-label="最近故障">无编码器脉冲</td><td data-label="操作"><a class="button" href="feeder-maintenance.html">清除故障…</a></td></tr>
+              <tr id="channel-3"><td data-label="通道">3</td><td data-label="电机">故障</td><td data-label="编码器">无脉冲</td><td data-label="最近故障">无编码器脉冲</td><td data-label="操作"><a class="button" href="feeder-confirm.html">清除故障…</a></td></tr>
             </tbody>
           </table>
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>业务诊断操作</h2></div>
+        <div class="section-header"><h2>业务检查</h2></div>
         <div class="section-body">
-          <div class="page-note">以下操作只检查喂食器业务数据和通道状态，不修改配置，不清空数据。</div>
+          <div class="page-note">以下操作只读取业务数据和通道状态，不修改配置，不清空数据；耗时操作实现时应转为命令模式并轮询状态。</div>
           <table class="data-table">
             <tbody>
               <tr><td data-label="操作">业务状态检查</td><td data-label="作用">检查今日计数、计划状态、跳过今日标记和断电中断摘要是否可读。</td><td data-label="入口"><button class="button">检查</button></td></tr>
-              <tr><td data-label="操作">通道计数检查</td><td data-label="作用">维护时观察编码器是否有脉冲变化，用于判断单路电机或编码器是否异常。</td><td data-label="入口"><a class="button" href="feeder-maintenance.html">去维护页</a></td></tr>
+              <tr><td data-label="操作">通道计数检查</td><td data-label="作用">手动投喂过程中观察编码器是否有脉冲变化，用于判断单路电机或编码器是否异常。</td><td data-label="入口"><a class="button" href="feeder-dashboard.html">去首页</a></td></tr>
               <tr><td data-label="操作">运行记录检查</td><td data-label="作用">检查喂食业务记录分页索引是否可读、最近记录是否连续。</td><td data-label="入口"><button class="button">检查</button></td></tr>
             </tbody>
           </table>

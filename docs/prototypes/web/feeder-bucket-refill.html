@@ -12,25 +12,37 @@
       <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
-        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-schedule.html">计划</a>
         <a class="nav-link active" href="feeder-buckets.html">饲料桶</a>
-        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
-        <a class="nav-link" href="feeder-maintenance.html">维护</a>
+        <a class="nav-link" href="feeder-channels.html">通道设置</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
-        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <a class="nav-link" href="feeder-diagnostics.html">故障诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>补料</h1><div class="subtle">维护饲料桶的软件估算余量。</div></div><a class="button" href="feeder-buckets.html">返回饲料桶</a></div>
+      <div class="topbar"><div class="title-block"><h1>补料</h1><div class="subtle">记录实际补料，或修正软件估算余量。</div></div><a class="button" href="feeder-buckets.html">返回饲料桶</a></div>
       <section class="section">
-        <div class="section-header"><h2>补料记录</h2></div>
+        <div class="section-header"><h2>当前料桶</h2></div>
+        <div class="section-body">
+          <div class="metric-grid">
+            <div class="metric"><div class="metric-label">通道</div><div class="metric-value">通道 1</div></div>
+            <div class="metric"><div class="metric-label">满桶容量</div><div class="metric-value">5.0 kg</div></div>
+            <div class="metric"><div class="metric-label">当前估算余量</div><div class="metric-value">4.1 kg</div></div>
+            <div class="metric"><div class="metric-label">余量比例</div><div class="metric-value">82%</div></div>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>补料操作</h2></div>
         <div class="section-body">
           <div class="form-grid">
             <div class="field"><label>通道</label><select class="select"><option>通道 1</option><option>通道 2</option><option>通道 3</option></select></div>
-            <div class="field"><label>操作方式</label><select class="select"><option>记录加料重量</option><option>设置当前余量</option><option>标记为满桶</option></select></div>
-            <div class="field"><label>加料重量</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="1.0"><span class="input-unit">kg</span></div></div>
-            <div class="field"><label>操作备注</label><input class="input" value="远程维护记录"></div>
+            <div class="field"><label>操作方式</label><select class="select"><option>记录本次加料重量</option><option>直接修正当前余量</option><option>标记为满桶</option></select></div>
+            <div class="field"><label>本次加料重量</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="1.0"><span class="input-unit">kg</span></div></div>
+            <div class="field"><label>修正后余量</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="5.0"><span class="input-unit">kg</span></div></div>
+            <div class="field"><label>记录备注</label><input class="input" value="远程补料记录"></div>
           </div>
+          <div class="page-note">选择“记录本次加料重量”时，系统在当前估算余量上累加；选择“直接修正当前余量”时，用填写值覆盖估算余量；选择“标记为满桶”时，余量设为该通道满桶容量。</div>
           <div class="actions"><button class="button primary">保存补料记录</button><a class="button" href="feeder-buckets.html">取消</a></div>
         </div>
       </section>

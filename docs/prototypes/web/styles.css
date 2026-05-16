@@ -442,6 +442,47 @@ a.button {
   font-size: 12px;
 }
 
+.target-stack {
+  display: grid;
+  gap: 5px;
+}
+
+.target-stack strong {
+  font-size: 14px;
+}
+
+.target-stack .calc {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.channel-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.channel-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdfc;
+  display: grid;
+  gap: 6px;
+}
+
+.channel-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.6fr);
+  gap: 14px;
+  align-items: start;
+}
+
 .pagination {
   display: flex;
   align-items: center;
@@ -652,6 +693,8 @@ a.button {
   .prototype-grid,
   .form-grid,
   .filter-bar,
+  .channel-summary,
+  .two-column,
   .metric-grid {
     grid-template-columns: 1fr;
   }

@@ -15,7 +15,7 @@
 当前业务页面已拆成最终独立页面文件，并使用顶部导航展示最终页面结构：
 
 - 自动门：`farmdoor-dashboard.html`、`farmdoor-dashboard-running.html`、`farmdoor-dashboard-fault.html`、`farmdoor-dashboard-position-unknown.html`、`farmdoor-maintenance.html`、`farmdoor-confirm.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
-- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-buckets.html`、`feeder-bucket-refill.html`、`feeder-calibration.html`、`feeder-maintenance.html`、`feeder-confirm.html`、`feeder-records.html`、`feeder-diagnostics.html`
+- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-buckets.html`、`feeder-bucket-refill.html`、`feeder-channels.html`、`feeder-confirm.html`、`feeder-records.html`、`feeder-diagnostics.html`
 - `esp32-farmdoor.html` 和 `esp32-farmfeeder.html` 仅作为页面列表入口保留。
 
 阅读顺序：
@@ -35,12 +35,12 @@
 | --- | --- | --- | --- |
 | `/` | 首页 | 首页 | 首屏状态和常用控制 |
 | `/control` | 合并到首页 | 合并到通道操作 | 如果首页已经承载控制，首版不单独做 |
-| `/maintenance` | 行程校准 | 维护 | 自动门手动运行和端点标定；喂食器危险维护和校准入口 |
+| `/maintenance` | 校准 | 不使用 | 自动门手动运行和端点标定；喂食器手动投喂合并到首页 |
 | `/records` | 记录 | 记录 | 长期业务记录网页查询；导出作为后续增强 |
-| `/diagnostics` | 诊断 | 诊断 | 业务诊断包、存储健康、最近事件 |
-| `/schedule` | 不使用 | 每日计划 | 喂食器每日计划 |
+| `/diagnostics` | 诊断 | 故障诊断 | 业务健康摘要、通道故障和只读检查 |
+| `/schedule` | 不使用 | 计划 | 喂食器一天多个投喂计划 |
 | `/buckets` | 不使用 | 饲料桶 | 喂食器饲料桶管理 |
-| `/calibration` | 不使用 | 下料标定 | 喂食器下料标定 |
+| `/channels` | 不使用 | 通道设置 | 喂食器每路启用、名称、每圈信号数和每圈克数 |
 
 应用页面不使用 `/logs`、`/api/logs` 或 `/config`。业务记录统一使用 `/records` 和 `/api/app/records`。业务页面不提供系统日志、OTA、WiFi、文件系统格式化等基础库页面入口。
 
@@ -148,7 +148,7 @@
 | 区域 | 字段 |
 | --- | --- |
 | 全局 | feederState、runningCount、enabledChannelMask、faultChannelMask |
-| 今日计划 | enabled、timeConfigured、timeMinutes、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday |
+| 计划摘要 | enabledPlans、nextPlanTime、nextPlanChannels、skipToday |
 | 通道表 | channel、enabled、installed、motorState、targetMode、target、todayGramsX100、remainPercent、faultReason |
 | 存储 | AT24C、flash、记录范围、最近错误 |
 | 告警 | 断电中断、低余量、存储告警、通道故障 |
@@ -163,9 +163,8 @@
 
 | 按钮 | 显示条件 | 行为 |
 | --- | --- | --- |
-| 启动全部 | 至少一个空闲可用通道 | 只启动空闲、启用、已安装、无故障通道 |
+| 手动投喂 | 选择的通道空闲可用 | 首页发起新的单路手动投喂 |
 | 停止全部 | 任一路运行中 | 同时请求运行通道停止 |
-| 单路启动 | 该路空闲可用 | 发起该路投喂 |
 | 单路停止 | 该路运行中 | 停止该路 |
 | 跳过今日 | 计划页或首页 | 只影响今日定时，不影响手动 |
 
@@ -194,6 +193,7 @@
 | 字段 | 说明 |
 | --- | --- |
 | planId | 计划编号 |
+| name | 计划名称 |
 | enabled | 该计划是否启用 |
 | timeMinutes | 该计划执行时间 |
 | channelMask | 该计划参与通道 |
@@ -203,6 +203,13 @@
 | executedToday | 该计划今日是否明确完成 |
 | missedToday | 该计划今日是否错过未执行 |
 
+计划列表目标值展示规则：
+
+- 每路都显示用户选择的主目标和换算值。
+- 用户选择克数时，克数加粗显示，圈数以 `≈` 或 `=` 显示为换算值。
+- 用户选择圈数时，圈数加粗显示，克数以 `≈` 或 `=` 显示为换算值。
+- 换算值来自通道设置页的每圈信号数和每圈克数。
+
 ## Esp32FarmFeeder 饲料桶页
 
 每路显示：
@@ -210,9 +217,7 @@
 - 容量。
 - 当前估算余量。
 - 余量百分比。
-- 低余量阈值。
-- 严重低余量阈值。
-- 按当前计划可投喂次数。
+- 按当前启用计划估算的剩余天数，例如“约 3.5 天”。
 - 最近补料记录。
 
 操作：
@@ -224,16 +229,16 @@
 
 第一版不加硬件余量传感器。下一阶段若只需要“快没料”告警，优先评估低成本红外/光电/电容点位检测；称重只作为连续余量估算方案。
 
-## Esp32FarmFeeder 标定页
+## Esp32FarmFeeder 通道设置页
 
-每路独立标定：
+每路独立设置：
 
-1. 选择通道。
-2. 手工输入每圈下料克数。
-3. 选择参数来源，例如手工输入或历史实测。
-4. 保存 `gramsPerRevX100`。
+1. 是否启用。
+2. 通道名称。
+3. 电机每圈信号数。
+4. 每圈下料克数。
 
-标定页不做实际运转测试。若后续需要电机试运行，应作为维护测试功能单独确认，不混入参数标定页。
+通道设置页不做实际运转测试。页面一次只编辑一个通道，避免三路参数混在一个大表单中误保存。
 
 ## 待用户确认
 
@@ -255,7 +260,7 @@
 - 自动门首页运行曲线明确为“上次运行回放”，运行中状态页单独展示实时进度。
 - 喂食器首页把正在下料信息整合到通道行，不额外放运行曲线。
 - 喂食器单路重新手动投喂、跳过今日、删除计划等动作进入确认流程。
-- 喂食器新增维护页，用于单路试运行、清空今日和清除故障。
+- 喂食器不再保留维护页；手动投喂放在首页，通道参数放在通道设置页，故障处理进入故障诊断或确认页。
 - 喂食器新增补料页，饲料桶页只保留清晰的补料入口。
 - 记录页首版必须支持时间范围、事件类型、通道或故障原因筛选；导出仍是后续增强。
 - 诊断页只保留业务只读检查；格式化、系统日志、OTA、WiFi 等基础库功能不进入业务原型。
@@ -282,4 +287,4 @@ node <静态链接和标题检查脚本>
 git diff --check
 ```
 
-最近一次检查结论：`docs/prototypes/web/` 共 21 个 HTML 页面通过本地链接、标题和基础结构检查；`git diff --check` 通过。
+最近一次检查结论：`docs/prototypes/web/` 共 20 个 HTML 页面通过本地链接、标题和基础结构检查；`git diff --check` 通过。

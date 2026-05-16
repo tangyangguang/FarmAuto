@@ -12,35 +12,35 @@
       <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link active" href="feeder-dashboard.html">首页</a>
-        <a class="nav-link" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link" href="feeder-schedule.html">计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
-        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
-        <a class="nav-link" href="feeder-maintenance.html">维护</a>
+        <a class="nav-link" href="feeder-channels.html">通道设置</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
-        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <a class="nav-link" href="feeder-diagnostics.html">故障诊断</a>
       </nav>
     </aside>
     <main class="content">
       <div class="topbar">
-        <div class="title-block"><h1>首页</h1><div class="subtle">三路状态和常用控制。</div></div>
+        <div class="title-block"><h1>首页</h1><div class="subtle">查看运行状态，并直接发起手动投喂。</div></div>
         <div class="status-strip"><span class="pill ok">在线</span><span class="pill ok">时间同步</span><a class="pill warn" href="feeder-diagnostics.html">Flash 余量 28%</a></div>
       </div>
       <div class="alert danger">上次投喂因断电中断。自动续喂已阻止；需要投喂时请重新发起一次新的手动投喂。</div>
       <section class="section">
-        <div class="section-header"><h2>今日计划</h2><a class="button" href="feeder-schedule.html">计划设置</a></div>
+        <div class="section-header"><h2>手动投喂</h2><span class="subtle">不影响计划，不补投断电前未完成的投喂</span></div>
         <div class="section-body">
-          <div class="metric-grid">
-            <div class="metric"><div class="metric-label">启用计划</div><div class="metric-value">2 个</div></div>
-            <div class="metric"><div class="metric-label">下一次</div><div class="metric-value">12:30</div></div>
-            <div class="metric"><div class="metric-label">参与通道</div><div class="metric-value">通道 1、2</div></div>
-            <div class="metric"><div class="metric-label">跳过今日</div><div class="metric-value">无</div></div>
+          <div class="form-grid">
+            <div class="field"><label>通道</label><select class="select"><option>通道 1（东侧料桶）</option><option>通道 2（中间料桶）</option><option>通道 3（西侧料桶）</option></select></div>
+            <div class="field"><label>目标模式</label><select class="select"><option>按克重投喂</option><option>按圈数投喂</option></select></div>
+            <div class="field"><label>目标克重</label><div class="input-with-unit"><input class="input" type="number" min="0" step="1" value="70"><span class="input-unit">克</span></div></div>
+            <div class="field"><label>换算圈数</label><div class="input-with-unit"><input class="input" type="number" value="1.00" disabled><span class="input-unit">圈</span></div></div>
           </div>
+          <div class="actions"><a class="button primary" href="feeder-confirm.html">开始手动投喂…</a><button class="button danger">停止全部</button></div>
         </div>
       </section>
       <section class="section">
         <div class="section-header">
-          <h2>通道</h2>
-          <div class="actions"><button class="button primary">启动全部可用通道</button><button class="button danger">停止全部</button></div>
+          <h2>通道运行状态</h2>
+          <a class="button" href="feeder-schedule.html">查看计划</a>
         </div>
         <div class="section-body">
           <table class="data-table">
@@ -54,12 +54,14 @@
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>最近事件</h2></div>
+        <div class="section-header"><h2>今日计划摘要</h2><a class="button" href="feeder-schedule.html">计划</a></div>
         <div class="section-body">
-          <ul class="event-list">
-            <li><span>07:32 投喂断电中断</span><span class="subtle">通道 1、2</span></li>
-            <li><span>07:30 每日计划触发</span><span class="subtle">通道 1、2、3</span></li>
-          </ul>
+          <div class="metric-grid">
+            <div class="metric"><div class="metric-label">启用计划</div><div class="metric-value">2 个</div></div>
+            <div class="metric"><div class="metric-label">下一次</div><div class="metric-value">12:30</div></div>
+            <div class="metric"><div class="metric-label">参与通道</div><div class="metric-value">通道 1、2</div></div>
+            <div class="metric"><div class="metric-label">跳过今日</div><div class="metric-value">无</div></div>
+          </div>
         </div>
       </section>
     </main>

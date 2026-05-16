@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder 每日计划</title>
+  <title>Esp32FarmFeeder 计划</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,30 +12,59 @@
       <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
-        <a class="nav-link active" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link active" href="feeder-schedule.html">计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
-        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
-        <a class="nav-link" href="feeder-maintenance.html">维护</a>
+        <a class="nav-link" href="feeder-channels.html">通道设置</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
-        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <a class="nav-link" href="feeder-diagnostics.html">故障诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>每日计划</h1><div class="subtle">支持一天多个计划。每个计划独立设置时间、参与通道和每路投喂量。</div></div><span class="pill ok">启用计划 2 个</span></div>
+      <div class="topbar"><div class="title-block"><h1>计划</h1><div class="subtle">一天可有多个计划。每个计划独立设置时间、参与通道和目标量。</div></div><span class="pill ok">启用 2 个</span></div>
       <section class="section">
         <div class="section-header"><h2>计划列表</h2><a class="button primary" href="feeder-schedule-edit.html">新增计划</a></div>
         <div class="section-body">
           <table class="data-table">
-            <thead><tr><th>启用</th><th>时间</th><th>每路目标</th><th>今日状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>名称</th><th>时间</th><th>状态</th><th>通道目标</th><th>今日</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="启用">是</td><td data-label="时间">07:30</td><td data-label="每路目标">1: 70g · 2: 1.00 圈 · 3: 70g</td><td data-label="今日状态"><span class="pill warn">已尝试中断</span></td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a><a class="button" href="feeder-confirm.html">跳过今日…</a></td></tr>
-              <tr><td data-label="启用">是</td><td data-label="时间">12:30</td><td data-label="每路目标">1: 50g · 2: 50g</td><td data-label="今日状态"><span class="pill ok">待执行</span></td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a><a class="button" href="feeder-confirm.html">跳过今日…</a></td></tr>
-              <tr><td data-label="启用">是</td><td data-label="时间">15:00</td><td data-label="每路目标">1: 30g</td><td data-label="今日状态"><span class="pill ok">已完成</span></td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td></tr>
-              <tr><td data-label="启用">是</td><td data-label="时间">16:30</td><td data-label="每路目标">2: 40g</td><td data-label="今日状态"><span class="pill warn">已跳过今日</span></td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a><a class="button" href="feeder-confirm.html">取消跳过…</a></td></tr>
-              <tr><td data-label="启用">是</td><td data-label="时间">18:00</td><td data-label="每路目标">1: 70g · 2: 70g · 3: 70g</td><td data-label="今日状态"><span class="pill warn">已错过</span></td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td></tr>
-              <tr><td data-label="启用">否</td><td data-label="时间">20:00</td><td data-label="每路目标">1: 50g · 3: 50g</td><td data-label="今日状态"><span class="pill">未启用</span></td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td></tr>
+              <tr>
+                <td data-label="名称"><strong>早晨主喂</strong><div class="subtle">计划 1</div></td>
+                <td data-label="时间">07:30</td>
+                <td data-label="状态"><span class="pill ok">启用</span></td>
+                <td data-label="通道目标">
+                  <div class="target-stack">
+                    <span><strong>通道 1：70g</strong> <span class="calc">= 1.00 圈</span></span>
+                    <span><strong>通道 2：1.00 圈</strong> <span class="calc">≈ 68g</span></span>
+                    <span><strong>通道 3：70g</strong> <span class="calc">= 1.00 圈</span></span>
+                  </div>
+                </td>
+                <td data-label="今日"><span class="pill warn">已尝试中断</span></td>
+                <td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a><a class="button" href="feeder-confirm.html">跳过今日…</a></td>
+              </tr>
+              <tr>
+                <td data-label="名称"><strong>中午补喂</strong><div class="subtle">计划 2</div></td>
+                <td data-label="时间">12:30</td>
+                <td data-label="状态"><span class="pill ok">启用</span></td>
+                <td data-label="通道目标">
+                  <div class="target-stack">
+                    <span><strong>通道 1：50g</strong> <span class="calc">≈ 0.71 圈</span></span>
+                    <span><strong>通道 2：50g</strong> <span class="calc">≈ 0.74 圈</span></span>
+                  </div>
+                </td>
+                <td data-label="今日"><span class="pill ok">待执行</span></td>
+                <td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a><a class="button" href="feeder-confirm.html">跳过今日…</a></td>
+              </tr>
+              <tr>
+                <td data-label="名称"><strong>傍晚少量</strong><div class="subtle">计划 3</div></td>
+                <td data-label="时间">18:00</td>
+                <td data-label="状态"><span class="pill">关闭</span></td>
+                <td data-label="通道目标"><div class="target-stack"><span><strong>通道 3：0.50 圈</strong> <span class="calc">≈ 35g</span></span></div></td>
+                <td data-label="今日"><span class="pill">未启用</span></td>
+                <td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td>
+              </tr>
             </tbody>
           </table>
+          <div class="page-note">粗体是用户选择的主目标；灰色换算值由通道设置中的“每圈克数”和“每圈信号数”计算得到，仅用于核对。</div>
         </div>
       </section>
     </main>

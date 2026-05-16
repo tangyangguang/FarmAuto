@@ -12,12 +12,11 @@
       <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
-        <a class="nav-link active" href="feeder-schedule.html">每日计划</a>
+        <a class="nav-link active" href="feeder-schedule.html">计划</a>
         <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
-        <a class="nav-link" href="feeder-calibration.html">下料标定</a>
-        <a class="nav-link" href="feeder-maintenance.html">维护</a>
+        <a class="nav-link" href="feeder-channels.html">通道设置</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
-        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+        <a class="nav-link" href="feeder-diagnostics.html">故障诊断</a>
       </nav>
     </aside>
     <main class="content">
@@ -41,11 +40,11 @@
         <div class="section-body">
           <div class="alert">通道 3 当前未启用本计划。未标定通道不能保存克数目标。</div>
           <table class="data-table">
-            <thead><tr><th>通道</th><th>是否参与</th><th>单位</th><th>目标</th><th>标定状态</th></tr></thead>
+            <thead><tr><th>通道</th><th>是否参与</th><th>主目标</th><th>换算值</th><th>标定状态</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="是否参与"><select class="select"><option>参与</option><option>不参与</option></select></td><td data-label="单位"><select class="select"><option>克数</option><option>圈数</option></select></td><td data-label="目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="50"><span class="input-unit">克</span></div></td><td data-label="标定状态">70g/圈</td></tr>
-              <tr><td data-label="通道">2</td><td data-label="是否参与"><select class="select"><option>参与</option><option>不参与</option></select></td><td data-label="单位"><select class="select"><option>克数</option><option>圈数</option></select></td><td data-label="目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="50"><span class="input-unit">克</span></div></td><td data-label="标定状态">68g/圈</td></tr>
-              <tr><td data-label="通道">3</td><td data-label="是否参与"><select class="select"><option>不参与</option><option>参与</option></select></td><td data-label="单位"><select class="select"><option>克数</option><option>圈数</option></select></td><td data-label="目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="0"><span class="input-unit">克</span></div></td><td data-label="标定状态"><span class="pill warn">未参与</span></td></tr>
+              <tr><td data-label="通道">1</td><td data-label="是否参与"><select class="select"><option>参与</option><option>不参与</option></select></td><td data-label="主目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="50"><span class="input-unit">克</span></div></td><td data-label="换算值">≈ 0.71 圈</td><td data-label="标定状态">70g/圈</td></tr>
+              <tr><td data-label="通道">2</td><td data-label="是否参与"><select class="select"><option>参与</option><option>不参与</option></select></td><td data-label="主目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.01" value="1.00"><span class="input-unit">圈</span></div></td><td data-label="换算值">≈ 68g</td><td data-label="标定状态">68g/圈</td></tr>
+              <tr><td data-label="通道">3</td><td data-label="是否参与"><select class="select"><option>不参与</option><option>参与</option></select></td><td data-label="主目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="0"><span class="input-unit">克</span></div></td><td data-label="换算值">未参与</td><td data-label="标定状态"><span class="pill warn">未参与</span></td></tr>
             </tbody>
           </table>
           <div class="alert danger">保存失败示意：通道 2 的目标超过本次允许范围，请调整后重试。</div>
