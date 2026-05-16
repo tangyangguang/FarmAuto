@@ -6,10 +6,19 @@
 #include <Esp32EncodedDcMotor.h>
 #include <Esp32MotorCurrentGuard.h>
 
+#include "DoorController.h"
 #include "FarmDoorHardware.h"
 
 namespace {
 
+constexpr int64_t kDefaultOutputPulsesPerRev = 2096;
+constexpr int64_t kDefaultOpenTurnsX100 = 500;
+constexpr int64_t kDefaultOpenTargetPulses =
+    (kDefaultOutputPulsesPerRev * kDefaultOpenTurnsX100) / 100;
+constexpr int64_t kDefaultMaxRunPulses = (kDefaultOpenTargetPulses * 150) / 100;
+
+DoorController g_door;
+DoorControllerConfig g_doorConfig;
 Esp32EncodedDcMotor::MotorHardwareConfig g_motorHardware;
 Esp32EncodedDcMotor::EncoderBackendConfig g_encoderBackend;
 Esp32EncodedDcMotor::MotorKinematics g_motorKinematics;
@@ -29,6 +38,85 @@ void sendDigitalField(const char* name, uint8_t value) {
   Esp32BaseWeb::sendChunk(name);
   Esp32BaseWeb::sendChunk("\":");
   Esp32BaseWeb::sendChunk(value == 1 ? "1" : "0");
+}
+
+void sendInt64(int64_t value) {
+  char number[24];
+  snprintf(number, sizeof(number), "%lld", static_cast<long long>(value));
+  Esp32BaseWeb::sendChunk(number);
+}
+
+void sendUint32(uint32_t value) {
+  char number[16];
+  snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(value));
+  Esp32BaseWeb::sendChunk(number);
+}
+
+const char* stateName(DoorState state) {
+  switch (state) {
+    case DoorState::PositionUnknown: return "PositionUnknown";
+    case DoorState::IdleClosed: return "IdleClosed";
+    case DoorState::IdleOpen: return "IdleOpen";
+    case DoorState::IdlePartial: return "IdlePartial";
+    case DoorState::Opening: return "Opening";
+    case DoorState::Closing: return "Closing";
+    case DoorState::Fault: return "Fault";
+  }
+  return "Unknown";
+}
+
+const char* commandName(DoorCommand command) {
+  switch (command) {
+    case DoorCommand::None: return "None";
+    case DoorCommand::Open: return "Open";
+    case DoorCommand::Close: return "Close";
+    case DoorCommand::Stop: return "Stop";
+  }
+  return "Unknown";
+}
+
+const char* trustName(PositionTrustLevel trustLevel) {
+  switch (trustLevel) {
+    case PositionTrustLevel::Trusted: return "Trusted";
+    case PositionTrustLevel::Limited: return "Limited";
+    case PositionTrustLevel::Untrusted: return "Untrusted";
+  }
+  return "Untrusted";
+}
+
+const char* stopReasonName(DoorStopReason reason) {
+  switch (reason) {
+    case DoorStopReason::None: return "None";
+    case DoorStopReason::TargetReached: return "TargetReached";
+    case DoorStopReason::UserStop: return "UserStop";
+    case DoorStopReason::ProtectiveStop: return "ProtectiveStop";
+    case DoorStopReason::FaultStop: return "FaultStop";
+  }
+  return "Unknown";
+}
+
+const char* faultReasonName(DoorFaultReason reason) {
+  switch (reason) {
+    case DoorFaultReason::None: return "None";
+    case DoorFaultReason::InvalidConfig: return "InvalidConfig";
+    case DoorFaultReason::MotorFault: return "MotorFault";
+    case DoorFaultReason::PositionLost: return "PositionLost";
+  }
+  return "Unknown";
+}
+
+uint16_t positionPercent(const DoorSnapshot& snapshot) {
+  if (snapshot.openTargetPulses <= 0) {
+    return 0;
+  }
+  int64_t percent = (snapshot.positionPulses * 100) / snapshot.openTargetPulses;
+  if (percent < 0) {
+    percent = 0;
+  }
+  if (percent > 120) {
+    percent = 120;
+  }
+  return static_cast<uint16_t>(percent);
 }
 
 }  // namespace
@@ -75,7 +163,7 @@ void FarmDoorApp::configureStaticDefaults() {
 
   g_motorKinematics.motorShaftPulsesPerRev = 16;
   g_motorKinematics.gearRatio = 131.0f;
-  g_motorKinematics.outputPulsesPerRev = 2096;
+  g_motorKinematics.outputPulsesPerRev = kDefaultOutputPulsesPerRev;
   g_motorKinematics.countMode = Esp32EncodedDcMotor::CountMode::X1;
 
   g_motorProfile.speedPercent = 60;
@@ -85,7 +173,7 @@ void FarmDoorApp::configureStaticDefaults() {
 
   g_motorProtection.startupGraceMs = 1000;
   g_motorProtection.maxRunMs = 25000;
-  g_motorProtection.maxRunPulses = 2096 * 8;
+  g_motorProtection.maxRunPulses = kDefaultMaxRunPulses;
 
   g_motorStopPolicy.emergencyOutputMode = Esp32EncodedDcMotor::EmergencyOutputMode::Coast;
 
@@ -107,6 +195,15 @@ void FarmDoorApp::configureStaticDefaults() {
   g_recordStoreConfig.baseAddress = 0;
   g_recordStoreConfig.totalBytes = 16 * 1024;
   g_recordStoreConfig.pageSize = 64;
+
+  g_doorConfig.closedPositionPulses = 0;
+  g_doorConfig.openTargetPulses = kDefaultOpenTargetPulses;
+  g_doorConfig.maxRunPulses = kDefaultMaxRunPulses;
+  g_doorConfig.maxRunMs = g_motorProtection.maxRunMs;
+  const DoorCommandResult doorConfigResult = g_door.configure(g_doorConfig);
+  if (doorConfigResult != DoorCommandResult::Ok) {
+    ESP32BASE_LOG_E("farmdoor", "door_config_failed result=%u", static_cast<unsigned>(doorConfigResult));
+  }
 }
 
 void FarmDoorApp::configureAppConfigPage() {
@@ -139,11 +236,39 @@ void FarmDoorApp::configureBusinessShell() {
 
 void FarmDoorApp::sendStatusJson() {
 #if ESP32BASE_ENABLE_WEB
+  const DoorSnapshot snapshot = g_door.snapshot();
   Esp32BaseWeb::beginJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
   Esp32BaseWeb::sendChunk("\"firmware\":\"");
   Esp32BaseWeb::writeJsonEscaped(Esp32Base::firmwareVersion());
-  Esp32BaseWeb::sendChunk("\",\"state\":\"Skeleton\",");
+  Esp32BaseWeb::sendChunk("\",\"schemaVersion\":1,");
+  Esp32BaseWeb::sendChunk("\"state\":\"");
+  Esp32BaseWeb::sendChunk(stateName(snapshot.state));
+  Esp32BaseWeb::sendChunk("\",\"activeCommand\":\"");
+  Esp32BaseWeb::sendChunk(commandName(snapshot.activeCommand));
+  Esp32BaseWeb::sendChunk("\",\"position\":{\"pulses\":");
+  sendInt64(snapshot.positionPulses);
+  Esp32BaseWeb::sendChunk(",\"percent\":");
+  sendUint32(positionPercent(snapshot));
+  Esp32BaseWeb::sendChunk(",\"trustLevel\":\"");
+  Esp32BaseWeb::sendChunk(trustName(snapshot.positionTrustLevel));
+  Esp32BaseWeb::sendChunk("\",\"source\":\"");
+  Esp32BaseWeb::sendChunk(snapshot.positionTrustLevel == PositionTrustLevel::Untrusted ? "NotCalibrated" : "Runtime");
+  Esp32BaseWeb::sendChunk("\"},\"travel\":{\"closedPulses\":");
+  sendInt64(snapshot.closedPositionPulses);
+  Esp32BaseWeb::sendChunk(",\"openTargetPulses\":");
+  sendInt64(snapshot.openTargetPulses);
+  Esp32BaseWeb::sendChunk(",\"outputPulsesPerRev\":");
+  sendInt64(kDefaultOutputPulsesPerRev);
+  Esp32BaseWeb::sendChunk(",\"maxRunPulses\":");
+  sendInt64(g_doorConfig.maxRunPulses);
+  Esp32BaseWeb::sendChunk(",\"maxRunMs\":");
+  sendUint32(g_doorConfig.maxRunMs);
+  Esp32BaseWeb::sendChunk("},\"lastStopReason\":\"");
+  Esp32BaseWeb::sendChunk(stopReasonName(snapshot.lastStopReason));
+  Esp32BaseWeb::sendChunk("\",\"faultReason\":\"");
+  Esp32BaseWeb::sendChunk(faultReasonName(snapshot.faultReason));
+  Esp32BaseWeb::sendChunk("\",");
   Esp32BaseWeb::sendChunk("\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"enabled\":");
   Esp32BaseWeb::sendChunk(g_currentGuard.enabled ? "true" : "false");
   Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"}}");
