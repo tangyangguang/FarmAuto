@@ -70,6 +70,7 @@ struct DoorSnapshot {
 class DoorController {
  public:
   DoorCommandResult configure(const DoorControllerConfig& config);
+  DoorCommandResult updateTravel(int64_t openTargetPulses, int64_t maxRunPulses);
 
   DoorCommandResult markPositionClosed();
   DoorCommandResult markPositionOpen();
@@ -80,6 +81,7 @@ class DoorController {
   DoorCommandResult requestStop(int64_t stoppedPositionPulses);
   DoorCommandResult onMotionTargetReached(int64_t finalPositionPulses);
   DoorCommandResult enterFault(DoorFaultReason reason);
+  DoorCommandResult clearFault();
 
   DoorSnapshot snapshot() const;
 

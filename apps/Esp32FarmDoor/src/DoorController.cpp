@@ -17,6 +17,39 @@ DoorCommandResult DoorController::configure(const DoorControllerConfig& config) 
   return DoorCommandResult::Ok;
 }
 
+DoorCommandResult DoorController::updateTravel(int64_t openTargetPulses, int64_t maxRunPulses) {
+  if (!configured()) {
+    return DoorCommandResult::InvalidArgument;
+  }
+  if (snapshot_.state == DoorState::Fault) {
+    return DoorCommandResult::FaultActive;
+  }
+  if (isRunning()) {
+    return DoorCommandResult::Busy;
+  }
+  if (openTargetPulses <= config_.closedPositionPulses || maxRunPulses <= 0) {
+    return DoorCommandResult::InvalidArgument;
+  }
+
+  config_.openTargetPulses = openTargetPulses;
+  config_.maxRunPulses = maxRunPulses;
+  snapshot_.openTargetPulses = openTargetPulses;
+  if (snapshot_.positionTrustLevel == PositionTrustLevel::Trusted) {
+    if (snapshot_.positionPulses <= config_.closedPositionPulses) {
+      snapshot_.state = DoorState::IdleClosed;
+    } else if (snapshot_.positionPulses >= config_.openTargetPulses) {
+      snapshot_.state = DoorState::IdleOpen;
+    } else {
+      snapshot_.state = DoorState::IdlePartial;
+    }
+  } else if (snapshot_.positionTrustLevel == PositionTrustLevel::Limited) {
+    snapshot_.state = DoorState::IdlePartial;
+  } else {
+    snapshot_.state = DoorState::PositionUnknown;
+  }
+  return DoorCommandResult::Ok;
+}
+
 DoorCommandResult DoorController::markPositionClosed() {
   if (!configured()) {
     return DoorCommandResult::InvalidArgument;
@@ -118,6 +151,27 @@ DoorCommandResult DoorController::enterFault(DoorFaultReason reason) {
   snapshot_.activeCommand = DoorCommand::None;
   snapshot_.faultReason = reason;
   snapshot_.lastStopReason = DoorStopReason::FaultStop;
+  return DoorCommandResult::Ok;
+}
+
+DoorCommandResult DoorController::clearFault() {
+  if (snapshot_.state != DoorState::Fault) {
+    return DoorCommandResult::InvalidArgument;
+  }
+  if (!configured()) {
+    return DoorCommandResult::InvalidArgument;
+  }
+  snapshot_.faultReason = DoorFaultReason::None;
+  snapshot_.activeCommand = DoorCommand::None;
+  if (snapshot_.positionTrustLevel == PositionTrustLevel::Untrusted) {
+    snapshot_.state = DoorState::PositionUnknown;
+  } else if (snapshot_.positionPulses <= config_.closedPositionPulses) {
+    snapshot_.state = DoorState::IdleClosed;
+  } else if (snapshot_.positionPulses >= config_.openTargetPulses) {
+    snapshot_.state = DoorState::IdleOpen;
+  } else {
+    snapshot_.state = DoorState::IdlePartial;
+  }
   return DoorCommandResult::Ok;
 }
 
