@@ -42,7 +42,7 @@ int main() {
   record.newPositionPulses = 150;
   record.oldTravelPulses = 10480;
   record.newTravelPulses = 11004;
-  record.deltaPulses = 524;
+  record.deltaPulses = 123;
 
   uint8_t encoded[kDoorRecordEncodedMaxBytes] = {};
   std::size_t encodedLength = 0;

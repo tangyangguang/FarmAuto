@@ -8,7 +8,7 @@
 static constexpr uint32_t kDoorRecordMagic = 0xFAD00A01u;
 static constexpr uint16_t kDoorRecordSchemaVersion = 1;
 static constexpr std::size_t kDoorRecordHeaderSize = 32;
-static constexpr std::size_t kDoorRecordPayloadSize = 44;
+static constexpr std::size_t kDoorRecordPayloadSize = 52;
 static constexpr std::size_t kDoorRecordEncodedMaxBytes =
     kDoorRecordHeaderSize + kDoorRecordPayloadSize;
 

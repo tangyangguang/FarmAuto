@@ -67,6 +67,7 @@ void encodePayload(const DoorRecord& record, uint8_t* payload) {
   writeI64(payload + 20, record.newPositionPulses);
   writeI64(payload + 28, record.oldTravelPulses);
   writeI64(payload + 36, record.newTravelPulses);
+  writeI64(payload + 44, record.deltaPulses);
 }
 
 }  // namespace
@@ -170,7 +171,7 @@ DoorRecordCodecResult decodeDoorEncodedRecord(const uint8_t* data,
   record.newPositionPulses = readI64(payload + 20);
   record.oldTravelPulses = readI64(payload + 28);
   record.newTravelPulses = readI64(payload + 36);
-  record.deltaPulses = record.newTravelPulses - record.oldTravelPulses;
+  record.deltaPulses = readI64(payload + 44);
   out = record;
   return DoorRecordCodecResult::Ok;
 }
