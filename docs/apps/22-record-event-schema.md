@@ -35,6 +35,7 @@
 - CRC 算法首版统一使用 CRC-32/ISO-HDLC；后续改变算法必须提升 schemaVersion。实现上优先复用 `Esp32At24cRecordStore` 提供的 `Crc32IsoHdlc` helper，避免应用记录服务和 AT24C 记录库各写一套。
 - 所有字段固定 little-endian 且必须字段级显式序列化，禁止直接写 C++ 结构体内存。
 - 克数统一使用 `*GramsX100` 或 `*GramsPerRevX100`，单位为 0.01g；不再在事件 payload 中混用整数克字段。
+- `uptimeMs` 是 32 位启动后毫秒数，约 49.7 天回绕；它只用于短窗口诊断和相对时间展示。长期记录查询、排序、回溯和导出必须依赖 `unixTime`、`sequence` 和文件 segment 顺序，不能依赖 `uptimeMs` 单独判断先后。
 
 ## 通用事件类型
 

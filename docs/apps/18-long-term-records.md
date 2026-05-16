@@ -202,6 +202,8 @@ RecordEvent
   payload bytes...
 ```
 
+`uptimeMs` 使用 `uint32`，约 49.7 天会回绕。它只用于同一次启动周期内的短窗口诊断、事件间隔判断和无有效时间时的辅助展示；长期记录排序、分页、回溯和去重不能依赖 `uptimeMs`，必须以 `unixTime`、`sequence` 和 segment 顺序为准。
+
 格式选择：
 
 - 首版采用变长 payload，不采用 segment 级 `recordSize` 定长记录。

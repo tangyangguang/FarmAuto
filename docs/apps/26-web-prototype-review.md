@@ -12,8 +12,8 @@
 
 当前已拆成最终独立页面文件，并使用顶部导航展示最终页面结构：
 
-- 自动门：`farmdoor-dashboard.html`、`farmdoor-maintenance.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
-- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-buckets.html`、`feeder-calibration.html`、`feeder-records.html`、`feeder-diagnostics.html`
+- 自动门：`farmdoor-dashboard.html`、`farmdoor-dashboard-running.html`、`farmdoor-dashboard-fault.html`、`farmdoor-dashboard-position-unknown.html`、`farmdoor-maintenance.html`、`farmdoor-confirm.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
+- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-buckets.html`、`feeder-bucket-refill.html`、`feeder-calibration.html`、`feeder-maintenance.html`、`feeder-confirm.html`、`feeder-records.html`、`feeder-diagnostics.html`
 - `esp32-farmdoor.html` 和 `esp32-farmfeeder.html` 仅作为页面列表入口保留。
 
 阅读顺序：
@@ -21,8 +21,8 @@
 1. `docs/apps/23-esp32base-web-integration.md`：系统页和业务页边界。
 2. `docs/apps/19-web-page-prototypes.md`：页面草图和信息架构。
 3. 本文：按页面逐项确认首版需要展示和操作的内容。
-4. `docs/apps/27-web-prototype-professional-review.md`：专业评审结论和剩余改进项。
-5. `docs/apps/28-web-prototype-audit.md`：静态页面链接、结构和表单入口自查记录。
+
+历史说明：原 `27-web-prototype-professional-review.md` 和 `28-web-prototype-audit.md` 的结论已合并到本文，后续只维护本文，避免同一原型结论在多份文档中重复和漂移。
 
 ## 全局导航
 
@@ -254,3 +254,41 @@
 | W4 | 记录导出是否首版必须做 | 已确认：不是必须；网页查看是基本能力，导出后续再做 |
 | W5 | 危险操作二次确认令牌 | 已确认：首版应用内实现短期令牌，不要求 Esp32Base 先增强 |
 | W6 | 原型是否拆成最终独立页面 | 已完成：使用顶部导航展示最终页面结构，下一步逐页确认最终页面效果 |
+
+## 专业评审已落实项
+
+以下内容来自原专业评审文档，已经合并到当前原型确认范围：
+
+- 自动门首页补充关闭待机、运行中、故障、位置不可信四种状态页面。
+- 自动门行程校准的端点标定和危险操作进入二次确认页。
+- 自动门首页运行曲线明确为“上次运行回放”，运行中状态页单独展示实时进度。
+- 喂食器首页把正在下料信息整合到通道行，不额外放运行曲线。
+- 喂食器单路重新手动投喂、跳过今日、删除计划、格式化业务存储等动作进入确认流程。
+- 喂食器新增维护页，用于单路试运行、清空今日、清除故障和危险存储操作。
+- 喂食器新增补料页，饲料桶页只保留清晰的补料入口。
+- 记录页首版必须支持时间范围、事件类型、通道或故障原因筛选；导出仍是后续增强。
+- 诊断页把普通检查和危险操作分层，避免格式化类动作与普通检查按钮同级。
+
+## 静态自查记录
+
+自查对象为 `docs/prototypes/web/` 下全部静态 HTML 页面。
+
+已检查：
+
+- 每个 HTML 页面都有标题和统一样式文件。
+- 每个 HTML 页面都有 `h1`。
+- 所有本地 `href` 链接目标均存在。
+- 表单页面能通过页面链接打开。
+- 业务页面均有顶部导航，并包含 Esp32Base 系统页入口。
+- 业务记录页和系统日志页保持分离。
+- 记录页包含时间范围筛选。
+- 输入控件不把单位混在 `value` 中，单位独立显示。
+
+验证命令：
+
+```bash
+node <静态链接和标题检查脚本>
+git diff --check
+```
+
+最近一次检查结论：`docs/prototypes/web/` 共 24 个 HTML 页面通过本地链接、标题和基础结构检查；`git diff --check` 通过。
