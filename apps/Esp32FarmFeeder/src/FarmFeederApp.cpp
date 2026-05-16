@@ -179,6 +179,10 @@ bool readInt32Param(const char* name, int32_t& out) {
   return true;
 }
 
+bool readInt32ParamOptional(const char* name, int32_t& out) {
+  return !Esp32BaseWeb::hasParam(name) || readInt32Param(name, out);
+}
+
 bool readBoolParam(const char* name, bool& out) {
   char raw[8];
   if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
@@ -190,6 +194,27 @@ bool readBoolParam(const char* name, bool& out) {
   }
   if (strcmp(raw, "false") == 0 || strcmp(raw, "0") == 0) {
     out = false;
+    return true;
+  }
+  return false;
+}
+
+bool readTargetModeParam(const char* name, FeederTargetMode& out) {
+  char raw[16];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    out = FeederTargetMode::None;
+    return true;
+  }
+  if (strcmp(raw, "grams") == 0 || strcmp(raw, "Grams") == 0) {
+    out = FeederTargetMode::Grams;
+    return true;
+  }
+  if (strcmp(raw, "revolutions") == 0 || strcmp(raw, "Revolutions") == 0) {
+    out = FeederTargetMode::Revolutions;
+    return true;
+  }
+  if (strcmp(raw, "none") == 0 || strcmp(raw, "None") == 0) {
+    out = FeederTargetMode::None;
     return true;
   }
   return false;
@@ -220,6 +245,43 @@ const char* scheduleResultName(FeederScheduleResult result) {
     case FeederScheduleResult::InvalidArgument: return "InvalidArgument";
   }
   return "InvalidArgument";
+}
+
+bool readPlanConfigFromParams(FeederPlanConfig& config) {
+  int32_t raw = 0;
+  if (!readBoolParam("enabled", config.enabled)) {
+    return false;
+  }
+  config.timeConfigured = Esp32BaseWeb::hasParam("timeMinutes");
+  if (config.timeConfigured) {
+    if (!readInt32Param("timeMinutes", raw) || raw < 0 || raw >= 24 * 60) {
+      return false;
+    }
+    config.timeMinutes = static_cast<uint16_t>(raw);
+  }
+  if (Esp32BaseWeb::hasParam("channelMask")) {
+    if (!readInt32Param("channelMask", raw) || raw < 0 || raw > 15) {
+      return false;
+    }
+    config.channelMask = static_cast<uint8_t>(raw);
+  }
+
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    char name[28];
+    snprintf(name, sizeof(name), "ch%uMode", static_cast<unsigned>(i));
+    if (!readTargetModeParam(name, config.targets[i].mode)) {
+      return false;
+    }
+    snprintf(name, sizeof(name), "ch%uGramsX100", static_cast<unsigned>(i));
+    if (!readInt32ParamOptional(name, config.targets[i].targetGramsX100)) {
+      return false;
+    }
+    snprintf(name, sizeof(name), "ch%uRevolutionsX100", static_cast<unsigned>(i));
+    if (!readInt32ParamOptional(name, config.targets[i].targetRevolutionsX100)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }  // namespace
@@ -291,6 +353,9 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
   Esp32BaseWeb::addApi("/api/app/status", FarmFeederApp::sendStatusJson);
   Esp32BaseWeb::addApi("/api/app/schedules", FarmFeederApp::sendSchedulesJson);
+  Esp32BaseWeb::addApi("/api/app/schedules/create", FarmFeederApp::handleScheduleCreate);
+  Esp32BaseWeb::addApi("/api/app/schedules/update", FarmFeederApp::handleScheduleUpdate);
+  Esp32BaseWeb::addApi("/api/app/schedules/delete", FarmFeederApp::handleScheduleDelete);
   Esp32BaseWeb::addApi("/api/app/schedule-occurrence/skip", FarmFeederApp::handleScheduleSkip);
   Esp32BaseWeb::addApi("/api/app/schedule-occurrence/cancel-skip", FarmFeederApp::handleScheduleCancelSkip);
   Esp32BaseWeb::addApi("/api/app/buckets", FarmFeederApp::sendBucketsJson);
@@ -361,6 +426,49 @@ void FarmFeederApp::sendBaseInfoJson() {
   sendBaseInfoSummary(g_buckets.snapshot());
   Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::handleScheduleCreate() {
+#if ESP32BASE_ENABLE_WEB
+  FeederPlanConfig config;
+  if (!readPlanConfigFromParams(config)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederScheduleMutation mutation = g_schedules.addPlan(config);
+  Esp32BaseWeb::beginJson(mutation.result == FeederScheduleResult::Ok ? 200 : 400);
+  Esp32BaseWeb::sendChunk("{\"result\":\"");
+  Esp32BaseWeb::sendChunk(scheduleResultName(mutation.result));
+  Esp32BaseWeb::sendChunk("\",\"planId\":");
+  sendUint8(mutation.planId);
+  Esp32BaseWeb::sendChunk("}");
+  Esp32BaseWeb::endJson();
+#endif
+}
+
+void FarmFeederApp::handleScheduleUpdate() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t planId = 0;
+  FeederPlanConfig config;
+  if (!readUint8Param("planId", planId) || !readPlanConfigFromParams(config)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederScheduleResult result = g_schedules.updatePlan(planId, config);
+  sendResultJson(result == FeederScheduleResult::Ok ? 200 : 400, scheduleResultName(result));
+#endif
+}
+
+void FarmFeederApp::handleScheduleDelete() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t planId = 0;
+  if (!readUint8Param("planId", planId)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  const FeederScheduleResult result = g_schedules.deletePlan(planId);
+  sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
 #endif
 }
 
