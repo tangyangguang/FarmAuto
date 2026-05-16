@@ -254,6 +254,10 @@ Result RecordStore::readLatest(uint16_t recordType,
                      header.payloadLength)) {
     return Result::DeviceOffline;
   }
+  if (crc32IsoHdlc(payload, header.payloadLength) != header.payloadCrc) {
+    length = 0;
+    return Result::CrcMismatch;
+  }
   length = header.payloadLength;
   return Result::Ok;
 }
