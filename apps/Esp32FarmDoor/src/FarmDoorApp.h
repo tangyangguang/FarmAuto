@@ -10,6 +10,10 @@ class FarmDoorApp {
   void configureHardwareInputs();
   void configureAppConfigPage();
   void configureBusinessShell();
+  static void sendHomePage();
+  static void sendRecordsPage();
+  static void sendCalibrationPage();
+  static void sendDiagnosticsPage();
   static void sendStatusJson();
   static void sendDiagnosticsJson();
   static void sendRecentEventsJson();

@@ -10,6 +10,11 @@ class FarmFeederApp {
   void configureAppConfigPage();
   void configureBusinessShell();
   void handleScheduleTick();
+  static void sendHomePage();
+  static void sendSchedulePage();
+  static void sendRecordsPage();
+  static void sendBaseInfoPage();
+  static void sendDiagnosticsPage();
   static void sendStatusJson();
   static void sendDiagnosticsJson();
   static void sendRecentEventsJson();

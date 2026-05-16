@@ -8,6 +8,7 @@
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard`。
 - 已接入自动门业务状态机 `DoorController`。
 - 已提供状态、诊断、最近事件、Flash/RAM 记录、开门、关门、停止、位置标定、行程设置、行程微调和清除故障 API。
+- 已接入首页、记录、校准、诊断 4 个最小业务页面，系统参数/日志/OTA/WiFi 仍使用 Esp32Base 页面。
 - 已接入自动门业务最近记录 RAM 缓冲、Flash 二进制追加记录和基础文件轮转。
 - 已记录当前 PCB 默认引脚，包括 INA240A2 输出 GPIO33。
 - 已提供 `FARMAUTO_FARMDOOR_ENABLE_INA240A2` 编译开关，默认打开软件支持，但运行配置默认不启用电流保护动作。
@@ -15,7 +16,7 @@
 
 当前尚未实现：
 
-- Web 业务页面。
+- 最终版业务页面的精细交互和视觉样式。
 - AT24C128 关键状态持久化。
 - AT24C128 Wire 设备适配。
 - AT8236 LEDC 驱动适配。

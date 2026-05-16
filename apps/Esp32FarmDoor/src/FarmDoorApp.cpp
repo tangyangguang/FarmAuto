@@ -35,9 +35,9 @@ Esp32MotorCurrentGuard::Ina240A2AnalogConfig g_currentSensor;
 Esp32MotorCurrentGuard::MotorCurrentGuardConfig g_currentGuard;
 Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
 
-static constexpr uint8_t kFarmDoorApiRouteCount = 11;
-static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorApiRouteCount,
-              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 11");
+static constexpr uint8_t kFarmDoorRouteCount = 15;
+static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorRouteCount,
+              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 15");
 static constexpr const char* kDoorRecordRootDir = "/records";
 static constexpr const char* kDoorRecordDir = "/records/door";
 static constexpr const char* kDoorRecordCurrentPath = "/records/door/current.dar";
@@ -624,8 +624,17 @@ void FarmDoorApp::configureAppConfigPage() {
 void FarmDoorApp::configureBusinessShell() {
 #if ESP32BASE_ENABLE_WEB
   Esp32BaseWeb::setDeviceName("Esp32FarmDoor");
-  Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_ESP32BASE);
+  Esp32BaseWeb::setHomePath("/");
+  Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
+  Esp32BaseWeb::addNavItem("/", "首页");
+  Esp32BaseWeb::addNavItem("/records", "记录");
+  Esp32BaseWeb::addNavItem("/calibration", "校准");
+  Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
+  Esp32BaseWeb::addPage("/", "自动门首页", FarmDoorApp::sendHomePage);
+  Esp32BaseWeb::addPage("/records", "自动门记录", FarmDoorApp::sendRecordsPage);
+  Esp32BaseWeb::addPage("/calibration", "行程校准", FarmDoorApp::sendCalibrationPage);
+  Esp32BaseWeb::addPage("/diagnostics", "自动门诊断", FarmDoorApp::sendDiagnosticsPage);
   Esp32BaseWeb::addApi("/api/app/status", FarmDoorApp::sendStatusJson);
   Esp32BaseWeb::addApi("/api/app/diagnostics", FarmDoorApp::sendDiagnosticsJson);
   Esp32BaseWeb::addApi("/api/app/events/recent", FarmDoorApp::sendRecentEventsJson);
@@ -637,6 +646,87 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::addApi("/api/app/maintenance/set-travel", FarmDoorApp::handleSetTravel);
   Esp32BaseWeb::addApi("/api/app/maintenance/adjust-travel", FarmDoorApp::handleAdjustTravel);
   Esp32BaseWeb::addApi("/api/app/maintenance/clear-fault", FarmDoorApp::handleClearFault);
+#endif
+}
+
+void FarmDoorApp::sendHomePage() {
+#if ESP32BASE_ENABLE_WEB
+  const DoorSnapshot snapshot = g_door.snapshot();
+  Esp32BaseWeb::sendHeader("自动门首页");
+  Esp32BaseWeb::sendChunk("<h1>自动门首页</h1><section><h2>门状态与操作</h2><table>");
+  Esp32BaseWeb::sendChunk("<tr><th>状态</th><td>");
+  Esp32BaseWeb::sendChunk(stateName(snapshot.state));
+  Esp32BaseWeb::sendChunk("</td></tr><tr><th>当前位置</th><td>");
+  sendInt64(snapshot.positionPulses);
+  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>开门目标</th><td>");
+  sendInt64(snapshot.openTargetPulses);
+  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>位置可信度</th><td>");
+  Esp32BaseWeb::sendChunk(trustName(snapshot.positionTrustLevel));
+  Esp32BaseWeb::sendChunk("</td></tr></table><p>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/open'><button>开门</button></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/close'><button>关门</button></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/stop'><button>停止</button></form>");
+  Esp32BaseWeb::sendChunk("</p></section><section><h2>快速入口</h2><p>");
+  Esp32BaseWeb::sendChunk("<a href='/calibration'>行程校准</a> ");
+  Esp32BaseWeb::sendChunk("<a href='/records'>业务记录</a> ");
+  Esp32BaseWeb::sendChunk("<a href='/diagnostics'>业务诊断</a>");
+  Esp32BaseWeb::sendChunk("</p></section>");
+  Esp32BaseWeb::sendFooter();
+#endif
+}
+
+void FarmDoorApp::sendRecordsPage() {
+#if ESP32BASE_ENABLE_WEB
+  Esp32BaseWeb::sendHeader("自动门记录");
+  Esp32BaseWeb::sendChunk("<h1>记录</h1><section><h2>业务记录查询</h2>");
+  Esp32BaseWeb::sendChunk("<form method='get' action='/api/app/records'>");
+  Esp32BaseWeb::sendChunk("<label>开始序号 <input name='start' value='0'></label> ");
+  Esp32BaseWeb::sendChunk("<label>每页 <input name='limit' value='16'></label> ");
+  Esp32BaseWeb::sendChunk("<label>事件类型 <input name='eventType' placeholder='DoorTravelSet'></label> ");
+  Esp32BaseWeb::sendChunk("<button>查询 JSON</button></form>");
+  Esp32BaseWeb::sendChunk("</section><section><h2>最近事件</h2>");
+  Esp32BaseWeb::sendChunk("<p><a href='/api/app/events/recent'>查看最近事件 JSON</a></p></section>");
+  Esp32BaseWeb::sendFooter();
+#endif
+}
+
+void FarmDoorApp::sendCalibrationPage() {
+#if ESP32BASE_ENABLE_WEB
+  const DoorSnapshot snapshot = g_door.snapshot();
+  Esp32BaseWeb::sendHeader("行程校准");
+  Esp32BaseWeb::sendChunk("<h1>校准</h1><section><h2>当前位置</h2><table>");
+  Esp32BaseWeb::sendChunk("<tr><th>当前位置</th><td>");
+  sendInt64(snapshot.positionPulses);
+  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>开门目标</th><td>");
+  sendInt64(snapshot.openTargetPulses);
+  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>每圈信号数</th><td>");
+  sendInt64(g_motorKinematics.outputPulsesPerRev);
+  Esp32BaseWeb::sendChunk("</td></tr></table></section><section><h2>端点标定</h2>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-position'>");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='closed'><button>把当前位置标为关门基准</button></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-position'>");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='open'><button>把当前位置标为开门位置</button></form>");
+  Esp32BaseWeb::sendChunk("</section><section><h2>行程调整</h2>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-travel'>");
+  Esp32BaseWeb::sendChunk("<label>开门目标 0.01 圈 <input name='openTurnsX100' value='500'></label> ");
+  Esp32BaseWeb::sendChunk("<button>设置行程</button></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/adjust-travel'>");
+  Esp32BaseWeb::sendChunk("<label>微调 0.01 圈 <input name='deltaTurnsX100' value='5'></label> ");
+  Esp32BaseWeb::sendChunk("<button>微调行程</button></form></section>");
+  Esp32BaseWeb::sendFooter();
+#endif
+}
+
+void FarmDoorApp::sendDiagnosticsPage() {
+#if ESP32BASE_ENABLE_WEB
+  Esp32BaseWeb::sendHeader("自动门诊断");
+  Esp32BaseWeb::sendChunk("<h1>诊断</h1><section><h2>业务诊断</h2>");
+  Esp32BaseWeb::sendChunk("<p><a href='/api/app/diagnostics'>查看诊断 JSON</a></p>");
+  Esp32BaseWeb::sendChunk("<p><a href='/api/app/status'>查看状态 JSON</a></p>");
+  Esp32BaseWeb::sendChunk("</section><section><h2>故障处理</h2>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault'><button>清除业务故障</button></form>");
+  Esp32BaseWeb::sendChunk("</section>");
+  Esp32BaseWeb::sendFooter();
 #endif
 }
 
