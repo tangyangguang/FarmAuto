@@ -150,6 +150,20 @@ void sendScheduleSummary(const FeederScheduleSnapshot& snapshot) {
   sendUint8(kFeederMaxPlans);
   Esp32BaseWeb::sendChunk(",\"planCount\":");
   sendUint8(snapshot.planCount);
+  Esp32BaseWeb::sendChunk(",\"timeValid\":");
+#if ESP32BASE_ENABLE_NTP
+  const Esp32BaseNtp::TimeSnapshot timeSnapshot = Esp32BaseNtp::snapshot();
+  Esp32BaseWeb::sendChunk(timeSnapshot.synced ? "true" : "false");
+#else
+  Esp32BaseWeb::sendChunk("false");
+#endif
+  Esp32BaseWeb::sendChunk(",\"serviceDate\":");
+  char summaryNumber[16];
+  snprintf(summaryNumber, sizeof(summaryNumber), "%lu", static_cast<unsigned long>(snapshot.serviceDate));
+  Esp32BaseWeb::sendChunk(summaryNumber);
+  Esp32BaseWeb::sendChunk(",\"lastEvaluatedMinute\":");
+  snprintf(summaryNumber, sizeof(summaryNumber), "%u", static_cast<unsigned>(g_lastScheduleMinute));
+  Esp32BaseWeb::sendChunk(summaryNumber);
   Esp32BaseWeb::sendChunk(",\"plans\":[");
   for (uint8_t i = 0; i < snapshot.planCount; ++i) {
     if (i > 0) {
