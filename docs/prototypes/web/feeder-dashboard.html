@@ -13,28 +13,54 @@
       <nav class="nav-section">
         <a class="nav-link active" href="feeder-dashboard.html">首页</a>
         <a class="nav-link" href="feeder-schedule.html">计划</a>
-        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
-        <a class="nav-link" href="feeder-channels.html">通道设置</a>
+        <a class="nav-link" href="feeder-channels.html">通道</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
-        <a class="nav-link" href="feeder-diagnostics.html">故障诊断</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
       <div class="topbar">
-        <div class="title-block"><h1>首页</h1><div class="subtle">查看运行状态，并直接发起手动投喂。</div></div>
+        <div class="title-block"><h1>首页</h1><div class="subtle">查看每路下料状态，并按需发起多路手动下料。</div></div>
         <div class="status-strip"><span class="pill ok">在线</span><span class="pill ok">时间同步</span><a class="pill warn" href="feeder-diagnostics.html">Flash 余量 28%</a></div>
       </div>
-      <div class="alert danger">上次投喂因断电中断。自动续喂已阻止；需要投喂时请重新发起一次新的手动投喂。</div>
+      <div class="alert danger">上次投喂因断电中断。自动续喂已阻止；需要投喂时请重新发起一次新的手动下料。</div>
       <section class="section">
-        <div class="section-header"><h2>手动投喂</h2><span class="subtle">不影响计划，不补投断电前未完成的投喂</span></div>
+        <div class="section-header"><h2>手动下料</h2><span class="subtle">选择本次参与的通道，统一开始；不会续接断电前未完成的投喂</span></div>
         <div class="section-body">
-          <div class="form-grid">
-            <div class="field"><label>通道</label><select class="select"><option>通道 1（东侧料桶）</option><option>通道 2（中间料桶）</option><option>通道 3（西侧料桶）</option></select></div>
-            <div class="field"><label>目标模式</label><select class="select"><option>按克重投喂</option><option>按圈数投喂</option></select></div>
-            <div class="field"><label>目标克重</label><div class="input-with-unit"><input class="input" type="number" min="0" step="1" value="70"><span class="input-unit">克</span></div></div>
-            <div class="field"><label>换算圈数</label><div class="input-with-unit"><input class="input" type="number" value="1.00" disabled><span class="input-unit">圈</span></div></div>
-          </div>
-          <div class="actions"><a class="button primary" href="feeder-confirm.html">开始手动投喂…</a><button class="button danger">停止全部</button></div>
+          <table class="data-table">
+            <thead><tr><th>参与</th><th>通道</th><th>当前状态</th><th>主目标</th><th>换算值</th><th>料桶余量</th><th>本次是否可启动</th></tr></thead>
+            <tbody>
+              <tr>
+                <td data-label="参与"><input class="check" type="checkbox" checked></td>
+                <td data-label="通道"><strong>通道 1</strong><div class="subtle">东侧料桶</div></td>
+                <td data-label="当前状态"><span class="pill warn">断电中断</span></td>
+                <td data-label="主目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="1" value="70"><span class="input-unit">克</span></div></td>
+                <td data-label="换算值">= 1.00 圈</td>
+                <td data-label="料桶余量">4.1 kg / 82%</td>
+                <td data-label="本次是否可启动"><span class="pill ok">可重新下料</span></td>
+              </tr>
+              <tr>
+                <td data-label="参与"><input class="check" type="checkbox" disabled></td>
+                <td data-label="通道"><strong>通道 2</strong><div class="subtle">中间料桶</div></td>
+                <td data-label="当前状态"><span class="pill ok">计划下料中</span></td>
+                <td data-label="主目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="0.01" value="1.00" disabled><span class="input-unit">圈</span></div></td>
+                <td data-label="换算值">≈ 68g</td>
+                <td data-label="料桶余量">3.0 kg / 60%</td>
+                <td data-label="本次是否可启动"><span class="pill warn">运行中</span></td>
+              </tr>
+              <tr>
+                <td data-label="参与"><input class="check" type="checkbox" disabled></td>
+                <td data-label="通道"><strong>通道 3</strong><div class="subtle">西侧料桶</div></td>
+                <td data-label="当前状态"><span class="pill danger">故障</span></td>
+                <td data-label="主目标"><div class="input-with-unit"><input class="input" type="number" min="0" step="1" value="35" disabled><span class="input-unit">克</span></div></td>
+                <td data-label="换算值">= 0.50 圈</td>
+                <td data-label="料桶余量">0.5 kg / 17%</td>
+                <td data-label="本次是否可启动"><span class="pill danger">需处理故障</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="page-note">手动下料与计划下料共用同一套通道状态：某路正在计划下料时，该路不能手动启动；其他空闲通道仍可手动启动。</div>
+          <div class="actions"><a class="button primary" href="feeder-confirm.html">开始所选通道…</a><button class="button danger">停止全部运行通道</button></div>
         </div>
       </section>
       <section class="section">
@@ -44,11 +70,11 @@
         </div>
         <div class="section-body">
           <table class="data-table">
-            <thead><tr><th>通道</th><th>状态</th><th>本次投喂</th><th>今日累计</th><th>桶余量</th><th>操作</th></tr></thead>
+            <thead><tr><th>通道</th><th>来源</th><th>状态</th><th>目标</th><th>已完成</th><th>运行时间</th><th>桶余量</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="状态"><span class="pill warn">断电中断</span></td><td data-label="本次投喂">已中断 42g / 70g</td><td data-label="今日累计">42g</td><td data-label="桶余量"><div class="progress"><span style="width:82%"></span></div></td><td data-label="操作"><a class="button" href="feeder-confirm.html">重新手动投喂…</a></td></tr>
-              <tr><td data-label="通道">2</td><td data-label="状态"><span class="pill ok">下料中</span></td><td data-label="本次投喂"><div class="inline-progress"><div class="meta"><span>0.42 / 1.00 圈</span><span>42%</span></div><div class="progress"><span style="width:42%"></span></div></div></td><td data-label="今日累计">29g</td><td data-label="桶余量"><div class="progress"><span style="width:61%"></span></div></td><td data-label="操作"><button class="button danger">停止</button></td></tr>
-              <tr id="channel-3"><td data-label="通道">3</td><td data-label="状态"><span class="pill danger">故障</span></td><td data-label="本次投喂">未运行</td><td data-label="今日累计">0g</td><td data-label="桶余量"><div class="progress warn"><span style="width:16%"></span></div></td><td data-label="操作"><a class="button" href="feeder-diagnostics.html#channel-3">详情</a></td></tr>
+              <tr><td data-label="通道">1</td><td data-label="来源">手动下料</td><td data-label="状态"><span class="pill warn">断电中断</span></td><td data-label="目标">70g</td><td data-label="已完成">42g / 70g</td><td data-label="运行时间">中断于 07:32</td><td data-label="桶余量"><div class="progress"><span style="width:82%"></span></div></td><td data-label="操作"><a class="button" href="feeder-confirm.html">重新下料…</a></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="来源">计划：早晨主喂</td><td data-label="状态"><span class="pill ok">计划下料中</span></td><td data-label="目标">1.00 圈 ≈ 68g</td><td data-label="已完成"><div class="inline-progress"><div class="meta"><span>0.42 / 1.00 圈</span><span>42%</span></div><div class="progress"><span style="width:42%"></span></div></div></td><td data-label="运行时间">8 秒</td><td data-label="桶余量"><div class="progress"><span style="width:60%"></span></div></td><td data-label="操作"><button class="button danger">停止</button></td></tr>
+              <tr id="channel-3"><td data-label="通道">3</td><td data-label="来源">无</td><td data-label="状态"><span class="pill danger">故障</span></td><td data-label="目标">-</td><td data-label="已完成">未运行</td><td data-label="运行时间">-</td><td data-label="桶余量"><div class="progress warn"><span style="width:17%"></span></div></td><td data-label="操作"><a class="button" href="feeder-diagnostics.html#channel-3">详情</a></td></tr>
             </tbody>
           </table>
         </div>

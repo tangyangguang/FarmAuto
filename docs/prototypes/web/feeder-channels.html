@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esp32FarmFeeder 通道设置</title>
+  <title>Esp32FarmFeeder 通道</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,37 +13,38 @@
       <nav class="nav-section">
         <a class="nav-link" href="feeder-dashboard.html">首页</a>
         <a class="nav-link" href="feeder-schedule.html">计划</a>
-        <a class="nav-link" href="feeder-buckets.html">饲料桶</a>
-        <a class="nav-link active" href="feeder-channels.html">通道设置</a>
+        <a class="nav-link active" href="feeder-channels.html">通道</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
-        <a class="nav-link" href="feeder-diagnostics.html">故障诊断</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>通道设置</h1><div class="subtle">每一路独立设置启用状态、名称、每圈信号数和每圈克数。</div></div></div>
+      <div class="topbar"><div class="title-block"><h1>通道</h1><div class="subtle">一个通道对应一个下料器和一个饲料桶；参数、余量和补料放在一起管理。</div></div></div>
       <section class="section">
-        <div class="section-header"><h2>通道列表</h2><span class="subtle">一次只修改一个通道</span></div>
+        <div class="section-header"><h2>通道与料桶</h2><span class="subtle">一次只修改一个通道</span></div>
         <div class="section-body">
           <table class="data-table">
-            <thead><tr><th>通道</th><th>名称</th><th>启用</th><th>每圈信号数</th><th>每圈克数</th><th>用于换算</th><th>操作</th></tr></thead>
+            <thead><tr><th>通道</th><th>名称</th><th>启用</th><th>每圈信号数</th><th>每圈克数</th><th>料桶容量</th><th>当前余量</th><th>预计可用</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="通道">1</td><td data-label="名称">东侧料桶</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">70.0 克</td><td data-label="用于换算">70g = 1.00 圈</td><td data-label="操作"><button class="button primary">编辑通道 1</button></td></tr>
-              <tr><td data-label="通道">2</td><td data-label="名称">中间料桶</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">68.0 克</td><td data-label="用于换算">70g ≈ 1.03 圈</td><td data-label="操作"><button class="button">编辑通道 2</button></td></tr>
-              <tr><td data-label="通道">3</td><td data-label="名称">西侧料桶</td><td data-label="启用"><span class="pill warn">停用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">70.0 克</td><td data-label="用于换算">停用时不参与计划</td><td data-label="操作"><button class="button">编辑通道 3</button></td></tr>
+              <tr><td data-label="通道">1</td><td data-label="名称">东侧料桶</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">70.0 克</td><td data-label="料桶容量">5.0 kg</td><td data-label="当前余量"><div class="inline-progress"><div class="meta"><span>4.1 kg</span><span>82%</span></div><div class="progress"><span style="width:82%"></span></div></div></td><td data-label="预计可用">约 18.5 天</td><td data-label="操作"><button class="button primary">编辑</button><a class="button" href="feeder-bucket-refill.html">补料…</a></td></tr>
+              <tr><td data-label="通道">2</td><td data-label="名称">中间料桶</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">68.0 克</td><td data-label="料桶容量">5.0 kg</td><td data-label="当前余量"><div class="inline-progress"><div class="meta"><span>3.0 kg</span><span>60%</span></div><div class="progress"><span style="width:60%"></span></div></div></td><td data-label="预计可用">约 13.8 天</td><td data-label="操作"><button class="button">编辑</button><a class="button" href="feeder-bucket-refill.html">补料…</a></td></tr>
+              <tr><td data-label="通道">3</td><td data-label="名称">西侧料桶</td><td data-label="启用"><span class="pill warn">停用</span></td><td data-label="每圈信号数">4320</td><td data-label="每圈克数">70.0 克</td><td data-label="料桶容量">3.0 kg</td><td data-label="当前余量"><div class="inline-progress"><div class="meta"><span>0.5 kg</span><span>17%</span></div><div class="progress warn"><span style="width:17%"></span></div></div></td><td data-label="预计可用">约 3.5 天</td><td data-label="操作"><button class="button">编辑</button><a class="button" href="feeder-bucket-refill.html">补料…</a></td></tr>
             </tbody>
           </table>
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>编辑通道 1</h2><span class="pill ok">当前选中</span></div>
+        <div class="section-header"><h2>编辑通道 1</h2><span class="pill ok">东侧料桶</span></div>
         <div class="section-body">
           <div class="form-grid">
             <div class="field"><label>是否启用</label><select class="select"><option>启用</option><option>停用</option></select></div>
             <div class="field"><label>通道名称</label><input class="input" value="东侧料桶"></div>
             <div class="field"><label>电机每圈信号数</label><input class="input" type="number" min="1" step="1" value="4320"></div>
             <div class="field"><label>每圈下料克数</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="70.0"><span class="input-unit">克</span></div></div>
+            <div class="field"><label>料桶满桶容量</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="5.0"><span class="input-unit">kg</span></div></div>
+            <div class="field"><label>当前估算余量</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="4.1"><span class="input-unit">kg</span></div></div>
           </div>
-          <div class="page-note">这里是手工录入参数，不做实际运转测试。计划和手动投喂会用“每圈信号数”和“每圈克数”在克数与圈数之间换算。</div>
+          <div class="page-note">这里是通道和料桶的低频业务参数。计划和手动下料会用“每圈信号数”和“每圈克数”在克数与圈数之间换算；补料操作仍建议通过“补料…”入口形成业务记录。</div>
           <div class="actions"><button class="button primary">保存通道 1</button><button class="button">取消</button></div>
         </div>
       </section>
