@@ -28,6 +28,16 @@ int main() {
   assert(feeder.snapshot().runningChannelMask == 0b0010);
   assert(feeder.snapshot().state == FeederDeviceState::Running);
 
+  assert(feeder.stopChannels(0b0010) == FeederCommandResult::Ok);
+  assert(feeder.snapshot().runningChannelMask == 0);
+  assert(feeder.snapshot().state == FeederDeviceState::Idle);
+
+  assert(feeder.startChannels(0b0011, FeederRunSource::Manual).result == FeederCommandResult::Ok);
+  assert(feeder.stopAll() == FeederCommandResult::Ok);
+  assert(feeder.snapshot().runningChannelMask == 0);
+  assert(feeder.snapshot().state == FeederDeviceState::Idle);
+
+  assert(feeder.startChannels(0b0010, FeederRunSource::Manual).result == FeederCommandResult::Ok);
   assert(feeder.setChannelFault(2) == FeederCommandResult::Ok);
   assert(feeder.snapshot().faultChannelMask == 0b0100);
   assert(feeder.startChannels(0b0100, FeederRunSource::Manual).result == FeederCommandResult::Fault);

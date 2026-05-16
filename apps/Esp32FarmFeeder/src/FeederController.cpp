@@ -60,6 +60,34 @@ FeederStartResult FeederController::startChannels(uint8_t requestedMask, FeederR
   return result;
 }
 
+FeederCommandResult FeederController::stopChannels(uint8_t requestedMask) {
+  requestedMask &= validMask();
+  if (requestedMask == 0) {
+    return FeederCommandResult::InvalidArgument;
+  }
+
+  bool stoppedAny = false;
+  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((requestedMask & bit) == 0) {
+      continue;
+    }
+    if (!channelInMask(snapshot_.installedChannelMask, i)) {
+      continue;
+    }
+    if (snapshot_.channels[i] == FeederChannelState::Running) {
+      snapshot_.channels[i] = FeederChannelState::Idle;
+      stoppedAny = true;
+    }
+  }
+  recomputeState();
+  return stoppedAny ? FeederCommandResult::Ok : FeederCommandResult::Busy;
+}
+
+FeederCommandResult FeederController::stopAll() {
+  return stopChannels(snapshot_.runningChannelMask);
+}
+
 FeederCommandResult FeederController::completeChannel(uint8_t channelIndex) {
   if (!validChannel(channelIndex)) {
     return FeederCommandResult::InvalidArgument;

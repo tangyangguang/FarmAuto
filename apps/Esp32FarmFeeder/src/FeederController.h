@@ -65,6 +65,8 @@ class FeederController {
  public:
   FeederCommandResult configure(const FeederControllerConfig& config);
   FeederStartResult startChannels(uint8_t requestedMask, FeederRunSource source);
+  FeederCommandResult stopChannels(uint8_t requestedMask);
+  FeederCommandResult stopAll();
   FeederCommandResult completeChannel(uint8_t channelIndex);
   FeederCommandResult setChannelFault(uint8_t channelIndex);
   FeederCommandResult clearChannelFault(uint8_t channelIndex);
