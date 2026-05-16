@@ -9,6 +9,7 @@
 - 已接入每日多计划服务、手工下料目标解析、料桶余量维护、通道基础信息维护。
 - 已接入业务最近记录 RAM 缓冲和 Flash 二进制追加记录。
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
+- 已提供只读诊断 API、最近事件 API、清空今日状态和清除通道故障维护 API。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard` 作为后续实现依赖。
 - 默认三路通道均已安装且启用。
 - 当前不会输出 PWM，也不会驱动任何电机。
@@ -26,6 +27,15 @@
 
 - 返回应用类型、固件版本、设备状态、通道 mask、每路通道状态。
 - 明确返回 `motorOutput.enabled=false`，不会执行下料动作。
+
+`/api/app/diagnostics`
+
+- 返回只读业务诊断信息：通道状态、计划状态、料桶余量、默认目标、最近记录数量、Flash 可用状态。
+- 明确返回 `motorOutput.enabled=false`。
+
+`/api/app/events/recent`
+
+- 返回 RAM 最近业务记录。
 
 `/api/app/feeders/manual-start`
 
@@ -77,6 +87,16 @@
 
 - 参数：`start`、`limit`、`startUnixTime`、`endUnixTime`、`eventType`。
 - 优先返回 Flash 业务记录；无 Flash 数据时返回 RAM 最近记录。
+
+`/api/app/maintenance/clear-today`
+
+- 空闲时清除今日计划执行状态，包括跳过、已尝试、已完成和已错过。
+- 有通道运行时返回 `Busy`。
+
+`/api/app/maintenance/clear-fault`
+
+- 支持 `channel` 或 `channelMask`，清除指定通道故障。
+- 返回 `successMask` 和 `skippedMask`。
 
 编译验证：
 

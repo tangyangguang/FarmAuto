@@ -7,7 +7,7 @@
 - 已接入 Esp32Base FULL profile。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard`。
 - 已接入自动门业务状态机 `DoorController`。
-- 已提供状态、诊断、开门、关门、停止、位置标定和清除故障 API。
+- 已提供状态、诊断、最近事件、RAM 记录、开门、关门、停止、位置标定、行程设置、行程微调和清除故障 API。
 - 已记录当前 PCB 默认引脚，包括 INA240A2 输出 GPIO33。
 - 已提供 `FARMAUTO_FARMDOOR_ENABLE_INA240A2` 编译开关，默认打开软件支持，但运行配置默认不启用电流保护动作。
 - 所有业务控制 API 当前只更新业务状态机，明确返回 `motorOutput.enabled=false`，不会输出 PWM，也不会驱动 AT8236。
@@ -15,7 +15,7 @@
 当前尚未实现：
 
 - Web 业务页面。
-- 自动门长期业务记录。
+- 自动门 Flash 长期业务记录。
 - AT24C128 关键状态持久化。
 - AT24C128 Wire 设备适配。
 - AT8236 LEDC 驱动适配。
@@ -34,6 +34,12 @@
 - 只读硬件诊断接口，适合首次烧录后检查当前 PCB。
 - 返回按钮 GPIO 电平、编码器 A/B 当前电平、GPIO33 ADC 原始值和 8 次采样的 min/max/avg、AT24C128 `0x50` 在线状态。
 - 明确返回 `motorOutput.enabled=false`，不会输出 PWM，也不会驱动 AT8236。
+
+`/api/app/events/recent`
+`/api/app/records`
+
+- 返回 RAM 最近业务记录，覆盖开门/关门/停止、位置标定、行程设置、行程微调和清除故障。
+- 当前尚未写入 Flash 长期记录。
 
 `/api/app/door/open`
 
@@ -58,6 +64,18 @@
 - `position=open`：把当前位置标为开门位置。
 - `position=unknown`：标记位置不可信。
 - `positionPulses=<value>&trustLevel=Trusted|Limited|Untrusted`：直接设置位置和可信等级。
+
+`/api/app/maintenance/set-travel`
+
+- `openTurnsX100=<value>`：按 0.01 圈设置开门目标。
+- `openTargetPulses=<value>`：按编码器脉冲设置开门目标。
+- 可选 `maxRunPulses=<value>`；未提供时按开门目标的 150% 生成保底上限。
+- 成功时同步写入 Esp32Base App Config 的 `door/openTurns`。
+
+`/api/app/maintenance/adjust-travel`
+
+- `deltaTurnsX100=<value>` 或 `deltaPulses=<value>`：对当前开门目标做微调。
+- 成功时同步写入 Esp32Base App Config 的 `door/openTurns`。
 
 `/api/app/maintenance/clear-fault`
 
