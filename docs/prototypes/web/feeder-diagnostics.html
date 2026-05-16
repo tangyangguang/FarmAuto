@@ -18,14 +18,10 @@
         <a class="nav-link" href="feeder-maintenance.html">维护</a>
         <a class="nav-link" href="feeder-records.html">记录</a>
         <a class="nav-link active" href="feeder-diagnostics.html">诊断</a>
-        <span class="nav-title">系统</span>
-        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
-        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
-        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">硬件、存储、通道和业务诊断集中在这里。</div></div><a class="button" href="esp32base-logs.html">Esp32Base 系统日志</a></div>
+      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">只展示喂食器业务相关的健康状态和排障信息。</div></div></div>
       <section class="section">
         <div class="section-header"><h2>硬件与存储</h2></div>
         <div class="section-body">
@@ -51,21 +47,18 @@
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>设备检查</h2></div>
-        <div class="section-body actions">
-          <button class="button">AT24C 检查</button>
-          <button class="button">Flash 检查</button>
-          <button class="button">编码器计数检查</button>
-        </div>
-      </section>
-      <section class="section">
-        <div class="section-header"><h2>危险操作</h2><span class="pill danger">维护页确认</span></div>
+        <div class="section-header"><h2>业务诊断操作</h2></div>
         <div class="section-body">
-          <div class="alert danger">格式化业务存储、清空今日计数、清除故障等动作统一进入维护页确认。</div>
-          <div class="actions"><a class="button danger" href="feeder-maintenance.html">进入维护页</a></div>
+          <div class="page-note">以下操作只检查喂食器业务数据和通道状态，不修改配置，不清空数据。</div>
+          <table class="data-table">
+            <tbody>
+              <tr><td data-label="操作">业务状态检查</td><td data-label="作用">检查今日计数、计划状态、跳过今日标记和断电中断摘要是否可读。</td><td data-label="入口"><button class="button">检查</button></td></tr>
+              <tr><td data-label="操作">通道计数检查</td><td data-label="作用">维护时观察编码器是否有脉冲变化，用于判断单路电机或编码器是否异常。</td><td data-label="入口"><a class="button" href="feeder-maintenance.html">去维护页</a></td></tr>
+              <tr><td data-label="操作">运行记录检查</td><td data-label="作用">检查喂食业务记录分页索引是否可读、最近记录是否连续。</td><td data-label="入口"><button class="button">检查</button></td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
-      <section class="page-note">系统日志、WiFi、OTA、系统工具仍进入 Esp32Base 页面。业务诊断和记录留在应用页面。</section>
     </main>
   </div>
 </body>

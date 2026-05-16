@@ -15,10 +15,6 @@
         <a class="nav-link" href="farmdoor-maintenance.html">行程校准</a>
         <a class="nav-link" href="farmdoor-records.html">记录</a>
         <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
-        <span class="nav-title">系统</span>
-        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
-        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
-        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
@@ -44,17 +40,17 @@
         <div class="section-header"><h2>门状态与操作</h2><span class="pill ok">关闭待机</span></div>
         <div class="section-body">
           <div class="metric-grid">
+            <div class="metric"><div class="metric-label">门状态</div><div class="metric-value">已关闭</div></div>
             <div class="metric"><div class="metric-label">当前位置</div><div class="metric-value">0.00 圈</div></div>
-            <div class="metric"><div class="metric-label">开门目标</div><div class="metric-value">5.00 圈</div></div>
-            <div class="metric"><div class="metric-label">位置来源</div><div class="metric-value small">已保存<br>08:01 关门完成</div></div>
-            <div class="metric"><div class="metric-label">保护状态</div><div class="metric-value">正常</div></div>
+            <div class="metric"><div class="metric-label">位置可信</div><div class="metric-value">可信</div></div>
+            <div class="metric"><div class="metric-label">最近动作</div><div class="metric-value small">08:01 关门完成<br>耗时 17.9 秒</div></div>
           </div>
           <div class="actions">
             <button class="button primary">开门</button>
             <button class="button">关门</button>
             <button class="button danger" disabled>停止</button>
           </div>
-          <div class="subtle">上次动作：08:01 关门完成，耗时 17.9 秒。</div>
+          <div class="subtle">开门目标、最大运行圈数、最大运行时长等低频参数由基础库配置页面管理，首页不重复展示。</div>
         </div>
       </section>
       <section class="section">

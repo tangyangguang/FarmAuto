@@ -15,14 +15,10 @@
         <a class="nav-link" href="farmdoor-maintenance.html">行程校准</a>
         <a class="nav-link" href="farmdoor-records.html">记录</a>
         <a class="nav-link active" href="farmdoor-diagnostics.html">诊断</a>
-        <span class="nav-title">系统</span>
-        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
-        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
-        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">硬件摘要和业务诊断合并在这里。</div></div><a class="button" href="esp32base-logs.html">Esp32Base 系统日志</a></div>
+      <div class="topbar"><div class="title-block"><h1>诊断</h1><div class="subtle">只展示自动门业务相关的健康状态和排障信息。</div></div></div>
       <section class="section">
         <div class="section-header"><h2>硬件与存储</h2></div>
         <div class="section-body">
@@ -48,21 +44,18 @@
         </div>
       </section>
       <section class="section">
-        <div class="section-header"><h2>设备检查</h2></div>
-        <div class="section-body actions">
-          <button class="button">INA240A2 零点校准</button>
-          <button class="button">AT24C 检查</button>
-          <button class="button">Flash 检查</button>
-        </div>
-      </section>
-      <section class="section">
-        <div class="section-header"><h2>危险操作</h2><span class="pill danger">需要二次确认</span></div>
+        <div class="section-header"><h2>业务诊断操作</h2></div>
         <div class="section-body">
-          <div class="alert danger">格式化业务存储会清空自动门业务记录和恢复快照。执行前必须确认数据已经不需要保留。</div>
-          <div class="actions"><a class="button danger" href="farmdoor-confirm.html">格式化业务存储…</a></div>
+          <div class="page-note">以下操作只用于自动门业务诊断，不修改配置，不清空数据。</div>
+          <table class="data-table">
+            <tbody>
+              <tr><td data-label="操作">电流零点校准</td><td data-label="作用">未来安装 INA240A2 后，在电机不运行时采样零点，减少电流保护误判。首版未安装电流检测时不显示。</td><td data-label="入口"><button class="button" disabled>未安装</button></td></tr>
+              <tr><td data-label="操作">业务恢复快照检查</td><td data-label="作用">检查自动门断电恢复用的 AT24C 记录是否可读、CRC 是否正常、最新位置是否可信。</td><td data-label="入口"><button class="button">检查</button></td></tr>
+              <tr><td data-label="操作">运行记录检查</td><td data-label="作用">检查业务记录分页索引是否可读、最近记录是否连续。</td><td data-label="入口"><button class="button">检查</button></td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
-      <section class="page-note">系统日志、WiFi、OTA、系统工具仍进入 Esp32Base 页面。</section>
     </main>
   </div>
 </body>

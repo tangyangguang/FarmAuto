@@ -15,10 +15,6 @@
         <a class="nav-link" href="farmdoor-maintenance.html">行程校准</a>
         <a class="nav-link active" href="farmdoor-records.html">记录</a>
         <a class="nav-link" href="farmdoor-diagnostics.html">诊断</a>
-        <span class="nav-title">系统</span>
-        <a class="nav-link" href="esp32base-app-config.html">系统参数</a>
-        <a class="nav-link" href="esp32base-logs.html">系统日志</a>
-        <a class="nav-link" href="esp32base-ota-wifi.html">OTA / WiFi</a>
       </nav>
     </aside>
     <main class="content">
@@ -26,26 +22,26 @@
       <section class="section">
         <div class="section-header"><h2>记录</h2><span class="subtle">共 1,052 条</span></div>
         <div class="section-body">
-          <div class="form-grid">
+          <div class="filter-bar">
             <div class="field"><label>开始时间</label><input class="input" type="datetime-local" value="2026-05-01T00:00"></div>
             <div class="field"><label>结束时间</label><input class="input" type="datetime-local" value="2026-05-15T23:59"></div>
-            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
             <div class="field"><label>事件类型</label><select class="select"><option>全部原始记录</option><option>开门</option><option>关门</option><option>保护停止</option><option>故障</option></select></div>
             <div class="field"><label>结果</label><select class="select"><option>全部</option><option>正常</option><option>告警</option><option>故障</option></select></div>
-            <div class="field"><label>&nbsp;</label><button class="button primary">查询</button></div>
+            <div class="field"><label>每页</label><select class="select"><option>50 条</option><option>100 条</option><option>200 条</option></select></div>
+            <button class="button primary">查询</button>
           </div>
-          <table class="data-table">
-            <thead><tr><th>序号</th><th>时间</th><th>事件</th><th>结果</th><th>原始字段</th></tr></thead>
+          <table class="data-table record-table">
+            <thead><tr><th>序号</th><th>时间</th><th>事件类型</th><th>来源</th><th>结果</th><th>位置脉冲</th><th>位移脉冲</th><th>耗时</th><th>原因</th></tr></thead>
             <tbody>
-              <tr><td data-label="序号">1052</td><td data-label="时间">05-15 08:01</td><td data-label="事件">关门完成</td><td data-label="结果">正常</td><td data-label="原始字段">运行 5.00 圈，耗时 17.9 秒</td></tr>
-              <tr><td data-label="序号">1051</td><td data-label="时间">05-15 02:13</td><td data-label="事件">断电恢复</td><td data-label="结果">可信</td><td data-label="原始字段">来自检查点，位置 0.00 圈</td></tr>
-              <tr><td data-label="序号">1050</td><td data-label="时间">05-14 18:22</td><td data-label="事件">开门完成</td><td data-label="结果">正常</td><td data-label="原始字段">运行 5.02 圈，耗时 16.8 秒</td></tr>
-              <tr><td data-label="序号">1049</td><td data-label="时间">05-14 06:58</td><td data-label="事件">保护停止</td><td data-label="结果">告警</td><td data-label="原始字段">达到保护时长 25 秒，停止位置 4.82 圈</td></tr>
-              <tr><td data-label="序号">1048</td><td data-label="时间">05-13 19:01</td><td data-label="事件">开门目标更新</td><td data-label="结果">正常</td><td data-label="原始字段">旧值 4.90 圈，新值 5.00 圈</td></tr>
-              <tr><td data-label="序号">1047</td><td data-label="时间">05-13 07:00</td><td data-label="事件">关门完成</td><td data-label="结果">正常</td><td data-label="原始字段">运行 5.00 圈，耗时 18.1 秒</td></tr>
+              <tr><td data-label="序号" class="mono">1052</td><td data-label="时间">05-15 08:01</td><td data-label="事件类型">DoorTargetReached</td><td data-label="来源">Web</td><td data-label="结果">正常</td><td data-label="位置脉冲" class="mono">0</td><td data-label="位移脉冲" class="mono">21600</td><td data-label="耗时">17.9 秒</td><td data-label="原因">关门到位</td></tr>
+              <tr><td data-label="序号" class="mono">1051</td><td data-label="时间">05-15 02:13</td><td data-label="事件类型">DoorPowerLossRecovered</td><td data-label="来源">System</td><td data-label="结果">可信</td><td data-label="位置脉冲" class="mono">0</td><td data-label="位移脉冲" class="mono">-</td><td data-label="耗时">-</td><td data-label="原因">检查点恢复</td></tr>
+              <tr><td data-label="序号" class="mono">1050</td><td data-label="时间">05-14 18:22</td><td data-label="事件类型">DoorTargetReached</td><td data-label="来源">Schedule</td><td data-label="结果">正常</td><td data-label="位置脉冲" class="mono">21680</td><td data-label="位移脉冲" class="mono">21680</td><td data-label="耗时">16.8 秒</td><td data-label="原因">开门到位</td></tr>
+              <tr><td data-label="序号" class="mono">1049</td><td data-label="时间">05-14 06:58</td><td data-label="事件类型">DoorMotionStopped</td><td data-label="来源">System</td><td data-label="结果">告警</td><td data-label="位置脉冲" class="mono">20822</td><td data-label="位移脉冲" class="mono">20822</td><td data-label="耗时">25.0 秒</td><td data-label="原因">MaxRunTime</td></tr>
+              <tr><td data-label="序号" class="mono">1048</td><td data-label="时间">05-13 19:01</td><td data-label="事件类型">DoorTravelSet</td><td data-label="来源">Maintenance</td><td data-label="结果">正常</td><td data-label="位置脉冲" class="mono">21600</td><td data-label="位移脉冲" class="mono">+432</td><td data-label="耗时">-</td><td data-label="原因">更新开门目标</td></tr>
+              <tr><td data-label="序号" class="mono">1047</td><td data-label="时间">05-13 07:00</td><td data-label="事件类型">DoorTargetReached</td><td data-label="来源">Schedule</td><td data-label="结果">正常</td><td data-label="位置脉冲" class="mono">0</td><td data-label="位移脉冲" class="mono">21600</td><td data-label="耗时">18.1 秒</td><td data-label="原因">关门到位</td></tr>
             </tbody>
           </table>
-          <div class="pagination">
+          <div class="pagination compact">
             <span class="subtle">第 1 页 / 共 22 页</span>
             <div class="pagination-controls">
               <button class="button" disabled>上一页</button>
@@ -53,8 +49,6 @@
               <button class="page-number">2</button>
               <button class="page-number">3</button>
               <button class="button">下一页</button>
-              <input class="input compact-input" value="1">
-              <button class="button">跳转</button>
             </div>
           </div>
         </div>

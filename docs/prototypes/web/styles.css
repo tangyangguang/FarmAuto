@@ -509,6 +509,46 @@ a.button {
   margin-bottom: 14px;
 }
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.filter-bar .field label {
+  font-size: 11px;
+}
+
+.filter-bar .input,
+.filter-bar .select {
+  min-height: 36px;
+  padding: 6px 9px;
+  font-size: 13px;
+}
+
+.record-table th,
+.record-table td {
+  padding: 9px 8px;
+}
+
+.record-table .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
+.pagination.compact {
+  border-top: 1px solid var(--line);
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.pagination.compact .button,
+.pagination.compact .page-number {
+  min-height: 34px;
+}
+
 .field label {
   display: block;
   font-size: 12px;
@@ -611,6 +651,7 @@ a.button {
   .layout,
   .prototype-grid,
   .form-grid,
+  .filter-bar,
   .metric-grid {
     grid-template-columns: 1fr;
   }

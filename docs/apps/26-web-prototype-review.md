@@ -10,7 +10,9 @@
 - `docs/prototypes/web/esp32-farmdoor.html`
 - `docs/prototypes/web/esp32-farmfeeder.html`
 
-当前已拆成最终独立页面文件，并使用顶部导航展示最终页面结构：
+当前只制作 FarmAuto 业务页面原型，不制作 Esp32Base 系统页面原型。系统参数、系统日志、OTA、WiFi、文件系统格式化等基础能力由 Esp32Base 自己提供；本项目原型不重复展示入口页面，也不在业务导航中放 Esp32Base 链接。
+
+当前业务页面已拆成最终独立页面文件，并使用顶部导航展示最终页面结构：
 
 - 自动门：`farmdoor-dashboard.html`、`farmdoor-dashboard-running.html`、`farmdoor-dashboard-fault.html`、`farmdoor-dashboard-position-unknown.html`、`farmdoor-maintenance.html`、`farmdoor-confirm.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
 - 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-buckets.html`、`feeder-bucket-refill.html`、`feeder-calibration.html`、`feeder-maintenance.html`、`feeder-confirm.html`、`feeder-records.html`、`feeder-diagnostics.html`
@@ -18,15 +20,14 @@
 
 阅读顺序：
 
-1. `docs/apps/23-esp32base-web-integration.md`：系统页和业务页边界。
-2. `docs/apps/19-web-page-prototypes.md`：页面草图和信息架构。
-3. 本文：按页面逐项确认首版需要展示和操作的内容。
+1. `docs/apps/19-web-page-prototypes.md`：页面草图和信息架构。
+2. 本文：按页面逐项确认首版需要展示和操作的内容。
 
 历史说明：原 `27-web-prototype-professional-review.md` 和 `28-web-prototype-audit.md` 的结论已合并到本文，后续只维护本文，避免同一原型结论在多份文档中重复和漂移。
 
 ## 全局导航
 
-每个应用固件只运行一个业务应用。应用页面可以使用简短路径；Esp32Base 系统页面始终使用 `/esp32base/*`。
+每个应用固件只运行一个业务应用。应用页面可以使用简短路径。Esp32Base 系统页面虽然仍属于基础库能力，但不进入 FarmAuto 静态原型。
 
 应用导航：
 
@@ -41,18 +42,7 @@
 | `/buckets` | 不使用 | 饲料桶 | 喂食器饲料桶管理 |
 | `/calibration` | 不使用 | 下料标定 | 喂食器下料标定 |
 
-系统导航：
-
-| 页面 | 路径 | 归属 |
-| --- | --- | --- |
-| 系统状态 | `/esp32base` | Esp32Base |
-| 系统参数 | `/esp32base/app-config` | Esp32Base |
-| 系统日志 | `/esp32base/logs` | Esp32Base |
-| WiFi | `/esp32base/wifi` | Esp32Base |
-| OTA | `/esp32base/ota` | Esp32Base |
-| 系统工具 | `/esp32base/tools` | Esp32Base |
-
-应用页面不使用 `/logs`、`/api/logs` 或 `/config`。业务记录统一使用 `/records` 和 `/api/app/records`。
+应用页面不使用 `/logs`、`/api/logs` 或 `/config`。业务记录统一使用 `/records` 和 `/api/app/records`。业务页面不提供系统日志、OTA、WiFi、文件系统格式化等基础库页面入口。
 
 ## 通用布局
 
@@ -93,11 +83,11 @@
 | --- | --- |
 | 状态 | doorState、positionTrustLevel、positionSource、lastSavedAt |
 | 位置 | currentPositionTurns、currentPositionPulses、openTargetTurns、closeTargetTurns |
-| 保护 | maxRunTurns、maxRunMs、lastStopReason |
+| 保护 | lastStopReason；maxRunTurns 和 maxRunMs 属于低频参数，不放首页黄金位置 |
 | 电机 | motorState、speed、outputPercent、remainingTurns |
 | 电流 | 当前 mA、滤波 mA、阈值、保护状态 |
 | 限位 | 第一版显示未安装/禁用；下一阶段显示上限位/下限位状态 |
-| 存储 | AT24C、flash、最近写入错误 |
+| 存储 | 只显示和业务运行相关的存储告警，例如业务记录空间不足或恢复快照异常 |
 
 按钮：
 
@@ -123,16 +113,17 @@
 | 当前状态 | 显示当前位置和当前开门目标 |
 | 标定为关门状态 | 手动运行后，把当前位置保存为关闭基准 |
 | 用当前位置更新开门目标 | 手动运行后，自动把当前位置换算为新的开门目标圈数 |
-| 参数入口 | 开门目标、保护最大圈数、保护最大时长等低频参数进入 Esp32Base App Config |
-| 设备检查与校准 | INA240A2、AT24C、Flash 检查放到诊断页，避免行程校准页混杂 |
+| 每圈信号数 | 显示电机输出轴每圈对应的编码器信号数，便于判断圈数和脉冲换算 |
+| 参数入口 | 不在业务原型中提供；低频参数由基础库配置页面管理 |
+| 业务诊断 | 自动门恢复快照检查、运行记录检查等只读诊断放到诊断页，避免行程校准页混杂 |
 
 危险操作必须二次确认：
 
 - 设置当前位置。
 - 保存端点。
 - 直接覆盖行程。
-- 格式化业务存储。
-- 清除长期记录。
+- 清除业务故障。
+- 清空今日计数。
 
 ## Esp32FarmDoor 记录页
 
@@ -148,7 +139,7 @@
 - 必须支持按时间范围、事件类型和故障原因筛选。
 - 导出 JSON Lines / CSV 不是首版必须项，后续按远程维护需要再做。
 
-记录页展示业务记录，不展示 Esp32Base 系统日志。系统日志只通过 `/esp32base/logs` 查看。
+记录页展示业务记录，不展示系统日志。
 
 ## Esp32FarmFeeder 首页
 
@@ -263,11 +254,11 @@
 - 自动门行程校准的端点标定和危险操作进入二次确认页。
 - 自动门首页运行曲线明确为“上次运行回放”，运行中状态页单独展示实时进度。
 - 喂食器首页把正在下料信息整合到通道行，不额外放运行曲线。
-- 喂食器单路重新手动投喂、跳过今日、删除计划、格式化业务存储等动作进入确认流程。
-- 喂食器新增维护页，用于单路试运行、清空今日、清除故障和危险存储操作。
+- 喂食器单路重新手动投喂、跳过今日、删除计划等动作进入确认流程。
+- 喂食器新增维护页，用于单路试运行、清空今日和清除故障。
 - 喂食器新增补料页，饲料桶页只保留清晰的补料入口。
 - 记录页首版必须支持时间范围、事件类型、通道或故障原因筛选；导出仍是后续增强。
-- 诊断页把普通检查和危险操作分层，避免格式化类动作与普通检查按钮同级。
+- 诊断页只保留业务只读检查；格式化、系统日志、OTA、WiFi 等基础库功能不进入业务原型。
 
 ## 静态自查记录
 
@@ -279,8 +270,8 @@
 - 每个 HTML 页面都有 `h1`。
 - 所有本地 `href` 链接目标均存在。
 - 表单页面能通过页面链接打开。
-- 业务页面均有顶部导航，并包含 Esp32Base 系统页入口。
-- 业务记录页和系统日志页保持分离。
+- 业务页面均有顶部导航，且不包含 Esp32Base 系统页入口。
+- 业务记录页只展示业务记录。
 - 记录页包含时间范围筛选。
 - 输入控件不把单位混在 `value` 中，单位独立显示。
 
@@ -291,4 +282,4 @@ node <静态链接和标题检查脚本>
 git diff --check
 ```
 
-最近一次检查结论：`docs/prototypes/web/` 共 24 个 HTML 页面通过本地链接、标题和基础结构检查；`git diff --check` 通过。
+最近一次检查结论：`docs/prototypes/web/` 共 21 个 HTML 页面通过本地链接、标题和基础结构检查；`git diff --check` 通过。
