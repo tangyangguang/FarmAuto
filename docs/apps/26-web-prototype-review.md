@@ -15,7 +15,7 @@
 当前业务页面已拆成最终独立页面文件，并使用顶部导航展示最终页面结构：
 
 - 自动门：`farmdoor-dashboard.html`、`farmdoor-dashboard-running.html`、`farmdoor-dashboard-fault.html`、`farmdoor-dashboard-position-unknown.html`、`farmdoor-maintenance.html`、`farmdoor-confirm.html`、`farmdoor-records.html`、`farmdoor-diagnostics.html`
-- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-channels.html`、`feeder-bucket-refill.html`、`feeder-confirm.html`、`feeder-records.html`、`feeder-diagnostics.html`
+- 喂食器：`feeder-dashboard.html`、`feeder-schedule.html`、`feeder-schedule-edit.html`、`feeder-channels.html`、`feeder-channel-edit.html`、`feeder-bucket-refill.html`、`feeder-confirm.html`、`feeder-records.html`、`feeder-diagnostics.html`
 - `esp32-farmdoor.html` 和 `esp32-farmfeeder.html` 仅作为页面列表入口保留。
 
 阅读顺序：
@@ -146,7 +146,7 @@
 | 区域 | 字段 |
 | --- | --- |
 | 全局 | feederState、runningCount、enabledChannelMask、faultChannelMask |
-| 计划摘要 | enabledPlans、nextPlanTime、nextPlanChannels、skipToday |
+| 料桶余量 | bucketRemainGramsX100、remainPercent、estimatedDays、lastRefillTime |
 | 通道表 | channel、enabled、installed、motorState、targetMode、target、todayGramsX100、remainPercent、faultReason |
 | 存储 | AT24C、flash、记录范围、最近错误 |
 | 告警 | 断电中断、低余量、存储告警、通道故障 |
@@ -164,7 +164,7 @@
 | 手动下料 | 至少一个所选通道空闲可用 | 首页对所选空闲通道发起新的手动下料 |
 | 停止全部 | 任一路运行中 | 同时请求运行通道停止 |
 | 单路停止 | 该路运行中 | 停止该路 |
-| 跳过今日 | 计划页或首页 | 只影响今日定时，不影响手动 |
+| 跳过本次 | 计划页的今日/明日实例 | 只影响该次定时执行，不影响长期计划和手动下料 |
 
 断电中断展示：
 
@@ -255,9 +255,9 @@
 - 自动门行程校准的端点标定和危险操作进入二次确认页。
 - 自动门首页运行曲线明确为“上次运行回放”，运行中状态页单独展示实时进度。
 - 喂食器首页把正在下料信息整合到通道行，不额外放运行曲线。
-- 喂食器重新手动下料、跳过今日、删除计划等动作进入确认流程。
+- 喂食器重新手动下料、跳过本次执行、删除计划等动作进入确认流程。
 - 喂食器不再保留维护页；手动下料放在首页，通道基础参数放在基础信息页，故障处理进入诊断或确认页。
-- 喂食器新增补料页，作为基础信息页的辅助页面，不进入主导航。
+- 喂食器新增补料页，作为首页料桶余量维护的辅助页面，不进入主导航。
 - 记录页首版必须支持时间范围、事件类型、通道或故障原因筛选；导出仍是后续增强。
 - 诊断页只保留业务只读检查；格式化、系统日志、OTA、WiFi 等基础库功能不进入业务原型。
 

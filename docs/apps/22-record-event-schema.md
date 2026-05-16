@@ -138,14 +138,14 @@
 
 | eventType | 触发时机 | payload 字段 |
 | --- | --- | --- |
-| `FeederSkipTodaySet` | 设置跳过今日 | scheduleDate、enabled |
+| `FeederOccurrenceSkipSet` | 设置跳过某次计划执行 | scheduleDate、planId、enabled |
 | `FeederTodayCleared` | 清空今日计数 | oldPulses1..3、oldGramsX1001..3 |
 | `FeederDayRolled` | 日期切换归档 | date、pulses1..3、gramsX1001..3 |
 
 规则：
 
 - 清空今日计数不删除长期记录。
-- 跳过今日不删除每日计划。
+- 跳过执行实例不删除每日计划。
 - 时间无效导致自动计划暂停时，应记录 `FeederScheduleMissed` 或 `TimeSyncChanged`。
 
 ### 标定和饲料桶事件

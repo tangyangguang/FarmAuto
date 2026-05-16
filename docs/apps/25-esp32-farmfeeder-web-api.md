@@ -10,8 +10,8 @@
 
 Esp32FarmFeeder 页面：
 
-- `/`：喂食器总览，显示全局状态、多个每日计划摘要、三路状态、今日累计、桶余量和最近事件。
-- `/schedule`：今日计划、明日计划和长期计划管理；每个具体计划可跳过今日或跳过明日。
+- `/`：喂食器总览，显示全局状态、三路状态、手动下料、料桶余量和最近事件。
+- `/schedule`：今日计划、明日计划和长期计划管理；只有今日/明日具体执行实例可跳过，长期计划蓝本不提供跳过操作。
 - `/records`：喂食器长期业务记录查询和导出。
 - `/base-info`：业务基础信息，含通道名称、启用状态、每圈信号数、每圈克数和料桶满桶容量。
 - `/diagnostics`：喂食器业务诊断信息，含状态 snapshot、三路电机 snapshot、计划状态、桶余量、AT24C inspect、flash 记录范围和故障处理入口。
@@ -41,10 +41,8 @@ Esp32FarmFeeder 页面：
 - `POST /api/app/schedules`
 - `PUT /api/app/schedules/{planId}`
 - `DELETE /api/app/schedules/{planId}`
-- `POST /api/app/schedules/{planId}/skip-today`
-- `POST /api/app/schedules/{planId}/cancel-skip-today`
-- `POST /api/app/schedules/{planId}/skip-tomorrow`
-- `POST /api/app/schedules/{planId}/cancel-skip-tomorrow`
+- `POST /api/app/schedule-occurrences/{date}/{planId}/skip`
+- `POST /api/app/schedule-occurrences/{date}/{planId}/cancel-skip`
 
 投喂目标：
 
@@ -250,7 +248,7 @@ Esp32FarmFeeder 页面：
 - 启动时若发现未完成投喂命令，必须先确保所有电机输出关闭，再记录 `PowerLossAborted`。
 - 定时计划被断电中断后，当天标记为已尝试执行但中断，不因晚些时候来电而再次自动触发。
 - 手动下料被断电中断后，页面显示中断结果、已可靠记录的实际脉冲和估算克数；用户可重新发起新的手动下料。
-- 如果最后一段计数不确定，对应通道余量估算标记为低可信，并在基础信息页的料桶余量维护区提示需要校准。
+- 如果最后一段计数不确定，对应通道余量估算标记为低可信，并在首页料桶余量区提示需要校准。
 
 ## 部分成功响应
 
@@ -298,7 +296,7 @@ HTTP 层建议：
 以下操作必须二次确认：
 
 - 清空今日计数。
-- 跳过今日定时投喂。
+- 跳过某个计划执行实例。
 - 设置或修正当前饲料桶估算余量。
 - 标定每圈下料量。
 - 清除故障后恢复运行。

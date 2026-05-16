@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esp32FarmFeeder 编辑基础信息</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div><div class="brand">Esp32FarmFeeder</div><div class="subtle">三路喂食器</div></div>
+      <nav class="nav-section">
+        <a class="nav-link" href="feeder-dashboard.html">首页</a>
+        <a class="nav-link" href="feeder-schedule.html">计划</a>
+        <a class="nav-link" href="feeder-records.html">记录</a>
+        <a class="nav-link active" href="feeder-channels.html">基础信息</a>
+        <a class="nav-link" href="feeder-diagnostics.html">诊断</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="topbar">
+        <div class="title-block"><h1>编辑基础信息</h1><div class="subtle">一次只修改一个通道，避免把低频配置和运行余量混在一起。</div></div>
+        <a class="button" href="feeder-channels.html">返回基础信息</a>
+      </div>
+      <section class="section">
+        <div class="section-header"><h2>通道 1</h2><span class="pill ok">东侧料桶</span></div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field"><label>是否启用</label><select class="select"><option>启用</option><option>停用</option></select></div>
+            <div class="field"><label>通道名称</label><input class="input" value="东侧料桶"></div>
+            <div class="field"><label>电机每圈信号数</label><input class="input" type="number" min="1" step="1" value="4320"></div>
+            <div class="field"><label>每圈下料克数</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="70.0"><span class="input-unit">克</span></div></div>
+            <div class="field"><label>料桶满桶容量</label><div class="input-with-unit"><input class="input" type="number" min="0" step="0.1" value="5.0"><span class="input-unit">kg</span></div></div>
+          </div>
+          <div class="page-note">修改料桶满桶容量不会自动改当前余量。当前余量请回首页，在“料桶余量”中通过补料、标记满桶或修正余量维护。</div>
+          <div class="actions"><button class="button primary">保存</button><a class="button" href="feeder-channels.html">取消</a></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

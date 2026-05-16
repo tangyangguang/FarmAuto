@@ -19,7 +19,7 @@
       </nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div class="title-block"><h1>计划</h1><div class="subtle">先核对今日和明日实际会执行的计划，再维护长期计划。</div></div><span class="pill ok">启用 2 个</span></div>
+      <div class="topbar"><div class="title-block"><h1>计划</h1><div class="subtle">今日和明日展示实际执行实例；计划管理只维护长期蓝本。</div></div><span class="pill ok">启用 2 个</span></div>
       <section class="section">
         <div class="section-header"><h2>今日计划</h2><span class="subtle">2026-05-16</span></div>
         <div class="section-body">
@@ -37,7 +37,7 @@
                     <span><strong>通道 3：70g</strong> <span class="calc">= 1.00 圈</span></span>
                   </div>
                 </td>
-                <td data-label="操作"><a class="button" href="feeder-confirm.html">跳过今日…</a></td>
+                <td data-label="操作"><a class="button" href="feeder-records.html">查看记录</a></td>
               </tr>
               <tr>
                 <td data-label="时间">12:30</td>
@@ -49,7 +49,7 @@
                     <span><strong>通道 2：50g</strong> <span class="calc">≈ 0.74 圈</span></span>
                   </div>
                 </td>
-                <td data-label="操作"><a class="button" href="feeder-confirm.html">跳过今日…</a></td>
+                <td data-label="操作"><a class="button" href="feeder-confirm.html">跳过本次…</a></td>
               </tr>
               <tr>
                 <td data-label="时间">18:00</td>
@@ -68,9 +68,27 @@
           <table class="data-table">
             <thead><tr><th>时间</th><th>名称</th><th>明日状态</th><th>通道目标</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="时间">07:30</td><td data-label="名称"><strong>早晨主喂</strong></td><td data-label="明日状态"><span class="pill ok">将执行</span></td><td data-label="通道目标">通道 1：70g · 通道 2：1.00 圈 · 通道 3：70g</td><td data-label="操作"><a class="button" href="feeder-confirm.html">跳过明日…</a></td></tr>
-              <tr><td data-label="时间">12:30</td><td data-label="名称"><strong>中午补喂</strong></td><td data-label="明日状态"><span class="pill warn">已跳过明日</span></td><td data-label="通道目标">通道 1：50g · 通道 2：50g</td><td data-label="操作"><a class="button" href="feeder-confirm.html">取消跳过…</a></td></tr>
-              <tr><td data-label="时间">18:00</td><td data-label="名称"><strong>傍晚少量</strong></td><td data-label="明日状态"><span class="pill">未启用</span></td><td data-label="通道目标">通道 3：0.50 圈</td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td></tr>
+              <tr>
+                <td data-label="时间">07:30</td>
+                <td data-label="名称"><strong>早晨主喂</strong></td>
+                <td data-label="明日状态"><span class="pill ok">将执行</span></td>
+                <td data-label="通道目标"><div class="target-stack"><span><strong>通道 1：70g</strong> <span class="calc">= 1.00 圈</span></span><span><strong>通道 2：1.00 圈</strong> <span class="calc">≈ 68g</span></span><span><strong>通道 3：70g</strong> <span class="calc">= 1.00 圈</span></span></div></td>
+                <td data-label="操作"><a class="button" href="feeder-confirm.html">跳过本次…</a></td>
+              </tr>
+              <tr>
+                <td data-label="时间">12:30</td>
+                <td data-label="名称"><strong>中午补喂</strong></td>
+                <td data-label="明日状态"><span class="pill warn">已跳过本次</span></td>
+                <td data-label="通道目标"><div class="target-stack"><span><strong>通道 1：50g</strong> <span class="calc">≈ 0.71 圈</span></span><span><strong>通道 2：50g</strong> <span class="calc">≈ 0.74 圈</span></span></div></td>
+                <td data-label="操作"><a class="button" href="feeder-confirm.html">取消跳过…</a></td>
+              </tr>
+              <tr>
+                <td data-label="时间">18:00</td>
+                <td data-label="名称"><strong>傍晚少量</strong></td>
+                <td data-label="明日状态"><span class="pill">未启用</span></td>
+                <td data-label="通道目标"><div class="target-stack"><span><strong>通道 3：0.50 圈</strong> <span class="calc">≈ 35g</span></span></div></td>
+                <td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -81,8 +99,8 @@
           <table class="data-table">
             <thead><tr><th>名称</th><th>时间</th><th>启用</th><th>目标摘要</th><th>操作</th></tr></thead>
             <tbody>
-              <tr><td data-label="名称"><strong>早晨主喂</strong></td><td data-label="时间">07:30</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="目标摘要">1:70g · 2:1.00圈 · 3:70g</td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a><a class="button" href="feeder-confirm.html">跳过今日…</a><a class="button" href="feeder-confirm.html">跳过明日…</a></td></tr>
-              <tr><td data-label="名称"><strong>中午补喂</strong></td><td data-label="时间">12:30</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="目标摘要">1:50g · 2:50g</td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a><a class="button" href="feeder-confirm.html">跳过今日…</a><a class="button" href="feeder-confirm.html">跳过明日…</a></td></tr>
+              <tr><td data-label="名称"><strong>早晨主喂</strong></td><td data-label="时间">07:30</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="目标摘要">1:70g · 2:1.00圈 · 3:70g</td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td></tr>
+              <tr><td data-label="名称"><strong>中午补喂</strong></td><td data-label="时间">12:30</td><td data-label="启用"><span class="pill ok">启用</span></td><td data-label="目标摘要">1:50g · 2:50g</td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td></tr>
               <tr><td data-label="名称"><strong>傍晚少量</strong></td><td data-label="时间">18:00</td><td data-label="启用"><span class="pill">关闭</span></td><td data-label="目标摘要">3:0.50圈</td><td data-label="操作"><a class="button" href="feeder-schedule-edit.html">编辑</a></td></tr>
             </tbody>
           </table>
