@@ -67,7 +67,7 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | outputPulsesPerRev | pulses | 2096 | >0 | 否 | 可由参数计算，也允许手动覆盖 |
 | outputPulsesPerRevOverrideEnabled | bool | false | true/false | 否 | true 时使用手动值 |
 | travelAdjustStepTurnsX100 | 0.01 圈 | 25 | >0 | 否 | 行程校准手动运行默认步长，0.25 圈 |
-| currentGuardEnabled | bool | true | true/false | 否 | 可关闭 |
+| currentGuardEnabled | bool | false | true/false | 否 | PCB 已装 INA240A2，但未实测前默认关闭；测试稳定后可启用 |
 | currentFaultThresholdMa | mA | 2500 | >0 | 否 | 待实机确认 |
 | rsenseMilliOhm | mΩ | 5 | >0 | 否 | 待实物确认 |
 | maxRunMs | ms | 目标运行估算 * 150% | >0 | 否 | 安全兜底，源码按行程校准结果生成初始值 |
