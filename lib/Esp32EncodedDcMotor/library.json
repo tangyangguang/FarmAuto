@@ -1,0 +1,11 @@
+{
+  "name": "Esp32EncodedDcMotor",
+  "version": "0.1.0",
+  "description": "Non-blocking encoded DC motor state machine skeleton for ESP32 projects.",
+  "keywords": ["esp32", "motor", "encoder", "dc-motor"],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "build": {
+    "flags": ["-std=gnu++17"]
+  }
+}
