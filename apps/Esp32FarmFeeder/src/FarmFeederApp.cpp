@@ -33,6 +33,14 @@ static constexpr const char* kFeederRecordCurrentPath = "/records/feeder/current
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederApiRouteCount,
               "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 24");
 
+uint8_t configuredChannelMask() {
+  return static_cast<uint8_t>((1U << kFeederConfiguredChannels) - 1U);
+}
+
+bool validAppChannel(uint8_t channel) {
+  return channel < kFeederConfiguredChannels;
+}
+
 void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   if (!Esp32BaseWeb::addApi(path, handler)) {
     ESP32BASE_LOG_E("farmfeeder", "api_route_register_failed path=%s", path);
@@ -40,8 +48,8 @@ void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
 }
 
 void syncFeederConfigFromBaseInfo() {
-  g_feederConfig.enabledChannelMask =
-      static_cast<uint8_t>(g_buckets.enabledChannelMask() & g_feederConfig.installedChannelMask);
+  g_feederConfig.enabledChannelMask = static_cast<uint8_t>(
+      g_buckets.enabledChannelMask() & g_feederConfig.installedChannelMask & configuredChannelMask());
   const FeederCommandResult result = g_feeder.configure(g_feederConfig);
   g_runs.stopAll();
   if (result != FeederCommandResult::Ok) {
@@ -220,7 +228,7 @@ void recordBusinessEvent(const FeederRecord& record) {
 
 void sendChannelArray(const FeederSnapshot& snapshot, const FeederRunSnapshot& runs) {
   Esp32BaseWeb::sendChunk("[");
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     if (i > 0) {
       Esp32BaseWeb::sendChunk(",");
     }
@@ -298,7 +306,7 @@ void sendScheduleSummary(const FeederScheduleSnapshot& snapshot) {
 
 void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("[");
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     if (i > 0) {
       Esp32BaseWeb::sendChunk(",");
     }
@@ -331,7 +339,7 @@ void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
 
 void sendBaseInfoSummary(const FeederBucketSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("[");
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     if (i > 0) {
       Esp32BaseWeb::sendChunk(",");
     }
@@ -377,7 +385,7 @@ const char* targetResultName(FeederTargetResult result) {
 
 void sendTargetSummary(const FeederTargetSnapshot& targets, const FeederBucketSnapshot& buckets) {
   Esp32BaseWeb::sendChunk("[");
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     if (i > 0) {
       Esp32BaseWeb::sendChunk(",");
     }
@@ -412,7 +420,7 @@ void sendTargetSummary(const FeederTargetSnapshot& targets, const FeederBucketSn
 
 void sendResolvedTargetArray(const FeederTargetBatch& batch) {
   Esp32BaseWeb::sendChunk("[");
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     if (i > 0) {
       Esp32BaseWeb::sendChunk(",");
     }
@@ -661,7 +669,7 @@ FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource sour
   FeederStartResult result = g_feeder.startChannels(targets.okMask, source);
   if (result.successMask != 0) {
     g_runs.start(result.successMask, source, targets);
-    for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
       const uint8_t bit = static_cast<uint8_t>(1U << i);
       if ((result.successMask & bit) == 0) {
         continue;
@@ -685,7 +693,7 @@ FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource sour
 
 FeederTargetSnapshot targetSnapshotFromPlan(const FeederPlanConfig& plan) {
   FeederTargetSnapshot targets;
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     targets.channels[i].mode = plan.targets[i].mode;
     targets.channels[i].targetGramsX100 = plan.targets[i].targetGramsX100;
     targets.channels[i].targetRevolutionsX100 = plan.targets[i].targetRevolutionsX100;
@@ -755,7 +763,7 @@ bool readPlanConfigFromParams(FeederPlanConfig& config) {
     config.channelMask = static_cast<uint8_t>(raw);
   }
 
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     char name[28];
     snprintf(name, sizeof(name), "ch%uMode", static_cast<unsigned>(i));
     if (!readTargetModeParam(name, config.targets[i].mode)) {
@@ -867,8 +875,8 @@ void FarmFeederApp::handleScheduleTick() {
 }
 
 void FarmFeederApp::configureStaticDefaults() {
-  g_feederConfig.installedChannelMask = 0b0111;
-  g_feederConfig.enabledChannelMask = 0b0111;
+  g_feederConfig.installedChannelMask = configuredChannelMask();
+  g_feederConfig.enabledChannelMask = configuredChannelMask();
 
   g_schedules.beginDay(0);
 
@@ -877,7 +885,7 @@ void FarmFeederApp::configureStaticDefaults() {
   channelInfo.outputPulsesPerRev = 4320;
   channelInfo.gramsPerRevX100 = 7000;
   channelInfo.capacityGramsX100 = 500000;
-  for (uint8_t i = 0; i < 3; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     if (g_buckets.updateBaseInfo(i, channelInfo) != FeederBucketResult::Ok) {
       ESP32BASE_LOG_E("farmfeeder", "bucket_base_info_failed channel=%u", static_cast<unsigned>(i));
     }
@@ -1142,7 +1150,8 @@ void FarmFeederApp::handleFeederTarget() {
 #if ESP32BASE_ENABLE_WEB
   uint8_t channel = 0;
   FeederTargetRequest request;
-  if (!readUint8Param("channel", channel) || !readTargetModeParam("targetMode", request.mode) ||
+  if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
+      !readTargetModeParam("targetMode", request.mode) ||
       !readInt32ParamOptional("targetGramsX100", request.targetGramsX100) ||
       !readInt32ParamOptional("targetRevolutionsX100", request.targetRevolutionsX100)) {
     sendResultJson(400, "InvalidArgument");
@@ -1157,7 +1166,8 @@ void FarmFeederApp::handleFeederTarget() {
 void FarmFeederApp::handleFeederManualStart() {
 #if ESP32BASE_ENABLE_WEB
   uint8_t channelMask = 0;
-  if (!readUint8Param("channelMask", channelMask)) {
+  if (!readUint8Param("channelMask", channelMask) ||
+      (channelMask & static_cast<uint8_t>(~configuredChannelMask())) != 0) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
@@ -1181,11 +1191,14 @@ void FarmFeederApp::handleFeederStart() {
   uint8_t channelMask = 0;
   if (!readUint8Param("channelMask", channelMask)) {
     uint8_t channel = 0;
-    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+    if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
       sendResultJson(400, "InvalidArgument");
       return;
     }
     channelMask = static_cast<uint8_t>(1U << channel);
+  } else if ((channelMask & static_cast<uint8_t>(~configuredChannelMask())) != 0) {
+    sendResultJson(400, "InvalidArgument");
+    return;
   }
   FeederTargetBatch targets;
   const FeederStartResult result = startResolvedTargets(channelMask, FeederRunSource::Manual, targets);
@@ -1207,11 +1220,14 @@ void FarmFeederApp::handleFeederStop() {
   uint8_t channelMask = 0;
   if (!readUint8Param("channelMask", channelMask)) {
     uint8_t channel = 0;
-    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+    if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
       sendResultJson(400, "InvalidArgument");
       return;
     }
     channelMask = static_cast<uint8_t>(1U << channel);
+  } else if ((channelMask & static_cast<uint8_t>(~configuredChannelMask())) != 0) {
+    sendResultJson(400, "InvalidArgument");
+    return;
   }
   const FeederCommandResult result = g_feeder.stopChannels(channelMask);
   if (result == FeederCommandResult::Ok) {
@@ -1268,16 +1284,19 @@ void FarmFeederApp::handleMaintenanceClearFault() {
   uint8_t channelMask = 0;
   if (!readUint8Param("channelMask", channelMask)) {
     uint8_t channel = 0;
-    if (!readUint8Param("channel", channel) || channel >= kFeederMaxChannels) {
+    if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
       sendResultJson(400, "InvalidArgument");
       return;
     }
     channelMask = static_cast<uint8_t>(1U << channel);
+  } else if ((channelMask & static_cast<uint8_t>(~configuredChannelMask())) != 0) {
+    sendResultJson(400, "InvalidArgument");
+    return;
   }
 
   uint8_t successMask = 0;
   uint8_t skippedMask = 0;
-  for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     const uint8_t bit = static_cast<uint8_t>(1U << i);
     if ((channelMask & bit) == 0) {
       continue;
@@ -1388,7 +1407,8 @@ void FarmFeederApp::handleBucketSetRemaining() {
 #if ESP32BASE_ENABLE_WEB
   uint8_t channel = 0;
   int32_t remainGramsX100 = 0;
-  if (!readUint8Param("channel", channel) || !readInt32Param("remainGramsX100", remainGramsX100)) {
+  if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
+      !readInt32Param("remainGramsX100", remainGramsX100)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
@@ -1401,7 +1421,8 @@ void FarmFeederApp::handleBucketAddFeed() {
 #if ESP32BASE_ENABLE_WEB
   uint8_t channel = 0;
   int32_t addedGramsX100 = 0;
-  if (!readUint8Param("channel", channel) || !readInt32Param("addedGramsX100", addedGramsX100)) {
+  if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
+      !readInt32Param("addedGramsX100", addedGramsX100)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
@@ -1413,7 +1434,7 @@ void FarmFeederApp::handleBucketAddFeed() {
 void FarmFeederApp::handleBucketMarkFull() {
 #if ESP32BASE_ENABLE_WEB
   uint8_t channel = 0;
-  if (!readUint8Param("channel", channel)) {
+  if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
@@ -1429,7 +1450,8 @@ void FarmFeederApp::handleBaseInfoChannel() {
   int32_t outputPulsesPerRev = 0;
   int32_t gramsPerRevX100 = 0;
   int32_t capacityGramsX100 = 0;
-  if (!readUint8Param("channel", channel) || !readBoolParam("enabled", enabled) ||
+  if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
+      !readBoolParam("enabled", enabled) ||
       !readInt32Param("outputPulsesPerRev", outputPulsesPerRev) ||
       !readInt32Param("gramsPerRevX100", gramsPerRevX100) ||
       !readInt32Param("capacityGramsX100", capacityGramsX100)) {

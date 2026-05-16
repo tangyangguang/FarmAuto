@@ -3,6 +3,9 @@
 #include "FeederController.h"
 
 int main() {
+  assert(kFeederConfiguredChannels == 3);
+  assert(kFeederMaxChannels == 4);
+
   FeederController feeder;
 
   FeederControllerConfig config;

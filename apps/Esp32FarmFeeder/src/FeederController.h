@@ -4,6 +4,16 @@
 
 static constexpr uint8_t kFeederMaxChannels = 4;
 
+#ifndef FARMAUTO_FARMFEEDER_CHANNEL_COUNT
+#define FARMAUTO_FARMFEEDER_CHANNEL_COUNT 3
+#endif
+
+static_assert(FARMAUTO_FARMFEEDER_CHANNEL_COUNT > 0,
+              "FARMAUTO_FARMFEEDER_CHANNEL_COUNT must be at least 1");
+static_assert(FARMAUTO_FARMFEEDER_CHANNEL_COUNT <= kFeederMaxChannels,
+              "FARMAUTO_FARMFEEDER_CHANNEL_COUNT exceeds kFeederMaxChannels");
+static constexpr uint8_t kFeederConfiguredChannels = FARMAUTO_FARMFEEDER_CHANNEL_COUNT;
+
 enum class FeederDeviceState : uint8_t {
   Idle,
   Running,
