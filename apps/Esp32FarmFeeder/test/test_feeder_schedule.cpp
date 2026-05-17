@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstring>
 
 #include "FeederSchedule.h"
 
@@ -11,12 +12,14 @@ int main() {
   morning.timeConfigured = true;
   morning.timeMinutes = 7 * 60 + 30;
   morning.channelMask = 0b0011;
+  std::strncpy(morning.name, "早晨", sizeof(morning.name) - 1);
   morning.targets[0].mode = FeederTargetMode::Grams;
   morning.targets[0].targetGramsX100 = 7000;
   morning.targets[1].mode = FeederTargetMode::Revolutions;
   morning.targets[1].targetRevolutionsX100 = 100;
 
   FeederPlanConfig evening = morning;
+  evening.name[0] = '\0';
   evening.timeMinutes = 18 * 60;
   evening.channelMask = 0b0001;
 
@@ -45,11 +48,15 @@ int main() {
   assert(schedules.addPlan(morning).result == FeederScheduleResult::Ok);
   assert(schedules.addPlan(evening).result == FeederScheduleResult::Ok);
   assert(schedules.snapshot().planCount == 2);
+  assert(std::strcmp(schedules.snapshot().plans[0].config.name, "早晨") == 0);
+  assert(std::strcmp(schedules.snapshot().plans[1].config.name, "计划 2") == 0);
   assert(schedules.nextPlan(7 * 60).config.planId == 1);
 
   evening.timeMinutes = 19 * 60;
+  std::strncpy(evening.name, "傍晚补料", sizeof(evening.name) - 1);
   assert(schedules.updatePlan(2, evening) == FeederScheduleResult::Ok);
   assert(schedules.snapshot().plans[1].config.timeMinutes == 19 * 60);
+  assert(std::strcmp(schedules.snapshot().plans[1].config.name, "傍晚补料") == 0);
 
   FeederScheduleTick tick = schedules.evaluate(7 * 60 + 30, true);
   assert(tick.action == FeederScheduleAction::TriggerPlan);

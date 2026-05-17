@@ -1,5 +1,26 @@
 #include "FeederSchedule.h"
 
+#include <cstdio>
+#include <cstring>
+
+namespace {
+
+void setDefaultPlanName(uint8_t planId, char* out, std::size_t len) {
+  if (!out || len == 0) {
+    return;
+  }
+  snprintf(out, len, "计划 %u", static_cast<unsigned>(planId));
+}
+
+void normalizePlanName(FeederPlanConfig& config) {
+  config.name[kFeederPlanNameMaxBytes] = '\0';
+  if (config.name[0] == '\0') {
+    setDefaultPlanName(config.planId, config.name, sizeof(config.name));
+  }
+}
+
+}  // namespace
+
 void FeederScheduleService::beginDay(uint32_t serviceDate) {
   snapshot_.serviceDate = serviceDate;
   for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
@@ -33,6 +54,7 @@ FeederScheduleMutation FeederScheduleService::addPlan(const FeederPlanConfig& co
   plan = FeederPlanState{};
   plan.config = config;
   plan.config.planId = config.planId == 0 ? allocatePlanId() : config.planId;
+  normalizePlanName(plan.config);
   mutation.result = FeederScheduleResult::Ok;
   mutation.planId = plan.config.planId;
   return mutation;
@@ -49,6 +71,7 @@ FeederScheduleResult FeederScheduleService::updatePlan(uint8_t planId, const Fee
 
   FeederPlanConfig updated = config;
   updated.planId = planId;
+  normalizePlanName(updated);
   snapshot_.plans[index].config = updated;
   return FeederScheduleResult::Ok;
 }
@@ -203,6 +226,7 @@ FeederScheduleResult FeederScheduleService::restore(const FeederScheduleSnapshot
   snapshot_ = snapshot;
   for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
     FeederPlanState& plan = snapshot_.plans[i];
+    normalizePlanName(plan.config);
     if (plan.skipServiceDate == 0 && plan.skipToday) {
       plan.skipServiceDate = snapshot_.serviceDate;
     }

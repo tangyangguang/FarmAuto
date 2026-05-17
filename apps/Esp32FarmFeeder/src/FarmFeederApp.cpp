@@ -6,6 +6,8 @@
 #include <esp_system.h>
 #include <Wire.h>
 
+#include <cstring>
+
 #include "FeederBucket.h"
 #include "FeederBucketRestore.h"
 #include "FeederConfirm.h"
@@ -326,6 +328,17 @@ void sendInt32(int32_t value) {
   Esp32BaseWeb::sendChunk(number);
 }
 
+void sendFixedX100(int32_t value) {
+  char number[24];
+  const char* sign = value < 0 ? "-" : "";
+  const int64_t absValue = value < 0 ? -static_cast<int64_t>(value) : static_cast<int64_t>(value);
+  snprintf(number, sizeof(number), "%s%lld.%02lld",
+           sign,
+           static_cast<long long>(absValue / 100),
+           static_cast<long long>(absValue % 100));
+  Esp32BaseWeb::sendChunk(number);
+}
+
 void sendUint32(uint32_t value) {
   char number[16];
   snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(value));
@@ -491,6 +504,9 @@ void sendScheduleSummary(const FeederScheduleSnapshot& snapshot) {
     const FeederPlanState& plan = snapshot.plans[i];
     Esp32BaseWeb::sendChunk("{\"planId\":");
     sendUint8(plan.config.planId);
+    Esp32BaseWeb::sendChunk(",\"name\":\"");
+    Esp32BaseWeb::writeJsonEscaped(plan.config.name);
+    Esp32BaseWeb::sendChunk("\"");
     Esp32BaseWeb::sendChunk(",\"enabled\":");
     Esp32BaseWeb::sendChunk(plan.config.enabled ? "true" : "false");
     Esp32BaseWeb::sendChunk(",\"timeMinutes\":");
@@ -539,11 +555,11 @@ void sendPlanTargetSummary(const FeederPlanConfig& config) {
     Esp32BaseWeb::sendChunk(" ");
     const FeederChannelTarget& target = config.targets[i];
     if (target.mode == FeederTargetMode::Grams) {
-      sendInt32(target.targetGramsX100);
-      Esp32BaseWeb::sendChunk("/100 g");
+      sendFixedX100(target.targetGramsX100);
+      Esp32BaseWeb::sendChunk(" g");
     } else if (target.mode == FeederTargetMode::Revolutions) {
-      sendInt32(target.targetRevolutionsX100);
-      Esp32BaseWeb::sendChunk("/100 圈");
+      sendFixedX100(target.targetRevolutionsX100);
+      Esp32BaseWeb::sendChunk(" 圈");
     } else {
       Esp32BaseWeb::sendChunk("未配置");
     }
@@ -614,8 +630,8 @@ void sendOccurrenceTable(const FeederScheduleSnapshot& schedules,
     const FeederPlanState& plan = schedules.plans[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
     sendPlanTime(plan.config.timeMinutes);
-    Esp32BaseWeb::sendChunk("</td><td>计划 ");
-    sendUint8(plan.config.planId);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(plan.config.name);
     Esp32BaseWeb::sendChunk("</td><td>");
     sendOccurrenceStatus(plan, serviceDate, schedules.serviceDate);
     Esp32BaseWeb::sendChunk("</td><td>");
@@ -971,6 +987,13 @@ bool readBoolParam(const char* name, bool& out) {
   return false;
 }
 
+void readPlanNameParam(FeederPlanConfig& config) {
+  char raw[kFeederPlanNameMaxBytes + 1] = {};
+  if (Esp32BaseWeb::getParam("name", raw, sizeof(raw))) {
+    strlcpy(config.name, raw, sizeof(config.name));
+  }
+}
+
 bool parseTargetModeText(const char* raw, FeederTargetMode& out) {
   if (strcmp(raw, "grams") == 0 || strcmp(raw, "Grams") == 0) {
     out = FeederTargetMode::Grams;
@@ -1253,6 +1276,7 @@ bool readPlanConfigFromParams(FeederPlanConfig& config) {
   if (!readBoolParam("enabled", config.enabled)) {
     return false;
   }
+  readPlanNameParam(config);
   config.timeConfigured = Esp32BaseWeb::hasParam("timeMinutes");
   if (config.timeConfigured) {
     if (!readInt32Param("timeMinutes", raw) || raw < 0 || raw >= 24 * 60) {
@@ -1518,8 +1542,8 @@ void FarmFeederApp::sendSchedulePage() {
     const FeederPlanState& plan = schedules.plans[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
     sendUint8(plan.config.planId);
-    Esp32BaseWeb::sendChunk("</td><td>计划 ");
-    sendUint8(plan.config.planId);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(plan.config.name);
     Esp32BaseWeb::sendChunk("</td><td>");
     sendPlanTime(plan.config.timeMinutes);
     Esp32BaseWeb::sendChunk("</td><td>");

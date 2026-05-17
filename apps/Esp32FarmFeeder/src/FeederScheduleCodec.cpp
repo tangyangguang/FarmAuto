@@ -94,6 +94,9 @@ std::size_t encodedBytesForVersion(uint16_t version) {
   if (version == 1) {
     return kFeederScheduleV1EncodedBytes;
   }
+  if (version == 2) {
+    return kFeederScheduleV2EncodedBytes;
+  }
   if (version == kFeederScheduleSchemaVersion) {
     return kFeederScheduleEncodedBytes;
   }
@@ -101,7 +104,13 @@ std::size_t encodedBytesForVersion(uint16_t version) {
 }
 
 std::size_t planBytesForVersion(uint16_t version) {
-  return version == 1 ? kFeederScheduleV1PlanBytes : kFeederSchedulePlanBytes;
+  if (version == 1) {
+    return kFeederScheduleV1PlanBytes;
+  }
+  if (version == 2) {
+    return kFeederScheduleV2PlanBytes;
+  }
+  return kFeederSchedulePlanBytes;
 }
 
 }  // namespace
@@ -142,6 +151,7 @@ FeederScheduleCodecResult encodeFeederScheduleSnapshot(const FeederScheduleSnaps
       writeI32(targetBytes + 6, target.targetRevolutionsX100);
     }
     writeU32(bytes + 46, plan.skipServiceDate);
+    std::memcpy(bytes + 50, plan.config.name, kFeederPlanNameMaxBytes);
   }
 
   const uint32_t crc = Esp32At24cRecordStore::crc32IsoHdlc(
@@ -208,6 +218,10 @@ FeederScheduleCodecResult decodeFeederScheduleSnapshot(const uint8_t* data,
     }
     plan.skipServiceDate = version == 1 ? (plan.skipToday ? decoded.serviceDate : 0)
                                         : readU32(bytes + 46);
+    if (version >= 3) {
+      std::memcpy(plan.config.name, bytes + 50, kFeederPlanNameMaxBytes);
+      plan.config.name[kFeederPlanNameMaxBytes] = '\0';
+    }
     plan.skipToday = plan.skipServiceDate == decoded.serviceDate;
   }
   if (!validSnapshot(decoded)) {

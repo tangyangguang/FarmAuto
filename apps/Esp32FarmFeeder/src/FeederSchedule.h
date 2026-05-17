@@ -5,6 +5,7 @@
 #include "FeederController.h"
 
 static constexpr uint8_t kFeederMaxPlans = 6;
+static constexpr uint8_t kFeederPlanNameMaxBytes = 16;
 
 enum class FeederTargetMode : uint8_t {
   None,
@@ -33,6 +34,7 @@ struct FeederChannelTarget {
 
 struct FeederPlanConfig {
   uint8_t planId = 0;
+  char name[kFeederPlanNameMaxBytes + 1] = {};
   bool enabled = false;
   bool timeConfigured = false;
   uint16_t timeMinutes = 0;

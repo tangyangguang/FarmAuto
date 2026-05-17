@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "FeederScheduleCodec.h"
 
@@ -11,6 +12,7 @@ int main() {
 
   FeederPlanState& first = snapshot.plans[0];
   first.config.planId = 1;
+  std::strncpy(first.config.name, "早晨", sizeof(first.config.name) - 1);
   first.config.enabled = true;
   first.config.timeConfigured = true;
   first.config.timeMinutes = 7 * 60 + 30;
@@ -24,6 +26,7 @@ int main() {
 
   FeederPlanState& second = snapshot.plans[1];
   second.config.planId = 2;
+  std::strncpy(second.config.name, "傍晚补料", sizeof(second.config.name) - 1);
   second.config.enabled = true;
   second.config.timeConfigured = true;
   second.config.timeMinutes = 18 * 60;
@@ -47,12 +50,14 @@ int main() {
   assert(decoded.serviceDate == snapshot.serviceDate);
   assert(decoded.planCount == 2);
   assert(decoded.plans[0].config.planId == 1);
+  assert(std::strcmp(decoded.plans[0].config.name, "早晨") == 0);
   assert(decoded.plans[0].config.timeMinutes == 450);
   assert(decoded.plans[0].config.targets[0].targetGramsX100 == 7000);
   assert(decoded.plans[0].config.targets[1].targetRevolutionsX100 == 125);
   assert(decoded.plans[0].scheduleAttemptedToday);
   assert(decoded.plans[0].todayExecuted);
   assert(decoded.plans[1].skipToday);
+  assert(std::strcmp(decoded.plans[1].config.name, "傍晚补料") == 0);
   assert(decoded.plans[1].skipServiceDate == snapshot.serviceDate);
   assert(decoded.plans[1].scheduleMissedToday);
 
