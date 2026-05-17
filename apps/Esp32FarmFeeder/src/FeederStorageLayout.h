@@ -6,6 +6,7 @@
 #include <Esp32At24cRecordStore.h>
 
 #include "FeederBucketCodec.h"
+#include "FeederCalibrationCodec.h"
 #include "FeederScheduleCodec.h"
 #include "FeederTargetCodec.h"
 

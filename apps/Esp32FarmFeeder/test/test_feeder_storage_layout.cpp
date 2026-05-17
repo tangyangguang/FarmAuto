@@ -27,6 +27,9 @@ int main() {
   assert(kFeederAt24cRegions[4].recordType ==
          static_cast<uint16_t>(FeederAt24cRecordType::BucketState));
   assert(kFeederAt24cRegions[4].slotSize >= kFeederBucketEncodedBytes);
+  assert(kFeederAt24cRegions[5].recordType ==
+         static_cast<uint16_t>(FeederAt24cRecordType::Calibration));
+  assert(kFeederAt24cRegions[5].slotSize >= kFeederCalibrationEncodedBytes);
 
   return 0;
 }

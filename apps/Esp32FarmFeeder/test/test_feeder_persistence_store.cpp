@@ -98,11 +98,24 @@ int main() {
   assert(restoredBuckets.channels[0].lastRefillUnixTime == 1800000001);
   assert(restoredBuckets.channels[1].underflow);
 
+  assert(saveFeederCalibration(store, buckets) == Esp32At24cRecordStore::Result::Ok);
+  FeederBucketSnapshot restoredCalibration;
+  assert(loadFeederCalibration(store, restoredCalibration) == Esp32At24cRecordStore::Result::Ok);
+  assert(restoredCalibration.channels[0].baseInfo.enabled);
+  assert(restoredCalibration.channels[0].baseInfo.outputPulsesPerRev == 4320);
+  assert(restoredCalibration.channels[0].baseInfo.gramsPerRevX100 == 7000);
+  assert(restoredCalibration.channels[0].baseInfo.capacityGramsX100 == 500000);
+  assert(restoredCalibration.channels[0].remainGramsX100 == 0);
+  assert(!restoredCalibration.channels[0].underflow);
+
   schedule.planCount = kFeederMaxPlans + 1;
   assert(saveFeederSchedule(store, schedule) == Esp32At24cRecordStore::Result::InvalidArgument);
 
   buckets.channels[0].remainGramsX100 = 600000;
   assert(saveFeederBuckets(store, buckets) == Esp32At24cRecordStore::Result::InvalidArgument);
+
+  buckets.channels[0].baseInfo.capacityGramsX100 = -1;
+  assert(saveFeederCalibration(store, buckets) == Esp32At24cRecordStore::Result::InvalidArgument);
 
   return 0;
 }
