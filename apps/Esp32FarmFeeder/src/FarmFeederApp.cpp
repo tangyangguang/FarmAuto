@@ -316,6 +316,15 @@ const char* recordResultName(FeederRecordResult result) {
   return "InvalidArgument";
 }
 
+const char* targetModeFormValue(FeederTargetMode mode) {
+  switch (mode) {
+    case FeederTargetMode::Grams: return "grams";
+    case FeederTargetMode::Revolutions: return "revolutions";
+    case FeederTargetMode::None: return "none";
+  }
+  return "none";
+}
+
 void sendUint8(uint8_t value) {
   char number[8];
   snprintf(number, sizeof(number), "%u", static_cast<unsigned>(value));
@@ -567,6 +576,42 @@ void sendPlanTargetSummary(const FeederPlanConfig& config) {
   if (first) {
     Esp32BaseWeb::sendChunk("未配置通道");
   }
+}
+
+void sendPlanTargetInputs(const FeederPlanConfig& config, uint8_t channelIndex) {
+  const FeederChannelTarget& target = config.targets[channelIndex];
+  const unsigned channelNumber = static_cast<unsigned>(channelIndex + 1);
+  Esp32BaseWeb::sendChunk("<fieldset><legend>通道");
+  sendUint8(static_cast<uint8_t>(channelNumber));
+  Esp32BaseWeb::sendChunk("</legend><label>目标模式 <select name='ch");
+  sendUint8(channelIndex);
+  Esp32BaseWeb::sendChunk("Mode'>");
+  const FeederTargetMode modes[] = {
+      FeederTargetMode::None,
+      FeederTargetMode::Grams,
+      FeederTargetMode::Revolutions,
+  };
+  const char* labels[] = {"不参与", "按克数", "按圈数"};
+  for (uint8_t i = 0; i < 3; ++i) {
+    Esp32BaseWeb::sendChunk("<option value='");
+    Esp32BaseWeb::sendChunk(targetModeFormValue(modes[i]));
+    Esp32BaseWeb::sendChunk("'");
+    if (target.mode == modes[i]) {
+      Esp32BaseWeb::sendChunk(" selected");
+    }
+    Esp32BaseWeb::sendChunk(">");
+    Esp32BaseWeb::sendChunk(labels[i]);
+    Esp32BaseWeb::sendChunk("</option>");
+  }
+  Esp32BaseWeb::sendChunk("</select></label><label>克数 x100 <input name='ch");
+  sendUint8(channelIndex);
+  Esp32BaseWeb::sendChunk("GramsX100' value='");
+  sendInt32(target.targetGramsX100);
+  Esp32BaseWeb::sendChunk("'></label><label>圈数 x100 <input name='ch");
+  sendUint8(channelIndex);
+  Esp32BaseWeb::sendChunk("RevolutionsX100' value='");
+  sendInt32(target.targetRevolutionsX100);
+  Esp32BaseWeb::sendChunk("'></label></fieldset>");
 }
 
 void sendOccurrenceStatus(const FeederPlanState& plan,
@@ -1456,6 +1501,7 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
   Esp32BaseWeb::addPage("/app", "喂食器首页", FarmFeederApp::sendHomePage);
   Esp32BaseWeb::addPage("/schedule", "喂食计划", FarmFeederApp::sendSchedulePage);
+  Esp32BaseWeb::addPage("/schedule/edit", "编辑计划", FarmFeederApp::sendScheduleEditPage);
   Esp32BaseWeb::addPage("/records", "喂食记录", FarmFeederApp::sendRecordsPage);
   Esp32BaseWeb::addPage("/base-info", "基础信息", FarmFeederApp::sendBaseInfoPage);
   Esp32BaseWeb::addPage("/diagnostics", "喂食器诊断", FarmFeederApp::sendDiagnosticsPage);
@@ -1536,8 +1582,8 @@ void FarmFeederApp::sendSchedulePage() {
   sendOccurrenceTable(schedules, schedules.serviceDate, "今日计划");
   sendOccurrenceTable(schedules, tomorrowDate, "明日计划");
   Esp32BaseWeb::sendChunk("<section><h2>计划管理</h2><p>计划管理只维护长期蓝本；跳过只在今日或明日执行实例上操作。</p>");
-  Esp32BaseWeb::sendChunk("<p><a href='/api/app/schedules'>查看计划 JSON</a></p>");
-  Esp32BaseWeb::sendChunk("<table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th></tr>");
+  Esp32BaseWeb::sendChunk("<p><a href='/schedule/edit'>新增计划</a> · <a href='/api/app/schedules'>查看计划 JSON</a></p>");
+  Esp32BaseWeb::sendChunk("<table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th><th>操作</th></tr>");
   for (uint8_t i = 0; i < schedules.planCount; ++i) {
     const FeederPlanState& plan = schedules.plans[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
@@ -1550,9 +1596,70 @@ void FarmFeederApp::sendSchedulePage() {
     Esp32BaseWeb::sendChunk(plan.config.enabled ? "是" : "否");
     Esp32BaseWeb::sendChunk("</td><td>");
     sendPlanTargetSummary(plan.config);
-    Esp32BaseWeb::sendChunk("</td></tr>");
+    Esp32BaseWeb::sendChunk("</td><td><a href='/schedule/edit?planId=");
+    sendUint8(plan.config.planId);
+    Esp32BaseWeb::sendChunk("'>编辑</a></td></tr>");
   }
   Esp32BaseWeb::sendChunk("</table></section>");
+  Esp32BaseWeb::sendFooter();
+#endif
+}
+
+void FarmFeederApp::sendScheduleEditPage() {
+#if ESP32BASE_ENABLE_WEB
+  FeederPlanConfig config;
+  bool editing = false;
+  uint8_t planId = 0;
+  if (Esp32BaseWeb::hasParam("planId")) {
+    editing = readUint8Param("planId", planId) && findPlanConfig(planId, config);
+    if (!editing) {
+      Esp32BaseWeb::sendHeader("编辑计划");
+      Esp32BaseWeb::sendChunk("<h1>编辑计划</h1><section><h2>计划不存在</h2><p>指定计划不存在或参数无效。</p><p><a href='/schedule'>返回计划</a></p></section>");
+      Esp32BaseWeb::sendFooter();
+      return;
+    }
+  } else {
+    config.timeConfigured = true;
+    config.timeMinutes = 8 * 60;
+    config.channelMask = 0;
+  }
+
+  Esp32BaseWeb::sendHeader(editing ? "编辑计划" : "新增计划");
+  Esp32BaseWeb::sendChunk(editing ? "<h1>编辑计划</h1>" : "<h1>新增计划</h1>");
+  Esp32BaseWeb::sendChunk("<section><p>计划蓝本只保存每天固定执行规则；跳过某次执行请回到计划页操作今日或明日实例。</p>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='");
+  Esp32BaseWeb::sendChunk(editing ? "/api/app/schedules/update" : "/api/app/schedules/create");
+  Esp32BaseWeb::sendChunk("'>");
+  if (editing) {
+    Esp32BaseWeb::sendChunk("<input type='hidden' name='planId' value='");
+    sendUint8(planId);
+    Esp32BaseWeb::sendChunk("'>");
+  }
+  Esp32BaseWeb::sendChunk("<label>计划名称 <input name='name' maxlength='");
+  sendUint8(kFeederPlanNameMaxBytes);
+  Esp32BaseWeb::sendChunk("' value='");
+  Esp32BaseWeb::writeHtmlEscaped(config.name);
+  Esp32BaseWeb::sendChunk("'></label><label>启用 <select name='enabled'><option value='1'");
+  if (config.enabled) {
+    Esp32BaseWeb::sendChunk(" selected");
+  }
+  Esp32BaseWeb::sendChunk(">启用</option><option value='0'");
+  if (!config.enabled) {
+    Esp32BaseWeb::sendChunk(" selected");
+  }
+  Esp32BaseWeb::sendChunk(">停用</option></select></label><label>执行时间（当天分钟 0-1439） <input name='timeMinutes' value='");
+  if (config.timeConfigured) {
+    sendUint32(config.timeMinutes);
+  }
+  Esp32BaseWeb::sendChunk("'></label><label>参与通道掩码 <input name='channelMask' value='");
+  sendUint8(config.channelMask);
+  Esp32BaseWeb::sendChunk("'></label>");
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    sendPlanTargetInputs(config, i);
+  }
+  Esp32BaseWeb::sendChunk("<button>");
+  Esp32BaseWeb::sendChunk(editing ? "保存计划" : "创建计划");
+  Esp32BaseWeb::sendChunk("</button> <a href='/schedule'>返回计划</a></form></section>");
   Esp32BaseWeb::sendFooter();
 #endif
 }

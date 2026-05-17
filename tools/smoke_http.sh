@@ -30,7 +30,7 @@ case "${APP}" in
     UNAUTH_API=/api/app/status
     ;;
   feeder)
-    PAGES=(/app /schedule /records /base-info /diagnostics)
+    PAGES=(/app /schedule /schedule/edit /records /base-info /diagnostics)
     APIS=(/api/app/status /api/app/diagnostics /api/app/events/recent /api/app/schedules /api/app/buckets /api/app/base-info /api/app/feeders/targets /api/app/records)
     UNAUTH_API=/api/app/feeders/targets
     ;;

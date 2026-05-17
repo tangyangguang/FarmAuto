@@ -12,6 +12,7 @@ class FarmFeederApp {
   void handleScheduleTick();
   static void sendHomePage();
   static void sendSchedulePage();
+  static void sendScheduleEditPage();
   static void sendRecordsPage();
   static void sendBaseInfoPage();
   static void sendDiagnosticsPage();
