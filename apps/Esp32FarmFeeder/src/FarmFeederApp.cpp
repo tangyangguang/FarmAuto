@@ -3,10 +3,12 @@
 #include <Arduino.h>
 #include <Esp32Base.h>
 
+#include <esp_system.h>
 #include <Wire.h>
 
 #include "FeederBucket.h"
 #include "FeederBucketRestore.h"
+#include "FeederConfirm.h"
 #include "FeederController.h"
 #include "FeederDate.h"
 #include "FeederPersistenceStore.h"
@@ -28,6 +30,7 @@ FeederTargetService g_targets;
 FeederTodayService g_today;
 FeederRunTracker g_runs;
 FeederRecordLog g_records;
+FeederConfirmGuard g_confirm;
 uint16_t g_lastScheduleMinute = 24 * 60;
 uint32_t g_lastScheduleDate = 0;
 bool g_recordStorageReady = false;
@@ -898,6 +901,39 @@ void sendResultJson(int code, const char* result) {
   Esp32BaseWeb::endJson();
 }
 
+void sendConfirmRequired(const char* action, const char* resource) {
+  char token[9] = {};
+  if (!g_confirm.issue(action, resource, millis(), esp_random(), token, sizeof(token))) {
+    sendResultJson(500, "InvalidArgument");
+    return;
+  }
+  Esp32BaseWeb::beginJson(409);
+  Esp32BaseWeb::sendChunk("{\"result\":\"ConfirmRequired\",\"actionId\":\"");
+  Esp32BaseWeb::sendChunk(action);
+  Esp32BaseWeb::sendChunk("\",\"resource\":\"");
+  Esp32BaseWeb::sendChunk(resource);
+  Esp32BaseWeb::sendChunk("\",\"confirmToken\":\"");
+  Esp32BaseWeb::sendChunk(token);
+  Esp32BaseWeb::sendChunk("\",\"ttlMs\":60000}");
+  Esp32BaseWeb::endJson();
+}
+
+bool confirmAccepted() {
+  bool confirm = false;
+  return readBoolParam("confirm", confirm) && confirm;
+}
+
+bool requireConfirm(const char* action, const char* resource) {
+  char token[16] = {};
+  if (confirmAccepted() &&
+      Esp32BaseWeb::getParam("confirmToken", token, sizeof(token)) &&
+      g_confirm.consume(action, resource, token, millis())) {
+    return true;
+  }
+  sendConfirmRequired(action, resource);
+  return false;
+}
+
 const char* scheduleResultName(FeederScheduleResult result) {
   switch (result) {
     case FeederScheduleResult::Ok: return "Ok";
@@ -1692,6 +1728,12 @@ void FarmFeederApp::handleMaintenanceClearToday() {
     sendResultJson(409, "Busy");
     return;
   }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "today:%lu",
+           static_cast<unsigned long>(g_schedules.snapshot().serviceDate));
+  if (!requireConfirm("clear-today", resource)) {
+    return;
+  }
 
   g_schedules.clearToday();
   g_today.beginDay(g_schedules.snapshot().serviceDate);
@@ -1719,6 +1761,11 @@ void FarmFeederApp::handleMaintenanceClearFault() {
     channelMask = static_cast<uint8_t>(1U << channel);
   } else if ((channelMask & static_cast<uint8_t>(~configuredChannelMask())) != 0) {
     sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "channelMask:%u", static_cast<unsigned>(channelMask));
+  if (!requireConfirm("clear-fault", resource)) {
     return;
   }
 
@@ -1808,6 +1855,11 @@ void FarmFeederApp::handleScheduleDelete() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "plan:%u", static_cast<unsigned>(planId));
+  if (!requireConfirm("delete-plan", resource)) {
+    return;
+  }
   const FeederScheduleResult result = g_schedules.deletePlan(planId);
   if (result == FeederScheduleResult::Ok) {
     persistFeederScheduleIfReady();
@@ -1823,6 +1875,13 @@ void FarmFeederApp::handleScheduleSkip() {
   if (!readUint8Param("planId", planId) || !readUint32ParamOptional("date", serviceDate) ||
       serviceDate == 0) {
     sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "plan:%u:%lu",
+           static_cast<unsigned>(planId),
+           static_cast<unsigned long>(serviceDate));
+  if (!requireConfirm("skip-occurrence", resource)) {
     return;
   }
   const FeederScheduleResult result = g_schedules.skipOccurrence(planId, serviceDate);
@@ -1842,6 +1901,13 @@ void FarmFeederApp::handleScheduleCancelSkip() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "plan:%u:%lu",
+           static_cast<unsigned>(planId),
+           static_cast<unsigned long>(serviceDate));
+  if (!requireConfirm("cancel-skip", resource)) {
+    return;
+  }
   const FeederScheduleResult result = g_schedules.cancelSkipOccurrence(planId, serviceDate);
   if (result == FeederScheduleResult::Ok) {
     persistFeederScheduleIfReady();
@@ -1857,6 +1923,11 @@ void FarmFeederApp::handleBucketSetRemaining() {
   if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
       !readInt32Param("remainGramsX100", remainGramsX100)) {
     sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "bucket:%u", static_cast<unsigned>(channel));
+  if (!requireConfirm("set-bucket", resource)) {
     return;
   }
   const FeederBucketResult result = g_buckets.setRemaining(channel, remainGramsX100, 0);
@@ -1876,6 +1947,11 @@ void FarmFeederApp::handleBucketAddFeed() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "bucket:%u", static_cast<unsigned>(channel));
+  if (!requireConfirm("add-feed", resource)) {
+    return;
+  }
   const FeederBucketResult result = g_buckets.addFeed(channel, addedGramsX100, 0);
   if (result == FeederBucketResult::Ok) {
     persistFeederBucketsIfReady();
@@ -1889,6 +1965,11 @@ void FarmFeederApp::handleBucketMarkFull() {
   uint8_t channel = 0;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
     sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "bucket:%u", static_cast<unsigned>(channel));
+  if (!requireConfirm("mark-full", resource)) {
     return;
   }
   const FeederBucketResult result = g_buckets.markFull(channel, 0);
@@ -1916,6 +1997,11 @@ void FarmFeederApp::handleBaseInfoChannel() {
   }
   if (g_feeder.snapshot().runningChannelMask != 0) {
     sendResultJson(400, "Busy");
+    return;
+  }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "base-info:%u", static_cast<unsigned>(channel));
+  if (!requireConfirm("base-info", resource)) {
     return;
   }
 
