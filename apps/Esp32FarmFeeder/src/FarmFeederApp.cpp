@@ -6,6 +6,7 @@
 #include <esp_system.h>
 #include <Wire.h>
 
+#include <cstdlib>
 #include <cstring>
 
 #include "FeederBucket.h"
@@ -602,14 +603,14 @@ void sendPlanTargetInputs(const FeederPlanConfig& config, uint8_t channelIndex) 
     Esp32BaseWeb::sendChunk(labels[i]);
     Esp32BaseWeb::sendChunk("</option>");
   }
-  Esp32BaseWeb::sendChunk("</select></label><label>克数 x100 <input name='ch");
+  Esp32BaseWeb::sendChunk("</select></label><label>克数 <input name='ch");
   sendUint8(channelIndex);
-  Esp32BaseWeb::sendChunk("GramsX100' value='");
-  sendInt32(target.targetGramsX100);
-  Esp32BaseWeb::sendChunk("'></label><label>圈数 x100 <input name='ch");
+  Esp32BaseWeb::sendChunk("Grams' value='");
+  sendFixedX100(target.targetGramsX100);
+  Esp32BaseWeb::sendChunk("'></label><label>圈数 <input name='ch");
   sendUint8(channelIndex);
-  Esp32BaseWeb::sendChunk("RevolutionsX100' value='");
-  sendInt32(target.targetRevolutionsX100);
+  Esp32BaseWeb::sendChunk("Revolutions' value='");
+  sendFixedX100(target.targetRevolutionsX100);
   Esp32BaseWeb::sendChunk("'></label></fieldset>");
 }
 
@@ -1018,6 +1019,29 @@ bool readInt32ParamOptional(const char* name, int32_t& out) {
   return !Esp32BaseWeb::hasParam(name) || readInt32Param(name, out);
 }
 
+bool readFixedX100Param(const char* name, int32_t& out) {
+  char raw[20];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  char* end = nullptr;
+  const double value = strtod(raw, &end);
+  if (!end || *end != '\0') {
+    return false;
+  }
+  out = static_cast<int32_t>(value * 100.0 + (value >= 0 ? 0.5 : -0.5));
+  return true;
+}
+
+bool readFixedX100ParamOptional(const char* decimalName,
+                                const char* legacyName,
+                                int32_t& out) {
+  if (Esp32BaseWeb::hasParam(decimalName)) {
+    return readFixedX100Param(decimalName, out);
+  }
+  return !Esp32BaseWeb::hasParam(legacyName) || readInt32Param(legacyName, out);
+}
+
 bool readBoolParam(const char* name, bool& out) {
   char raw[8];
   if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
@@ -1267,11 +1291,14 @@ bool readManualTargetOverrides(uint8_t channelMask, FeederTargetSnapshot& out) {
     FeederTargetRequest request;
     request.mode = mode;
     snprintf(name, sizeof(name), "ch%uGramsX100", static_cast<unsigned>(i + 1));
-    if (!readInt32ParamOptional(name, request.targetGramsX100)) {
+    char decimalName[32];
+    snprintf(decimalName, sizeof(decimalName), "ch%uGrams", static_cast<unsigned>(i + 1));
+    if (!readFixedX100ParamOptional(decimalName, name, request.targetGramsX100)) {
       return false;
     }
     snprintf(name, sizeof(name), "ch%uRevolutionsX100", static_cast<unsigned>(i + 1));
-    if (!readInt32ParamOptional(name, request.targetRevolutionsX100)) {
+    snprintf(decimalName, sizeof(decimalName), "ch%uRevolutions", static_cast<unsigned>(i + 1));
+    if (!readFixedX100ParamOptional(decimalName, name, request.targetRevolutionsX100)) {
       return false;
     }
     if (mode == FeederTargetMode::Grams && request.targetGramsX100 <= 0) {
@@ -1282,6 +1309,23 @@ bool readManualTargetOverrides(uint8_t channelMask, FeederTargetSnapshot& out) {
     }
     out.channels[i] = request;
   }
+  return true;
+}
+
+bool readManualChannelMask(uint8_t& out) {
+  if (Esp32BaseWeb::hasParam("channelMask")) {
+    return readUint8Param("channelMask", out);
+  }
+  uint8_t mask = 0;
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    char name[20];
+    bool selected = false;
+    snprintf(name, sizeof(name), "ch%uEnabled", static_cast<unsigned>(i + 1));
+    if (readBoolParam(name, selected) && selected) {
+      mask |= static_cast<uint8_t>(1U << i);
+    }
+  }
+  out = mask;
   return true;
 }
 
@@ -1554,17 +1598,26 @@ void FarmFeederApp::sendHomePage() {
   sendUint8(snapshot.runningChannelMask);
   Esp32BaseWeb::sendChunk("</td></tr></table></section><section><h2>手工喂食</h2>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/feeders/manual-start'>");
-  Esp32BaseWeb::sendChunk("<label>通道掩码 <input name='channelMask' value='7'></label> ");
-  Esp32BaseWeb::sendChunk("<p>可选本次目标覆盖，不填写则使用已保存的默认目标。</p>");
-  Esp32BaseWeb::sendChunk("<label>通道1模式 <input name='ch1Mode' placeholder='Grams/Revolutions'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道1克数x100 <input name='ch1GramsX100'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道1圈数x100 <input name='ch1RevolutionsX100'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道2模式 <input name='ch2Mode' placeholder='Grams/Revolutions'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道2克数x100 <input name='ch2GramsX100'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道2圈数x100 <input name='ch2RevolutionsX100'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道3模式 <input name='ch3Mode' placeholder='Grams/Revolutions'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道3克数x100 <input name='ch3GramsX100'></label> ");
-  Esp32BaseWeb::sendChunk("<label>通道3圈数x100 <input name='ch3RevolutionsX100'></label> ");
+  Esp32BaseWeb::sendChunk("<p>勾选要手工喂食的通道；目标留空时使用已保存默认目标。</p>");
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const uint8_t channelNumber = static_cast<uint8_t>(i + 1);
+    const FeederChannelBaseInfo& info = buckets.channels[i].baseInfo;
+    Esp32BaseWeb::sendChunk("<fieldset><legend>");
+    Esp32BaseWeb::writeHtmlEscaped(info.name);
+    Esp32BaseWeb::sendChunk("</legend><label><input type='checkbox' name='ch");
+    sendUint8(channelNumber);
+    Esp32BaseWeb::sendChunk("Enabled' value='1'");
+    if (!info.enabled) {
+      Esp32BaseWeb::sendChunk(" disabled");
+    }
+    Esp32BaseWeb::sendChunk("> 参与本次手工喂食</label><label>目标模式 <select name='ch");
+    sendUint8(channelNumber);
+    Esp32BaseWeb::sendChunk("Mode'><option value=''>使用默认目标</option><option value='grams'>按克数</option><option value='revolutions'>按圈数</option></select></label><label>克数 <input name='ch");
+    sendUint8(channelNumber);
+    Esp32BaseWeb::sendChunk("Grams' placeholder='例如 70'></label><label>圈数 <input name='ch");
+    sendUint8(channelNumber);
+    Esp32BaseWeb::sendChunk("Revolutions' placeholder='例如 1.5'></label></fieldset>");
+  }
   Esp32BaseWeb::sendChunk("<button>开始手工喂食</button></form>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/feeders/stop-all'><button>停止全部</button></form>");
   Esp32BaseWeb::sendChunk("</section><section><h2>料桶余量</h2><table><tr><th>通道</th><th>当前估算</th><th>满桶容量</th></tr>");
@@ -2037,7 +2090,7 @@ void FarmFeederApp::handleFeederManualStart() {
     return;
   }
   uint8_t channelMask = 0;
-  if (!readUint8Param("channelMask", channelMask) ||
+  if (!readManualChannelMask(channelMask) || channelMask == 0 ||
       (channelMask & static_cast<uint8_t>(~configuredChannelMask())) != 0) {
     sendResultJson(400, "InvalidArgument");
     return;
