@@ -11,6 +11,7 @@
 #include "FeederConfirm.h"
 #include "FeederController.h"
 #include "FeederDate.h"
+#include "FeederFeedSettlement.h"
 #include "FeederPersistenceStore.h"
 #include "FeederRecordFileStore.h"
 #include "FeederRecordLog.h"
@@ -995,6 +996,32 @@ bool requireConfirm(const char* action, const char* resource) {
   return false;
 }
 
+void settleStoppedRuns(uint8_t channelMask) {
+  bool changed = false;
+  const FeederRunSnapshot runs = g_runs.snapshot();
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((channelMask & bit) == 0 || !runs.channels[i].active) {
+      continue;
+    }
+    FeederRunChannel completed;
+    if (!g_runs.finish(i, runs.channels[i].actualPulses, completed)) {
+      continue;
+    }
+    FeederFeedSettlement settlement;
+    const FeederFeedSettlementResult result =
+        settleCompletedFeederRun(i, completed, g_today, g_buckets, settlement);
+    if (result == FeederFeedSettlementResult::Ok ||
+        result == FeederFeedSettlementResult::Underflow) {
+      changed = true;
+    }
+  }
+  if (changed) {
+    persistFeederTodayIfReady();
+    persistFeederBucketsIfReady();
+  }
+}
+
 const char* scheduleResultName(FeederScheduleResult result) {
   switch (result) {
     case FeederScheduleResult::Ok: return "Ok";
@@ -1795,7 +1822,7 @@ void FarmFeederApp::handleFeederStop() {
   const uint32_t commandId = allocateCommandId();
   const FeederCommandResult result = g_feeder.stopChannels(channelMask);
   if (result == FeederCommandResult::Ok) {
-    g_runs.stop(channelMask);
+    settleStoppedRuns(channelMask);
   }
   FeederRecord record;
   record.commandId = commandId;
@@ -1816,7 +1843,7 @@ void FarmFeederApp::handleFeederStopAll() {
   const uint32_t commandId = allocateCommandId();
   const FeederCommandResult result = g_feeder.stopAll();
   if (result == FeederCommandResult::Ok) {
-    g_runs.stopAll();
+    settleStoppedRuns(runningMask);
   }
   FeederRecord record;
   record.commandId = commandId;
