@@ -4,6 +4,8 @@
 
 #include "FeederController.h"
 
+static constexpr uint8_t kFeederChannelNameMaxBytes = 16;
+
 enum class FeederBucketResult : uint8_t {
   Ok,
   InvalidArgument,
@@ -11,6 +13,7 @@ enum class FeederBucketResult : uint8_t {
 };
 
 struct FeederChannelBaseInfo {
+  char name[kFeederChannelNameMaxBytes + 1] = {};
   bool enabled = false;
   int32_t outputPulsesPerRev = 0;
   int32_t gramsPerRevX100 = 0;

@@ -1,5 +1,29 @@
 #include "FeederBucket.h"
 
+#include <cstdio>
+#include <cstring>
+
+namespace {
+
+void setDefaultChannelName(uint8_t channelIndex, char* out, std::size_t len) {
+  if (!out || len == 0) {
+    return;
+  }
+  snprintf(out, len, "通道 %u", static_cast<unsigned>(channelIndex + 1));
+}
+
+FeederChannelBaseInfo normalizedBaseInfo(uint8_t channelIndex,
+                                         const FeederChannelBaseInfo& info) {
+  FeederChannelBaseInfo normalized = info;
+  normalized.name[kFeederChannelNameMaxBytes] = '\0';
+  if (normalized.name[0] == '\0') {
+    setDefaultChannelName(channelIndex, normalized.name, sizeof(normalized.name));
+  }
+  return normalized;
+}
+
+}  // namespace
+
 FeederBucketResult FeederBucketService::updateBaseInfo(uint8_t channelIndex,
                                                        const FeederChannelBaseInfo& info) {
   if (!validChannel(channelIndex)) {
@@ -10,7 +34,8 @@ FeederBucketResult FeederBucketService::updateBaseInfo(uint8_t channelIndex,
     return validation;
   }
 
-  snapshot_.channels[channelIndex].baseInfo = info;
+  const FeederChannelBaseInfo normalized = normalizedBaseInfo(channelIndex, info);
+  snapshot_.channels[channelIndex].baseInfo = normalized;
   if (snapshot_.channels[channelIndex].remainGramsX100 > info.capacityGramsX100) {
     snapshot_.channels[channelIndex].remainGramsX100 = info.capacityGramsX100;
   }
@@ -123,6 +148,7 @@ FeederBucketResult FeederBucketService::restore(const FeederBucketSnapshot& snap
   }
   snapshot_ = snapshot;
   for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
+    snapshot_.channels[i].baseInfo = normalizedBaseInfo(i, snapshot_.channels[i].baseInfo);
     recomputePercent(i);
   }
   return FeederBucketResult::Ok;

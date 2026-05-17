@@ -697,7 +697,9 @@ void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
     const FeederBucketState& channel = snapshot.channels[i];
     Esp32BaseWeb::sendChunk("{\"channel\":");
     sendUint8(i);
-    Esp32BaseWeb::sendChunk(",\"enabled\":");
+    Esp32BaseWeb::sendChunk(",\"name\":\"");
+    Esp32BaseWeb::writeJsonEscaped(channel.baseInfo.name);
+    Esp32BaseWeb::sendChunk("\",\"enabled\":");
     Esp32BaseWeb::sendChunk(channel.baseInfo.enabled ? "true" : "false");
     Esp32BaseWeb::sendChunk(",\"outputPulsesPerRev\":");
     char number[16];
@@ -774,11 +776,11 @@ void sendBaseInfoSummary(const FeederBucketSnapshot& snapshot) {
     const FeederChannelBaseInfo& info = snapshot.channels[i].baseInfo;
     Esp32BaseWeb::sendChunk("{\"channel\":");
     sendUint8(i);
-    Esp32BaseWeb::sendChunk(",\"enabled\":");
+    Esp32BaseWeb::sendChunk(",\"name\":\"");
+    Esp32BaseWeb::writeJsonEscaped(info.name);
+    Esp32BaseWeb::sendChunk("\",\"enabled\":");
     Esp32BaseWeb::sendChunk(info.enabled ? "true" : "false");
-    Esp32BaseWeb::sendChunk(",\"name\":\"通道 ");
-    sendUint8(static_cast<uint8_t>(i + 1));
-    Esp32BaseWeb::sendChunk("\",\"outputPulsesPerRev\":");
+    Esp32BaseWeb::sendChunk(",\"outputPulsesPerRev\":");
     char number[16];
     snprintf(number, sizeof(number), "%ld", static_cast<long>(info.outputPulsesPerRev));
     Esp32BaseWeb::sendChunk(number);
@@ -1036,6 +1038,13 @@ void readPlanNameParam(FeederPlanConfig& config) {
   char raw[kFeederPlanNameMaxBytes + 1] = {};
   if (Esp32BaseWeb::getParam("name", raw, sizeof(raw))) {
     strlcpy(config.name, raw, sizeof(config.name));
+  }
+}
+
+void readChannelNameParam(FeederChannelBaseInfo& info) {
+  char raw[kFeederChannelNameMaxBytes + 1] = {};
+  if (Esp32BaseWeb::getParam("name", raw, sizeof(raw))) {
+    strlcpy(info.name, raw, sizeof(info.name));
   }
 }
 
@@ -1469,6 +1478,7 @@ void FarmFeederApp::configureStaticDefaults() {
   channelInfo.gramsPerRevX100 = 7000;
   channelInfo.capacityGramsX100 = 500000;
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    snprintf(channelInfo.name, sizeof(channelInfo.name), "通道 %u", static_cast<unsigned>(i + 1));
     if (g_buckets.updateBaseInfo(i, channelInfo) != FeederBucketResult::Ok) {
       ESP32BASE_LOG_E("farmfeeder", "bucket_base_info_failed channel=%u", static_cast<unsigned>(i));
     }
@@ -1690,8 +1700,8 @@ void FarmFeederApp::sendBaseInfoPage() {
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     Esp32BaseWeb::sendChunk("<tr><td>");
     sendUint8(static_cast<uint8_t>(i + 1));
-    Esp32BaseWeb::sendChunk("</td><td>通道 ");
-    sendUint8(static_cast<uint8_t>(i + 1));
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(buckets.channels[i].baseInfo.name);
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::sendChunk(buckets.channels[i].baseInfo.enabled ? "是" : "否");
     Esp32BaseWeb::sendChunk("</td><td>");
@@ -1703,6 +1713,9 @@ void FarmFeederApp::sendBaseInfoPage() {
   Esp32BaseWeb::sendChunk("</table></section><section><h2>修改单路信息</h2>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/base-info/channel'>");
   Esp32BaseWeb::sendChunk("<label>通道 <input name='channel' value='0'></label> ");
+  Esp32BaseWeb::sendChunk("<label>名称 <input name='name' maxlength='");
+  sendUint8(kFeederChannelNameMaxBytes);
+  Esp32BaseWeb::sendChunk("' value='通道 1'></label> ");
   Esp32BaseWeb::sendChunk("<label>启用 <input name='enabled' value='1'></label> ");
   Esp32BaseWeb::sendChunk("<label>每圈信号数 <input name='outputPulsesPerRev' value='4320'></label> ");
   Esp32BaseWeb::sendChunk("<label>每圈克数 x100 <input name='gramsPerRevX100' value='7000'></label> ");
@@ -2481,6 +2494,8 @@ void FarmFeederApp::handleBaseInfoChannel() {
   }
 
   FeederChannelBaseInfo info;
+  info = g_buckets.snapshot().channels[channel].baseInfo;
+  readChannelNameParam(info);
   info.enabled = enabled;
   info.outputPulsesPerRev = outputPulsesPerRev;
   info.gramsPerRevX100 = gramsPerRevX100;

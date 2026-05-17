@@ -6,9 +6,12 @@
 #include "FeederBucket.h"
 
 static constexpr uint32_t kFeederCalibrationMagic = 0xFACAA101u;
-static constexpr uint16_t kFeederCalibrationSchemaVersion = 1;
+static constexpr uint16_t kFeederCalibrationSchemaVersion = 2;
 static constexpr std::size_t kFeederCalibrationHeaderBytes = 16;
-static constexpr std::size_t kFeederCalibrationChannelBytes = 16;
+static constexpr std::size_t kFeederCalibrationV1ChannelBytes = 16;
+static constexpr std::size_t kFeederCalibrationChannelBytes = 32;
+static constexpr std::size_t kFeederCalibrationV1EncodedBytes =
+    kFeederCalibrationHeaderBytes + (kFeederMaxChannels * kFeederCalibrationV1ChannelBytes);
 static constexpr std::size_t kFeederCalibrationEncodedBytes =
     kFeederCalibrationHeaderBytes + (kFeederMaxChannels * kFeederCalibrationChannelBytes);
 

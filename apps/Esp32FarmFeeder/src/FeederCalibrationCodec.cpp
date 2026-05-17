@@ -2,6 +2,7 @@
 
 #include <Esp32At24cRecordStore.h>
 
+#include <cstdio>
 #include <cstring>
 
 namespace {
@@ -59,6 +60,27 @@ bool validSnapshot(const FeederBucketSnapshot& snapshot) {
   return true;
 }
 
+std::size_t encodedBytesForVersion(uint16_t version) {
+  if (version == 1) {
+    return kFeederCalibrationV1EncodedBytes;
+  }
+  if (version == kFeederCalibrationSchemaVersion) {
+    return kFeederCalibrationEncodedBytes;
+  }
+  return 0;
+}
+
+std::size_t channelBytesForVersion(uint16_t version) {
+  return version == 1 ? kFeederCalibrationV1ChannelBytes : kFeederCalibrationChannelBytes;
+}
+
+void setDefaultChannelName(uint8_t channelIndex, char* out, std::size_t len) {
+  if (!out || len == 0) {
+    return;
+  }
+  snprintf(out, len, "通道 %u", static_cast<unsigned>(channelIndex + 1));
+}
+
 }  // namespace
 
 FeederCalibrationCodecResult encodeFeederCalibrationSnapshot(const FeederBucketSnapshot& snapshot,
@@ -85,6 +107,7 @@ FeederCalibrationCodecResult encodeFeederCalibrationSnapshot(const FeederBucketS
     writeI32(bytes + 4, info.outputPulsesPerRev);
     writeI32(bytes + 8, info.gramsPerRevX100);
     writeI32(bytes + 12, info.capacityGramsX100);
+    std::memcpy(bytes + 16, info.name, kFeederChannelNameMaxBytes);
   }
 
   const uint32_t crc = Esp32At24cRecordStore::crc32IsoHdlc(
@@ -100,18 +123,25 @@ FeederCalibrationCodecResult verifyFeederCalibrationSnapshot(const uint8_t* data
   if (data == nullptr) {
     return FeederCalibrationCodecResult::InvalidArgument;
   }
-  if (length < kFeederCalibrationEncodedBytes) {
+  if (length < kFeederCalibrationHeaderBytes) {
+    return FeederCalibrationCodecResult::BufferTooSmall;
+  }
+  const uint16_t version = readU16(data + 4);
+  const std::size_t encodedBytes = encodedBytesForVersion(version);
+  if (encodedBytes == 0) {
+    return FeederCalibrationCodecResult::UnsupportedVersion;
+  }
+  if (length < encodedBytes) {
     return FeederCalibrationCodecResult::BufferTooSmall;
   }
   if (readU32(data + 0) != kFeederCalibrationMagic ||
-      readU16(data + 4) != kFeederCalibrationSchemaVersion ||
       data[6] != kFeederMaxChannels) {
     return FeederCalibrationCodecResult::UnsupportedVersion;
   }
   const uint32_t expectedCrc = readU32(data + 12);
   const uint32_t actualCrc = Esp32At24cRecordStore::crc32IsoHdlc(
       data + kFeederCalibrationHeaderBytes,
-      kFeederCalibrationEncodedBytes - kFeederCalibrationHeaderBytes);
+      encodedBytes - kFeederCalibrationHeaderBytes);
   return expectedCrc == actualCrc ? FeederCalibrationCodecResult::Ok
                                   : FeederCalibrationCodecResult::CrcMismatch;
 }
@@ -125,13 +155,22 @@ FeederCalibrationCodecResult decodeFeederCalibrationSnapshot(const uint8_t* data
   }
 
   FeederBucketSnapshot decoded;
+  const uint16_t version = readU16(data + 4);
+  const std::size_t channelBytes = channelBytesForVersion(version);
   for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
-    const uint8_t* bytes = data + kFeederCalibrationHeaderBytes + (i * kFeederCalibrationChannelBytes);
+    const uint8_t* bytes = data + kFeederCalibrationHeaderBytes + (i * channelBytes);
     FeederChannelBaseInfo& info = decoded.channels[i].baseInfo;
     info.enabled = (bytes[0] & kChannelFlagEnabled) != 0;
     info.outputPulsesPerRev = readI32(bytes + 4);
     info.gramsPerRevX100 = readI32(bytes + 8);
     info.capacityGramsX100 = readI32(bytes + 12);
+    if (version >= 2) {
+      std::memcpy(info.name, bytes + 16, kFeederChannelNameMaxBytes);
+      info.name[kFeederChannelNameMaxBytes] = '\0';
+    }
+    if (info.name[0] == '\0') {
+      setDefaultChannelName(i, info.name, sizeof(info.name));
+    }
   }
   if (!validSnapshot(decoded)) {
     return FeederCalibrationCodecResult::InvalidArgument;
