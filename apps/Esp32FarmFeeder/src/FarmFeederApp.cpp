@@ -923,12 +923,7 @@ bool readBoolParam(const char* name, bool& out) {
   return false;
 }
 
-bool readTargetModeParam(const char* name, FeederTargetMode& out) {
-  char raw[16];
-  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
-    out = FeederTargetMode::None;
-    return true;
-  }
+bool parseTargetModeText(const char* raw, FeederTargetMode& out) {
   if (strcmp(raw, "grams") == 0 || strcmp(raw, "Grams") == 0) {
     out = FeederTargetMode::Grams;
     return true;
@@ -942,6 +937,15 @@ bool readTargetModeParam(const char* name, FeederTargetMode& out) {
     return true;
   }
   return false;
+}
+
+bool readTargetModeParam(const char* name, FeederTargetMode& out) {
+  char raw[16];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    out = FeederTargetMode::None;
+    return true;
+  }
+  return parseTargetModeText(raw, out);
 }
 
 const char* bucketResultName(FeederBucketResult result) {
@@ -1079,8 +1083,12 @@ void sendStartResultJson(const FeederStartResult& result,
 FeederStartResult startResolvedTargets(uint8_t channelMask,
                                        FeederRunSource source,
                                        uint32_t commandId,
-                                       FeederTargetBatch& targets) {
-  targets = resolveFeederTargetsForMask(g_buckets.snapshot(), g_targets.snapshot(), channelMask);
+                                       FeederTargetBatch& targets,
+                                       const FeederTargetSnapshot* targetOverrides = nullptr) {
+  const FeederTargetSnapshot storedTargets = g_targets.snapshot();
+  targets = resolveFeederTargetsForMask(g_buckets.snapshot(),
+                                        targetOverrides ? *targetOverrides : storedTargets,
+                                        channelMask);
   if (targets.okMask == 0) {
     FeederStartResult result;
     result.result = FeederCommandResult::InvalidArgument;
@@ -1111,6 +1119,45 @@ FeederStartResult startResolvedTargets(uint8_t channelMask,
     result.result = FeederCommandResult::Partial;
   }
   return result;
+}
+
+bool readManualTargetOverrides(uint8_t channelMask, FeederTargetSnapshot& out) {
+  out = g_targets.snapshot();
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((channelMask & bit) == 0) {
+      continue;
+    }
+    char name[32];
+    char rawMode[20];
+    snprintf(name, sizeof(name), "ch%uMode", static_cast<unsigned>(i + 1));
+    if (!Esp32BaseWeb::getParam(name, rawMode, sizeof(rawMode)) || rawMode[0] == '\0') {
+      continue;
+    }
+    FeederTargetMode mode = FeederTargetMode::None;
+    if (!parseTargetModeText(rawMode, mode) || mode == FeederTargetMode::None) {
+      return false;
+    }
+
+    FeederTargetRequest request;
+    request.mode = mode;
+    snprintf(name, sizeof(name), "ch%uGramsX100", static_cast<unsigned>(i + 1));
+    if (!readInt32ParamOptional(name, request.targetGramsX100)) {
+      return false;
+    }
+    snprintf(name, sizeof(name), "ch%uRevolutionsX100", static_cast<unsigned>(i + 1));
+    if (!readInt32ParamOptional(name, request.targetRevolutionsX100)) {
+      return false;
+    }
+    if (mode == FeederTargetMode::Grams && request.targetGramsX100 <= 0) {
+      return false;
+    }
+    if (mode == FeederTargetMode::Revolutions && request.targetRevolutionsX100 <= 0) {
+      return false;
+    }
+    out.channels[i] = request;
+  }
+  return true;
 }
 
 FeederTargetSnapshot targetSnapshotFromPlan(const FeederPlanConfig& plan) {
@@ -1380,6 +1427,16 @@ void FarmFeederApp::sendHomePage() {
   Esp32BaseWeb::sendChunk("</td></tr></table></section><section><h2>手工喂食</h2>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/feeders/manual-start'>");
   Esp32BaseWeb::sendChunk("<label>通道掩码 <input name='channelMask' value='7'></label> ");
+  Esp32BaseWeb::sendChunk("<p>可选本次目标覆盖，不填写则使用已保存的默认目标。</p>");
+  Esp32BaseWeb::sendChunk("<label>通道1模式 <input name='ch1Mode' placeholder='Grams/Revolutions'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道1克数x100 <input name='ch1GramsX100'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道1圈数x100 <input name='ch1RevolutionsX100'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道2模式 <input name='ch2Mode' placeholder='Grams/Revolutions'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道2克数x100 <input name='ch2GramsX100'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道2圈数x100 <input name='ch2RevolutionsX100'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道3模式 <input name='ch3Mode' placeholder='Grams/Revolutions'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道3克数x100 <input name='ch3GramsX100'></label> ");
+  Esp32BaseWeb::sendChunk("<label>通道3圈数x100 <input name='ch3RevolutionsX100'></label> ");
   Esp32BaseWeb::sendChunk("<button>开始手工喂食</button></form>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/feeders/stop-all'><button>停止全部</button></form>");
   Esp32BaseWeb::sendChunk("</section><section><h2>料桶余量</h2><table><tr><th>通道</th><th>当前估算</th><th>满桶容量</th></tr>");
@@ -1755,10 +1812,15 @@ void FarmFeederApp::handleFeederManualStart() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  FeederTargetSnapshot targetOverrides;
+  if (!readManualTargetOverrides(channelMask, targetOverrides)) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
   FeederTargetBatch targets;
   const uint32_t commandId = allocateCommandId();
   const FeederStartResult result =
-      startResolvedTargets(channelMask, FeederRunSource::Manual, commandId, targets);
+      startResolvedTargets(channelMask, FeederRunSource::Manual, commandId, targets, &targetOverrides);
   FeederRecord record;
   record.commandId = commandId;
   record.type = FeederRecordType::ManualRequested;

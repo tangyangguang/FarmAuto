@@ -175,6 +175,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 - 最终执行目标必须换算为 `targetPulses`。
 - 保存目标时不改变今日计数、桶余量或长期记录正文。
 - 手动下料默认目标保存在 AT24C `FeederChannelTarget` 记录区；计划内目标保存在对应 `FeederSchedule` payload 中。
+- `POST /api/app/feeders/manual-start` 可传 `chNMode`、`chNGramsX100`、`chNRevolutionsX100` 覆盖本次手动下料目标；该覆盖只影响本次命令，不写回 `FeederChannelTarget`。未传 `chNMode` 的通道继续使用已保存默认目标。
 
 ## 饲料桶字段
 

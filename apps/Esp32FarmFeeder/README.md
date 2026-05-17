@@ -53,7 +53,8 @@
 `/api/app/feeders/manual-start`
 
 - 按 `channelMask` 手工下料。
-- 每路使用当前默认目标；未配置或未标定的通道会被跳过。
+- 默认使用每路已保存目标；也可为本次请求传 `ch1Mode/ch1GramsX100/ch1RevolutionsX100`、`ch2...`、`ch3...` 覆盖本次目标，不写回默认目标。
+- 未配置、参数无效或未标定的通道会被跳过。
 - 当前只更新业务状态机，不输出 PWM。
 
 `/api/app/feeders/start`
