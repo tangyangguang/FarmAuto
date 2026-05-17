@@ -222,7 +222,7 @@ MotorResult EncodedDcMotor::startMoveTo(int64_t targetPulses) {
   snapshot_.targetSpeedPercent = profile_.speedPercent;
   snapshot_.faultReason = FaultReason::None;
   snapshot_.lastCommandResult = MotorResult::Ok;
-  commandStartMs_ = 0;
+  commandStartMs_ = snapshot_.lastUpdateMs;
   return MotorResult::Ok;
 }
 

@@ -94,5 +94,21 @@ int main() {
   assert(stopMotor.snapshot().state == Esp32EncodedDcMotor::MotorState::Idle);
   assert(stopDriver.stopCount == 1);
 
+  FakeDriver delayedDriver;
+  FakeEncoder delayedEncoder;
+  Esp32EncodedDcMotor::EncodedDcMotor delayedMotor;
+  protection.maxRunMs = 1000;
+  assert(delayedMotor.begin(delayedDriver, delayedEncoder, hardware, encoderConfig) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(delayedMotor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  delayedMotor.update(60000);
+  assert(delayedMotor.requestMovePulses(1000) == Esp32EncodedDcMotor::MotorResult::Ok);
+  delayedMotor.update(60100);
+  snapshot = delayedMotor.snapshot();
+  assert(snapshot.state == Esp32EncodedDcMotor::MotorState::SoftStarting);
+  assert(snapshot.elapsedMs == 100);
+  assert(snapshot.faultReason == Esp32EncodedDcMotor::FaultReason::None);
+
   return 0;
 }
