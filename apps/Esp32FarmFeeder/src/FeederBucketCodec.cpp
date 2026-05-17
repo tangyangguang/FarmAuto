@@ -6,8 +6,7 @@
 
 namespace {
 
-static constexpr uint8_t kChannelFlagEnabled = 0x01;
-static constexpr uint8_t kChannelFlagUnderflow = 0x02;
+static constexpr uint8_t kChannelFlagUnderflow = 0x01;
 
 uint16_t readU16(const uint8_t* bytes) {
   return static_cast<uint16_t>(bytes[0]) | (static_cast<uint16_t>(bytes[1]) << 8);
@@ -40,45 +39,24 @@ void writeI32(uint8_t* bytes, int32_t value) {
 
 uint8_t flagsForChannel(const FeederBucketState& channel) {
   uint8_t flags = 0;
-  if (channel.baseInfo.enabled) {
-    flags |= kChannelFlagEnabled;
-  }
   if (channel.underflow) {
     flags |= kChannelFlagUnderflow;
   }
   return flags;
 }
 
-bool isEmptyDisabledChannel(const FeederBucketState& channel) {
-  return !channel.baseInfo.enabled && channel.baseInfo.outputPulsesPerRev == 0 &&
-         channel.baseInfo.gramsPerRevX100 == 0 && channel.baseInfo.capacityGramsX100 == 0 &&
-         channel.remainGramsX100 == 0 && channel.lastRefillUnixTime == 0 && !channel.underflow;
-}
-
 bool validSnapshot(const FeederBucketSnapshot& snapshot) {
   for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
     const FeederBucketState& channel = snapshot.channels[i];
-    if (isEmptyDisabledChannel(channel)) {
-      continue;
+    if (channel.remainGramsX100 < 0) {
+      return false;
     }
-    if (channel.baseInfo.outputPulsesPerRev <= 0 || channel.baseInfo.gramsPerRevX100 < 0 ||
-        channel.baseInfo.capacityGramsX100 <= 0 || channel.remainGramsX100 < 0 ||
+    if (channel.baseInfo.capacityGramsX100 > 0 &&
         channel.remainGramsX100 > channel.baseInfo.capacityGramsX100) {
       return false;
     }
   }
   return true;
-}
-
-uint8_t computePercent(int32_t remainGramsX100, int32_t capacityGramsX100) {
-  if (capacityGramsX100 <= 0 || remainGramsX100 <= 0) {
-    return 0;
-  }
-  int32_t percent = (remainGramsX100 * 100) / capacityGramsX100;
-  if (percent > 100) {
-    percent = 100;
-  }
-  return static_cast<uint8_t>(percent);
 }
 
 }  // namespace
@@ -104,11 +82,8 @@ FeederBucketCodecResult encodeFeederBucketSnapshot(const FeederBucketSnapshot& s
     const FeederBucketState& channel = snapshot.channels[i];
     uint8_t* bytes = out + kFeederBucketHeaderBytes + (i * kFeederBucketChannelBytes);
     bytes[0] = flagsForChannel(channel);
-    writeI32(bytes + 4, channel.baseInfo.outputPulsesPerRev);
-    writeI32(bytes + 8, channel.baseInfo.gramsPerRevX100);
-    writeI32(bytes + 12, channel.baseInfo.capacityGramsX100);
-    writeI32(bytes + 16, channel.remainGramsX100);
-    writeU32(bytes + 20, channel.lastRefillUnixTime);
+    writeI32(bytes + 4, channel.remainGramsX100);
+    writeU32(bytes + 8, channel.lastRefillUnixTime);
   }
 
   const uint32_t crc = Esp32At24cRecordStore::crc32IsoHdlc(
@@ -148,15 +123,9 @@ FeederBucketCodecResult decodeFeederBucketSnapshot(const uint8_t* data,
   for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
     const uint8_t* bytes = data + kFeederBucketHeaderBytes + (i * kFeederBucketChannelBytes);
     FeederBucketState& channel = decoded.channels[i];
-    channel.baseInfo.enabled = (bytes[0] & kChannelFlagEnabled) != 0;
     channel.underflow = (bytes[0] & kChannelFlagUnderflow) != 0;
-    channel.baseInfo.outputPulsesPerRev = readI32(bytes + 4);
-    channel.baseInfo.gramsPerRevX100 = readI32(bytes + 8);
-    channel.baseInfo.capacityGramsX100 = readI32(bytes + 12);
-    channel.remainGramsX100 = readI32(bytes + 16);
-    channel.lastRefillUnixTime = readU32(bytes + 20);
-    channel.remainPercent =
-        computePercent(channel.remainGramsX100, channel.baseInfo.capacityGramsX100);
+    channel.remainGramsX100 = readI32(bytes + 4);
+    channel.lastRefillUnixTime = readU32(bytes + 8);
   }
   if (!validSnapshot(decoded)) {
     return FeederBucketCodecResult::InvalidArgument;

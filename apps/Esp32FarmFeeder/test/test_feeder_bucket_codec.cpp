@@ -30,12 +30,12 @@ int main() {
   FeederBucketSnapshot decoded;
   assert(decodeFeederBucketSnapshot(encoded, encodedLength, decoded) ==
          FeederBucketCodecResult::Ok);
-  assert(decoded.channels[0].baseInfo.enabled);
-  assert(decoded.channels[0].baseInfo.outputPulsesPerRev == 4320);
-  assert(decoded.channels[0].baseInfo.gramsPerRevX100 == 7000);
-  assert(decoded.channels[0].baseInfo.capacityGramsX100 == 500000);
+  assert(!decoded.channels[0].baseInfo.enabled);
+  assert(decoded.channels[0].baseInfo.outputPulsesPerRev == 0);
+  assert(decoded.channels[0].baseInfo.gramsPerRevX100 == 0);
+  assert(decoded.channels[0].baseInfo.capacityGramsX100 == 0);
   assert(decoded.channels[0].remainGramsX100 == 125000);
-  assert(decoded.channels[0].remainPercent == 25);
+  assert(decoded.channels[0].remainPercent == 0);
   assert(decoded.channels[0].lastRefillUnixTime == 1800000000);
   assert(decoded.channels[1].underflow);
 

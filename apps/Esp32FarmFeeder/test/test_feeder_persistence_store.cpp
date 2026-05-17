@@ -90,9 +90,11 @@ int main() {
   assert(saveFeederBuckets(store, buckets) == Esp32At24cRecordStore::Result::Ok);
   FeederBucketSnapshot restoredBuckets;
   assert(loadFeederBuckets(store, restoredBuckets) == Esp32At24cRecordStore::Result::Ok);
-  assert(restoredBuckets.channels[0].baseInfo.outputPulsesPerRev == 4320);
+  assert(restoredBuckets.channels[0].baseInfo.outputPulsesPerRev == 0);
+  assert(restoredBuckets.channels[0].baseInfo.gramsPerRevX100 == 0);
+  assert(restoredBuckets.channels[0].baseInfo.capacityGramsX100 == 0);
   assert(restoredBuckets.channels[0].remainGramsX100 == 125000);
-  assert(restoredBuckets.channels[0].remainPercent == 25);
+  assert(restoredBuckets.channels[0].remainPercent == 0);
   assert(restoredBuckets.channels[0].lastRefillUnixTime == 1800000001);
   assert(restoredBuckets.channels[1].underflow);
 

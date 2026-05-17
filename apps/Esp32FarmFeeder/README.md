@@ -9,7 +9,7 @@
 - 已接入每日多计划服务、手工下料目标解析、料桶余量维护、通道基础信息维护。
 - 已接入喂食计划/今日状态二进制编解码，后续可作为 AT24C128 payload。
 - 已接入手工下料默认目标二进制编解码，后续可作为 AT24C128 `FeederChannelTarget` payload。
-- 已接入料桶/通道基础状态二进制编解码，后续可作为 AT24C128 payload。
+- 已接入料桶估算余量二进制编解码，后续可作为 AT24C128 `FeederBucketState` payload；通道基础信息不写入该 payload。
 - 已固化喂食器 AT24C128 记录区布局，并用 host 测试校验容量、连续性和页对齐。
 - 已接入计划表、手工下料默认目标和料桶估算余量到 `Esp32At24cRecordStore` 的读写 glue，并用 fake AT24C host 测试验证。
 - 已接入首页、计划、记录、基础信息、诊断 5 个最小业务页面，系统参数/日志/OTA/WiFi 仍使用 Esp32Base 页面。
