@@ -66,6 +66,14 @@ void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   }
 }
 
+void beginRawJson(int code) {
+  Esp32BaseWeb::beginResponse(code, "application/json", nullptr);
+}
+
+void endRawJson() {
+  Esp32BaseWeb::endResponse();
+}
+
 uint32_t allocateCommandId() {
   const uint32_t commandId = g_nextCommandId;
   ++g_nextCommandId;
@@ -958,13 +966,13 @@ const char* bucketResultName(FeederBucketResult result) {
 }
 
 void sendResultJson(int code, const char* result, uint32_t commandId = 0) {
-  Esp32BaseWeb::beginJson(code);
+  beginRawJson(code);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(result);
   Esp32BaseWeb::sendChunk("\",\"commandId\":");
   sendUint32(commandId);
   Esp32BaseWeb::sendChunk("}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 }
 
 void sendConfirmRequired(const char* action, const char* resource) {
@@ -973,7 +981,7 @@ void sendConfirmRequired(const char* action, const char* resource) {
     sendResultJson(500, "InvalidArgument");
     return;
   }
-  Esp32BaseWeb::beginJson(409);
+  beginRawJson(409);
   Esp32BaseWeb::sendChunk("{\"result\":\"ConfirmRequired\",\"actionId\":\"");
   Esp32BaseWeb::sendChunk(action);
   Esp32BaseWeb::sendChunk("\",\"resource\":\"");
@@ -981,7 +989,7 @@ void sendConfirmRequired(const char* action, const char* resource) {
   Esp32BaseWeb::sendChunk("\",\"confirmToken\":\"");
   Esp32BaseWeb::sendChunk(token);
   Esp32BaseWeb::sendChunk("\",\"ttlMs\":60000}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 }
 
 bool confirmAccepted() {
@@ -1053,7 +1061,7 @@ void sendStartResultJson(const FeederStartResult& result,
                          uint32_t commandId = 0) {
   const bool success = result.result == FeederCommandResult::Ok ||
                        result.result == FeederCommandResult::Partial;
-  Esp32BaseWeb::beginJson(success ? 200 : 400);
+  beginRawJson(success ? 200 : 400);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(feederCommandResultName(result.result));
   Esp32BaseWeb::sendChunk("\",\"commandId\":");
@@ -1077,7 +1085,7 @@ void sendStartResultJson(const FeederStartResult& result,
     sendResolvedTargetArray(*targets);
   }
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 }
 
 FeederStartResult startResolvedTargets(uint8_t channelMask,
@@ -1563,7 +1571,7 @@ void FarmFeederApp::sendStatusJson() {
   const FeederScheduleSnapshot scheduleSnapshot = g_schedules.snapshot();
   const FeederBucketSnapshot bucketSnapshot = g_buckets.snapshot();
 
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmFeeder\",");
   Esp32BaseWeb::sendChunk("\"firmware\":\"");
   Esp32BaseWeb::writeJsonEscaped(Esp32Base::firmwareVersion());
@@ -1591,7 +1599,7 @@ void FarmFeederApp::sendStatusJson() {
   Esp32BaseWeb::sendChunk(",\"recentCommand\":");
   sendRecentCommandJson();
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
@@ -1603,7 +1611,7 @@ void FarmFeederApp::sendDiagnosticsJson() {
   const FeederTargetSnapshot targetSnapshot = g_targets.snapshot();
   const FeederRecordSnapshot recordSnapshot = g_records.snapshot();
 
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmFeeder\",\"mode\":\"readOnlyDiagnostics\"");
   Esp32BaseWeb::sendChunk(",\"state\":\"");
   Esp32BaseWeb::sendChunk(deviceStateName(snapshot.state));
@@ -1636,14 +1644,14 @@ void FarmFeederApp::sendDiagnosticsJson() {
   Esp32BaseWeb::sendChunk(g_at24cStoreReady ? "true" : "false");
   Esp32BaseWeb::sendChunk(",\"address\":\"0x50\"},");
   Esp32BaseWeb::sendChunk("\"motorOutput\":{\"enabled\":false}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
 void FarmFeederApp::sendRecentEventsJson() {
 #if ESP32BASE_ENABLE_WEB
   const FeederRecordSnapshot snapshot = g_records.snapshot();
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"source\":\"ram\",\"count\":");
   sendUint8(snapshot.count);
   Esp32BaseWeb::sendChunk(",\"capacity\":");
@@ -1651,45 +1659,45 @@ void FarmFeederApp::sendRecentEventsJson() {
   Esp32BaseWeb::sendChunk(",\"records\":");
   sendRecordArray(snapshot);
   Esp32BaseWeb::sendChunk("}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
 void FarmFeederApp::sendSchedulesJson() {
 #if ESP32BASE_ENABLE_WEB
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   sendScheduleSummary(g_schedules.snapshot());
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
 void FarmFeederApp::sendBucketsJson() {
 #if ESP32BASE_ENABLE_WEB
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"channels\":");
   sendBucketSummary(g_buckets.snapshot());
   Esp32BaseWeb::sendChunk("}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
 void FarmFeederApp::sendBaseInfoJson() {
 #if ESP32BASE_ENABLE_WEB
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"channels\":");
   sendBaseInfoSummary(g_buckets.snapshot());
   Esp32BaseWeb::sendChunk("}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
 void FarmFeederApp::sendTargetsJson() {
 #if ESP32BASE_ENABLE_WEB
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"channels\":");
   sendTargetSummary(g_targets.snapshot(), g_buckets.snapshot());
   Esp32BaseWeb::sendChunk("}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
@@ -1720,7 +1728,7 @@ void FarmFeederApp::sendRecordsJson() {
     return;
   }
 
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
 #if ESP32BASE_ENABLE_FS
   char recordPath[96];
   if (!feederRecordPathForArchive(archiveIndex, recordPath, sizeof(recordPath))) {
@@ -1752,7 +1760,7 @@ void FarmFeederApp::sendRecordsJson() {
     Esp32BaseWeb::sendChunk(",\"records\":");
     sendRecordArray(page);
     Esp32BaseWeb::sendChunk("}");
-    Esp32BaseWeb::endJson();
+    endRawJson();
     return;
   }
   if (archiveIndex > 0) {
@@ -1763,7 +1771,7 @@ void FarmFeederApp::sendRecordsJson() {
     Esp32BaseWeb::sendChunk(",\"count\":0,\"totalRecords\":0,\"recordBytes\":");
     sendUint32(kFeederRecordEncodedMaxBytes);
     Esp32BaseWeb::sendChunk(",\"records\":[]}");
-    Esp32BaseWeb::endJson();
+    endRawJson();
     return;
   }
 #endif
@@ -1780,7 +1788,7 @@ void FarmFeederApp::sendRecordsJson() {
   Esp32BaseWeb::sendChunk(",\"records\":");
   sendRecordArray(snapshot);
   Esp32BaseWeb::sendChunk("}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
@@ -1998,7 +2006,7 @@ void FarmFeederApp::handleMaintenanceClearFault() {
   record.skippedMask = skippedMask;
   recordBusinessEvent(record);
 
-  Esp32BaseWeb::beginJson(successMask != 0 ? 200 : 400);
+  beginRawJson(successMask != 0 ? 200 : 400);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(successMask != 0 && skippedMask == 0
                             ? "Ok"
@@ -2012,7 +2020,7 @@ void FarmFeederApp::handleMaintenanceClearFault() {
   Esp32BaseWeb::sendChunk(",\"skippedMask\":");
   sendUint8(skippedMask);
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
@@ -2027,13 +2035,13 @@ void FarmFeederApp::handleScheduleCreate() {
   if (mutation.result == FeederScheduleResult::Ok) {
     persistFeederScheduleIfReady();
   }
-  Esp32BaseWeb::beginJson(mutation.result == FeederScheduleResult::Ok ? 200 : 400);
+  beginRawJson(mutation.result == FeederScheduleResult::Ok ? 200 : 400);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(scheduleResultName(mutation.result));
   Esp32BaseWeb::sendChunk("\",\"planId\":");
   sendUint8(mutation.planId);
   Esp32BaseWeb::sendChunk("}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 

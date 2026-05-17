@@ -67,6 +67,14 @@ const char* boolJson(bool value) {
   return value ? "true" : "false";
 }
 
+void beginRawJson(int code) {
+  Esp32BaseWeb::beginResponse(code, "application/json", nullptr);
+}
+
+void endRawJson() {
+  Esp32BaseWeb::endResponse();
+}
+
 void sendDigitalField(const char* name, uint8_t value) {
   Esp32BaseWeb::sendChunk("\"");
   Esp32BaseWeb::sendChunk(name);
@@ -275,12 +283,12 @@ bool readBoolParam(const char* name, bool& out) {
 void sendConfirmRequired(const char* action, const char* resource) {
   char token[9] = {};
   if (!g_confirm.issue(action, resource, millis(), esp_random(), token, sizeof(token))) {
-    Esp32BaseWeb::beginJson(500);
+    beginRawJson(500);
     Esp32BaseWeb::sendChunk("{\"result\":\"InvalidArgument\"}");
-    Esp32BaseWeb::endJson();
+    endRawJson();
     return;
   }
-  Esp32BaseWeb::beginJson(409);
+  beginRawJson(409);
   Esp32BaseWeb::sendChunk("{\"result\":\"ConfirmRequired\",\"actionId\":\"");
   Esp32BaseWeb::sendChunk(action);
   Esp32BaseWeb::sendChunk("\",\"resource\":\"");
@@ -288,7 +296,7 @@ void sendConfirmRequired(const char* action, const char* resource) {
   Esp32BaseWeb::sendChunk("\",\"confirmToken\":\"");
   Esp32BaseWeb::sendChunk(token);
   Esp32BaseWeb::sendChunk("\",\"ttlMs\":60000}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 }
 
 bool confirmAccepted() {
@@ -504,7 +512,7 @@ void sendRecordJson(const DoorRecord& record) {
 
 void sendRecordSnapshotJson(const char* source) {
   const DoorRecordSnapshot snapshot = g_records.snapshot();
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"source\":\"");
   Esp32BaseWeb::sendChunk(source);
   Esp32BaseWeb::sendChunk("\",\"count\":");
@@ -517,7 +525,7 @@ void sendRecordSnapshotJson(const char* source) {
     sendRecordJson(snapshot.records[i]);
   }
   Esp32BaseWeb::sendChunk("]}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 }
 
 void sendRecentCommandJson() {
@@ -548,7 +556,7 @@ void sendRecentCommandJson() {
 void sendCommandResultJson(DoorCommandResult result, uint32_t commandId = 0) {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
-  Esp32BaseWeb::beginJson(httpCodeFor(result));
+  beginRawJson(httpCodeFor(result));
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(commandResultName(result));
   Esp32BaseWeb::sendChunk("\",\"commandId\":");
@@ -562,14 +570,14 @@ void sendCommandResultJson(DoorCommandResult result, uint32_t commandId = 0) {
   Esp32BaseWeb::sendChunk(",\"targetPulses\":");
   sendInt64(snapshot.targetPulses);
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
 void sendTravelResultJson(DoorCommandResult result, bool configSaved, uint32_t commandId = 0) {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
-  Esp32BaseWeb::beginJson(httpCodeFor(result));
+  beginRawJson(httpCodeFor(result));
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(commandResultName(result));
   Esp32BaseWeb::sendChunk("\",\"commandId\":");
@@ -585,7 +593,7 @@ void sendTravelResultJson(DoorCommandResult result, bool configSaved, uint32_t c
   Esp32BaseWeb::sendChunk(",\"configSaved\":");
   Esp32BaseWeb::sendChunk(configSaved ? "true" : "false");
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
@@ -925,7 +933,7 @@ void FarmDoorApp::sendDiagnosticsPage() {
 void FarmDoorApp::sendStatusJson() {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
   Esp32BaseWeb::sendChunk("\"firmware\":\"");
   Esp32BaseWeb::writeJsonEscaped(Esp32Base::firmwareVersion());
@@ -962,7 +970,7 @@ void FarmDoorApp::sendStatusJson() {
   Esp32BaseWeb::sendChunk("\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"enabled\":");
   Esp32BaseWeb::sendChunk(g_currentGuard.enabled ? "true" : "false");
   Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
@@ -970,7 +978,7 @@ void FarmDoorApp::sendDiagnosticsJson() {
 #if ESP32BASE_ENABLE_WEB
   const FarmDoorReadOnlyDiagnostics diagnostics = FarmDoorHw.readDiagnostics();
 
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
   Esp32BaseWeb::sendChunk("\"mode\":\"readOnlyDiagnostics\",");
   Esp32BaseWeb::sendChunk("\"buttons\":{");
@@ -1014,7 +1022,7 @@ void FarmDoorApp::sendDiagnosticsJson() {
   Esp32BaseWeb::sendChunk(",\"storeReady\":");
   Esp32BaseWeb::sendChunk(boolJson(g_at24cStoreReady));
   Esp32BaseWeb::sendChunk("},\"motorOutput\":{\"enabled\":false}}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
@@ -1051,7 +1059,7 @@ void FarmDoorApp::sendRecordsJson() {
     return;
   }
 
-  Esp32BaseWeb::beginJson(200);
+  beginRawJson(200);
 #if ESP32BASE_ENABLE_FS
   char recordPath[96];
   if (!doorRecordPathForArchive(archiveIndex, recordPath, sizeof(recordPath))) {
@@ -1088,7 +1096,7 @@ void FarmDoorApp::sendRecordsJson() {
       sendRecordJson(page.records[i]);
     }
     Esp32BaseWeb::sendChunk("]}");
-    Esp32BaseWeb::endJson();
+    endRawJson();
     return;
   }
   if (archiveIndex > 0) {
@@ -1099,7 +1107,7 @@ void FarmDoorApp::sendRecordsJson() {
     Esp32BaseWeb::sendChunk(",\"count\":0,\"totalRecords\":0,\"recordBytes\":");
     sendUint32(kDoorRecordEncodedMaxBytes);
     Esp32BaseWeb::sendChunk(",\"records\":[]}");
-    Esp32BaseWeb::endJson();
+    endRawJson();
     return;
   }
 #endif
@@ -1121,7 +1129,7 @@ void FarmDoorApp::sendRecordsJson() {
     sendRecordJson(snapshot.records[i]);
   }
   Esp32BaseWeb::sendChunk("]}");
-  Esp32BaseWeb::endJson();
+  endRawJson();
 #endif
 }
 
