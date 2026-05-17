@@ -95,9 +95,21 @@ void EncodedDcMotor::update(uint32_t nowMs) {
     return;
   }
 
+  const uint32_t previousUpdateMs = snapshot_.lastUpdateMs;
   const int64_t previousPosition = snapshot_.positionPulses;
   snapshot_.positionPulses = encoder_->positionPulses();
   snapshot_.encoderDeltaSinceLastCheck = snapshot_.positionPulses - previousPosition;
+  if (nowMs > previousUpdateMs) {
+    const uint32_t deltaMs = nowMs - previousUpdateMs;
+    snapshot_.pulsesPerSecond =
+        (snapshot_.encoderDeltaSinceLastCheck * 1000LL) / static_cast<int64_t>(deltaMs);
+    if (kinematics_.outputPulsesPerRev > 0) {
+      snapshot_.rpm = static_cast<int32_t>(
+          (snapshot_.pulsesPerSecond * 60LL) / kinematics_.outputPulsesPerRev);
+    } else {
+      snapshot_.rpm = 0;
+    }
+  }
   snapshot_.remainingPulses = snapshot_.targetPulses - snapshot_.positionPulses;
   snapshot_.elapsedMs = nowMs - commandStartMs_;
   snapshot_.lastUpdateMs = nowMs;

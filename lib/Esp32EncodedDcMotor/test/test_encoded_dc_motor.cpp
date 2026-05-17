@@ -143,5 +143,23 @@ int main() {
   assert(movingMotor.snapshot().state != Esp32EncodedDcMotor::MotorState::Fault);
   assert(movingMotor.snapshot().faultReason == Esp32EncodedDcMotor::FaultReason::None);
 
+  FakeDriver speedDriver;
+  FakeEncoder speedEncoder;
+  Esp32EncodedDcMotor::EncodedDcMotor speedMotor;
+  protection.startupGraceMs = 1000;
+  protection.stallCheckIntervalMs = 250;
+  protection.minPulseDelta = 1;
+  assert(speedMotor.begin(speedDriver, speedEncoder, hardware, encoderConfig) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(speedMotor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  speedMotor.update(0);
+  speedEncoder.position = 100;
+  speedMotor.update(1000);
+  snapshot = speedMotor.snapshot();
+  assert(snapshot.pulsesPerSecond == 100);
+  assert(snapshot.rpm == 2);
+  assert(speedMotor.latestTracePoint().pulsesPerSecond == 100);
+
   return 0;
 }
