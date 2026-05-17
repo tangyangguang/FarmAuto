@@ -548,7 +548,7 @@ void sendPlanTime(uint16_t timeMinutes) {
   sendUint8(static_cast<uint8_t>(timeMinutes % 60));
 }
 
-void sendPlanTargetSummary(const FeederPlanConfig& config) {
+void sendPlanTargetSummary(const FeederPlanConfig& config, const FeederBucketSnapshot& buckets) {
   bool first = true;
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     const uint8_t bit = static_cast<uint8_t>(1U << i);
@@ -559,8 +559,7 @@ void sendPlanTargetSummary(const FeederPlanConfig& config) {
       Esp32BaseWeb::sendChunk("；");
     }
     first = false;
-    Esp32BaseWeb::sendChunk("通道");
-    sendUint8(static_cast<uint8_t>(i + 1));
+    Esp32BaseWeb::writeHtmlEscaped(buckets.channels[i].baseInfo.name);
     Esp32BaseWeb::sendChunk(" ");
     const FeederChannelTarget& target = config.targets[i];
     if (target.mode == FeederTargetMode::Grams) {
@@ -659,6 +658,7 @@ void sendOccurrenceAction(const FeederPlanState& plan, uint32_t serviceDate) {
 }
 
 void sendOccurrenceTable(const FeederScheduleSnapshot& schedules,
+                         const FeederBucketSnapshot& buckets,
                          uint32_t serviceDate,
                          const char* title) {
   Esp32BaseWeb::sendChunk("<section><h2>");
@@ -680,7 +680,7 @@ void sendOccurrenceTable(const FeederScheduleSnapshot& schedules,
     Esp32BaseWeb::sendChunk("</td><td>");
     sendOccurrenceStatus(plan, serviceDate, schedules.serviceDate);
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendPlanTargetSummary(plan.config);
+    sendPlanTargetSummary(plan.config, buckets);
     Esp32BaseWeb::sendChunk("</td><td>");
     sendOccurrenceAction(plan, serviceDate);
     Esp32BaseWeb::sendChunk("</td></tr>");
@@ -1585,12 +1585,13 @@ void FarmFeederApp::sendHomePage() {
 void FarmFeederApp::sendSchedulePage() {
 #if ESP32BASE_ENABLE_WEB
   const FeederScheduleSnapshot schedules = g_schedules.snapshot();
+  const FeederBucketSnapshot buckets = g_buckets.snapshot();
   uint32_t tomorrowDate = 0;
   feederNextServiceDate(schedules.serviceDate, tomorrowDate);
   Esp32BaseWeb::sendHeader("计划");
   Esp32BaseWeb::sendChunk("<h1>计划</h1>");
-  sendOccurrenceTable(schedules, schedules.serviceDate, "今日计划");
-  sendOccurrenceTable(schedules, tomorrowDate, "明日计划");
+  sendOccurrenceTable(schedules, buckets, schedules.serviceDate, "今日计划");
+  sendOccurrenceTable(schedules, buckets, tomorrowDate, "明日计划");
   Esp32BaseWeb::sendChunk("<section><h2>计划管理</h2><p>计划管理只维护长期蓝本；跳过只在今日或明日执行实例上操作。</p>");
   Esp32BaseWeb::sendChunk("<p><a href='/schedule/edit'>新增计划</a> · <a href='/api/app/schedules'>查看计划 JSON</a></p>");
   Esp32BaseWeb::sendChunk("<table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th><th>操作</th></tr>");
@@ -1605,7 +1606,7 @@ void FarmFeederApp::sendSchedulePage() {
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::sendChunk(plan.config.enabled ? "是" : "否");
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendPlanTargetSummary(plan.config);
+    sendPlanTargetSummary(plan.config, buckets);
     Esp32BaseWeb::sendChunk("</td><td><a href='/schedule/edit?planId=");
     sendUint8(plan.config.planId);
     Esp32BaseWeb::sendChunk("'>编辑</a></td></tr>");
