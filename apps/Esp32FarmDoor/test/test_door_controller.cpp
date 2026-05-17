@@ -39,6 +39,14 @@ int main() {
   assert(door.snapshot().positionPulses == 500);
   assert(door.snapshot().lastStopReason == DoorStopReason::UserStop);
 
+  assert(door.requestClose() == DoorCommandResult::Ok);
+  assert(door.requestStop(0) == DoorCommandResult::Ok);
+  assert(door.snapshot().state == DoorState::IdleClosed);
+  assert(door.requestOpen() == DoorCommandResult::Ok);
+  assert(door.requestStop(1000) == DoorCommandResult::Ok);
+  assert(door.snapshot().state == DoorState::IdleOpen);
+  assert(door.snapshot().lastStopReason == DoorStopReason::UserStop);
+
   assert(door.updateTravel(1200, 1800) == DoorCommandResult::Ok);
   assert(door.snapshot().state == DoorState::IdlePartial);
   assert(door.snapshot().openTargetPulses == 1200);

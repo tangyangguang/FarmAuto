@@ -124,7 +124,13 @@ DoorCommandResult DoorController::requestStop(int64_t stoppedPositionPulses) {
   }
   snapshot_.positionPulses = stoppedPositionPulses;
   snapshot_.targetPulses = stoppedPositionPulses;
-  snapshot_.state = DoorState::IdlePartial;
+  if (stoppedPositionPulses <= config_.closedPositionPulses) {
+    snapshot_.state = DoorState::IdleClosed;
+  } else if (stoppedPositionPulses >= config_.openTargetPulses) {
+    snapshot_.state = DoorState::IdleOpen;
+  } else {
+    snapshot_.state = DoorState::IdlePartial;
+  }
   snapshot_.activeCommand = DoorCommand::None;
   snapshot_.positionTrustLevel = PositionTrustLevel::Trusted;
   snapshot_.lastStopReason = DoorStopReason::UserStop;
