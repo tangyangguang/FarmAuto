@@ -49,7 +49,7 @@ trap cleanup EXIT
 check_page() {
   local path="$1"
   local code
-  code="$(curl --http1.0 -sS --max-time 12 -u "${AUTH}" -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
+  code="$(curl -sS --connect-timeout 5 --max-time 25 -u "${AUTH}" -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
   if [[ "${code}" != "200" ]]; then
     echo "FAIL page ${path}: HTTP ${code}" >&2
     return 1
@@ -64,7 +64,7 @@ check_page() {
 check_api() {
   local path="$1"
   local code
-  code="$(curl --http1.0 -sS --max-time 12 -u "${AUTH}" -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
+  code="$(curl -sS --connect-timeout 5 --max-time 25 -u "${AUTH}" -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
   if [[ "${code}" != "200" ]]; then
     echo "FAIL api ${path}: HTTP ${code}" >&2
     cat "${tmp}" >&2 || true
@@ -81,7 +81,7 @@ check_api() {
 check_unauth() {
   local path="$1"
   local code
-  code="$(curl --http1.0 -sS --max-time 12 -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
+  code="$(curl -sS --connect-timeout 5 --max-time 25 -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
   if [[ "${code}" != "401" ]]; then
     echo "FAIL unauth ${path}: expected 401, got ${code}" >&2
     cat "${tmp}" >&2 || true

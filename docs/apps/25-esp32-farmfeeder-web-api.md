@@ -75,7 +75,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 - 计划状态：planCount、nextPlanId、nextPlanTimeMinutes、timeValid，以及每个计划的 enabled、timeMinutes、skipToday、skipServiceDate、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
 - 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
 - 通道状态：channel、enabled、installed、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
-- 饲料桶：capacityGramsX100、remainGramsX100、remainPercent、lowWarningPercent、criticalWarningPercent、estimatedFeedCount、estimatedDays。
+- 料桶摘要：`bucketSummary.channelCount`、`bucketSummary.enabledMask`、`bucketSummary.underflowMask`。完整每路料桶数据由 `GET /api/app/buckets` 返回，避免高频状态接口过大。
 - 存储：AT24C 在线状态、flash 剩余空间、最近写入错误、记录范围。
 - 最近命令：commandId、source、channelMask、startedAt、result。
 
