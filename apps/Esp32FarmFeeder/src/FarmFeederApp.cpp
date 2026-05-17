@@ -363,6 +363,20 @@ bool ensureRecordStorageReady() {
 }
 #endif
 
+bool feederRecordPathForArchive(uint32_t archiveIndex, char* out, std::size_t outSize) {
+  if (out == nullptr || outSize == 0 || archiveIndex > kFeederRecordMaxArchives) {
+    return false;
+  }
+  const int written = archiveIndex == 0
+                        ? snprintf(out, outSize, "%s", kFeederRecordCurrentPath)
+                        : snprintf(out,
+                                   outSize,
+                                   "%s.%lu",
+                                   kFeederRecordCurrentPath,
+                                   static_cast<unsigned long>(archiveIndex));
+  return written > 0 && static_cast<std::size_t>(written) < outSize;
+}
+
 void recordBusinessEvent(const FeederRecord& record) {
   const FeederRecord stored = g_records.append(record, currentRecordTime());
 #if ESP32BASE_ENABLE_FS
@@ -1615,11 +1629,21 @@ void FarmFeederApp::sendRecordsJson() {
     }
     query.typeFilterEnabled = true;
   }
+  uint32_t archiveIndex = 0;
+  if (!readUint32ParamOptional("archive", archiveIndex) || archiveIndex > kFeederRecordMaxArchives) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
 
   Esp32BaseWeb::beginJson(200);
 #if ESP32BASE_ENABLE_FS
+  char recordPath[96];
+  if (!feederRecordPathForArchive(archiveIndex, recordPath, sizeof(recordPath))) {
+    sendResultJson(400, "InvalidArgument");
+    return;
+  }
   FeederRecordPage page;
-  const FeederRecordReadResult readResult = readFeederRecordPage(kFeederRecordCurrentPath,
+  const FeederRecordReadResult readResult = readFeederRecordPage(recordPath,
                                                                  query,
                                                                  feederRecordFileSize,
                                                                  readFeederRecordBytesAt,
@@ -1628,6 +1652,8 @@ void FarmFeederApp::sendRecordsJson() {
   if (readResult == FeederRecordReadResult::Ok && page.totalRecords > 0) {
     Esp32BaseWeb::sendChunk("{\"source\":\"flash\",\"start\":");
     sendUint32(page.startIndex);
+    Esp32BaseWeb::sendChunk(",\"archive\":");
+    sendUint32(archiveIndex);
     Esp32BaseWeb::sendChunk(",\"nextIndex\":");
     sendUint32(page.nextIndex);
     Esp32BaseWeb::sendChunk(",\"limit\":");

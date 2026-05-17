@@ -102,7 +102,8 @@
 
 `/api/app/records`
 
-- 参数：`start`、`limit`、`startUnixTime`、`endUnixTime`、`eventType`。
+- 参数：`start`、`limit`、`startUnixTime`、`endUnixTime`、`eventType`、`archive`。
+- `archive=0` 读取当前记录文件，`archive=1..16` 读取轮转归档文件。
 - 优先返回 Flash 业务记录；无 Flash 数据时返回 RAM 最近记录。
 
 `/api/app/maintenance/clear-today`

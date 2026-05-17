@@ -24,6 +24,7 @@ Esp32FarmDoor 页面：
 - `GET /api/app/status`
 - `GET /api/app/events/recent`
 - `GET /api/app/records`
+- `GET /api/app/records?archive=1`
 - `GET /api/app/records/export`，后续增强项，首版不强制实现
 - `GET /api/app/diagnostics`
 

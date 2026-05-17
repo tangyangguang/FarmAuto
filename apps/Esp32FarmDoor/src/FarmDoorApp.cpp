@@ -429,6 +429,20 @@ bool ensureRecordStorageReady() {
 }
 #endif
 
+bool doorRecordPathForArchive(uint32_t archiveIndex, char* out, std::size_t outSize) {
+  if (out == nullptr || outSize == 0 || archiveIndex > kDoorRecordMaxArchives) {
+    return false;
+  }
+  const int written = archiveIndex == 0
+                        ? snprintf(out, outSize, "%s", kDoorRecordCurrentPath)
+                        : snprintf(out,
+                                   outSize,
+                                   "%s.%lu",
+                                   kDoorRecordCurrentPath,
+                                   static_cast<unsigned long>(archiveIndex));
+  return written > 0 && static_cast<std::size_t>(written) < outSize;
+}
+
 void recordBusinessEvent(const DoorRecord& record) {
   const DoorRecord stored = g_records.append(record, currentRecordTime());
 #if ESP32BASE_ENABLE_FS
@@ -1013,11 +1027,21 @@ void FarmDoorApp::sendRecordsJson() {
     }
     query.typeFilterEnabled = true;
   }
+  uint32_t archiveIndex = 0;
+  if (!readUint32ParamOptional("archive", archiveIndex) || archiveIndex > kDoorRecordMaxArchives) {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
 
   Esp32BaseWeb::beginJson(200);
 #if ESP32BASE_ENABLE_FS
+  char recordPath[96];
+  if (!doorRecordPathForArchive(archiveIndex, recordPath, sizeof(recordPath))) {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
   DoorRecordPage page;
-  const DoorRecordReadResult readResult = readDoorRecordPage(kDoorRecordCurrentPath,
+  const DoorRecordReadResult readResult = readDoorRecordPage(recordPath,
                                                              query,
                                                              doorRecordFileSize,
                                                              readDoorRecordBytesAt,
@@ -1026,6 +1050,8 @@ void FarmDoorApp::sendRecordsJson() {
   if (readResult == DoorRecordReadResult::Ok && page.totalRecords > 0) {
     Esp32BaseWeb::sendChunk("{\"source\":\"flash\",\"start\":");
     sendUint32(page.startIndex);
+    Esp32BaseWeb::sendChunk(",\"archive\":");
+    sendUint32(archiveIndex);
     Esp32BaseWeb::sendChunk(",\"nextIndex\":");
     sendUint32(page.nextIndex);
     Esp32BaseWeb::sendChunk(",\"limit\":");
