@@ -60,6 +60,16 @@ bool validAppChannel(uint8_t channel) {
   return channel < kFeederConfiguredChannels;
 }
 
+bool schedulePlanExists(uint8_t planId) {
+  const FeederScheduleSnapshot snapshot = g_schedules.snapshot();
+  for (uint8_t i = 0; i < snapshot.planCount; ++i) {
+    if (snapshot.plans[i].config.planId == planId) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   if (!Esp32BaseWeb::addApi(path, handler)) {
     ESP32BASE_LOG_E("farmfeeder", "api_route_register_failed path=%s", path);
@@ -2151,6 +2161,10 @@ void FarmFeederApp::handleScheduleDelete() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  if (!schedulePlanExists(planId)) {
+    sendResultJson(404, "NotFound");
+    return;
+  }
   char resource[40];
   snprintf(resource, sizeof(resource), "plan:%u", static_cast<unsigned>(planId));
   if (!requireConfirm("delete-plan", resource)) {
@@ -2174,6 +2188,10 @@ void FarmFeederApp::handleScheduleSkip() {
   if (!readUint8Param("planId", planId) || !readUint32ParamOptional("date", serviceDate) ||
       serviceDate == 0) {
     sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  if (!schedulePlanExists(planId)) {
+    sendResultJson(404, "NotFound");
     return;
   }
   char resource[40];
@@ -2201,6 +2219,10 @@ void FarmFeederApp::handleScheduleCancelSkip() {
   if (!readUint8Param("planId", planId) || !readUint32ParamOptional("date", serviceDate) ||
       serviceDate == 0) {
     sendResultJson(400, "InvalidArgument");
+    return;
+  }
+  if (!schedulePlanExists(planId)) {
+    sendResultJson(404, "NotFound");
     return;
   }
   char resource[40];
