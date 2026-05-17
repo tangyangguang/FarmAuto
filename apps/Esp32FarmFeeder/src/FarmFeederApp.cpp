@@ -1699,6 +1699,14 @@ void FarmFeederApp::sendRecentEventsJson() {
     return;
   }
   const FeederRecordSnapshot snapshot = g_records.snapshot();
+  if (snapshot.count == 0) {
+    char json[80];
+    snprintf(json, sizeof(json),
+             "{\"source\":\"ram\",\"count\":0,\"capacity\":%u,\"records\":[]}",
+             static_cast<unsigned>(kFeederRecentRecordCapacity));
+    Esp32BaseWeb::sendJson(200, json);
+    return;
+  }
   beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"source\":\"ram\",\"count\":");
   sendUint8(snapshot.count);
