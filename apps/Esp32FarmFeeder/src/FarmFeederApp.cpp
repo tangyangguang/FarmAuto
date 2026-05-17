@@ -809,6 +809,39 @@ void sendRecordArray(const FeederRecordPage& page) {
   Esp32BaseWeb::sendChunk("]");
 }
 
+void sendRecentCommandJson() {
+  const FeederRecordSnapshot records = g_records.snapshot();
+  for (uint8_t i = records.count; i > 0; --i) {
+    const FeederRecord& record = records.records[i - 1];
+    if (record.commandId == 0) {
+      continue;
+    }
+    Esp32BaseWeb::sendChunk("{\"commandId\":");
+    sendUint32(record.commandId);
+    Esp32BaseWeb::sendChunk(",\"sequence\":");
+    sendUint32(record.sequence);
+    Esp32BaseWeb::sendChunk(",\"unixTime\":");
+    sendUint32(record.unixTime);
+    Esp32BaseWeb::sendChunk(",\"eventType\":\"");
+    Esp32BaseWeb::sendChunk(recordTypeName(record.type));
+    Esp32BaseWeb::sendChunk("\",\"result\":\"");
+    Esp32BaseWeb::sendChunk(recordResultName(record.result));
+    Esp32BaseWeb::sendChunk("\",\"planId\":");
+    sendUint8(record.planId);
+    Esp32BaseWeb::sendChunk(",\"channel\":");
+    sendUint8(record.channel);
+    Esp32BaseWeb::sendChunk(",\"requestedMask\":");
+    sendUint8(record.requestedMask);
+    Esp32BaseWeb::sendChunk(",\"successMask\":");
+    sendUint8(record.successMask);
+    Esp32BaseWeb::sendChunk(",\"skippedMask\":");
+    sendUint8(record.skippedMask);
+    Esp32BaseWeb::sendChunk("}");
+    return;
+  }
+  Esp32BaseWeb::sendChunk("null");
+}
+
 bool readUint8Param(const char* name, uint8_t& out) {
   char raw[12];
   if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
@@ -1456,6 +1489,8 @@ void FarmFeederApp::sendStatusJson() {
   sendBucketSummary(bucketSnapshot);
   Esp32BaseWeb::sendChunk(",\"today\":");
   sendTodaySummary(g_today.snapshot());
+  Esp32BaseWeb::sendChunk(",\"recentCommand\":");
+  sendRecentCommandJson();
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
 #endif

@@ -506,6 +506,31 @@ void sendRecordSnapshotJson(const char* source) {
   Esp32BaseWeb::endJson();
 }
 
+void sendRecentCommandJson() {
+  const DoorRecordSnapshot records = g_records.snapshot();
+  for (uint8_t i = records.count; i > 0; --i) {
+    const DoorRecord& record = records.records[i - 1];
+    if (record.commandId == 0) {
+      continue;
+    }
+    Esp32BaseWeb::sendChunk("{\"commandId\":");
+    sendUint32(record.commandId);
+    Esp32BaseWeb::sendChunk(",\"sequence\":");
+    sendUint32(record.sequence);
+    Esp32BaseWeb::sendChunk(",\"unixTime\":");
+    sendUint32(record.unixTime);
+    Esp32BaseWeb::sendChunk(",\"eventType\":\"");
+    Esp32BaseWeb::sendChunk(recordTypeName(record.type));
+    Esp32BaseWeb::sendChunk("\",\"command\":\"");
+    Esp32BaseWeb::sendChunk(commandName(record.command));
+    Esp32BaseWeb::sendChunk("\",\"result\":\"");
+    Esp32BaseWeb::sendChunk(recordResultName(record.result));
+    Esp32BaseWeb::sendChunk("\"}");
+    return;
+  }
+  Esp32BaseWeb::sendChunk("null");
+}
+
 void sendCommandResultJson(DoorCommandResult result, uint32_t commandId = 0) {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
@@ -899,7 +924,9 @@ void FarmDoorApp::sendStatusJson() {
   Esp32BaseWeb::sendChunk(stopReasonName(snapshot.lastStopReason));
   Esp32BaseWeb::sendChunk("\",\"faultReason\":\"");
   Esp32BaseWeb::sendChunk(faultReasonName(snapshot.faultReason));
-  Esp32BaseWeb::sendChunk("\",");
+  Esp32BaseWeb::sendChunk("\",\"recentCommand\":");
+  sendRecentCommandJson();
+  Esp32BaseWeb::sendChunk(",");
   Esp32BaseWeb::sendChunk("\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"enabled\":");
   Esp32BaseWeb::sendChunk(g_currentGuard.enabled ? "true" : "false");
   Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"}}");
