@@ -15,6 +15,26 @@ void FeederRunTracker::start(uint8_t successMask, FeederRunSource source,
   }
 }
 
+bool FeederRunTracker::updateActualPulses(uint8_t channelIndex, int32_t actualPulses) {
+  if (channelIndex >= kFeederConfiguredChannels || actualPulses < 0 ||
+      !snapshot_.channels[channelIndex].active) {
+    return false;
+  }
+  snapshot_.channels[channelIndex].actualPulses = actualPulses;
+  return true;
+}
+
+bool FeederRunTracker::finish(uint8_t channelIndex,
+                              int32_t actualPulses,
+                              FeederRunChannel& completed) {
+  if (!updateActualPulses(channelIndex, actualPulses)) {
+    return false;
+  }
+  completed = snapshot_.channels[channelIndex];
+  snapshot_.channels[channelIndex] = FeederRunChannel{};
+  return true;
+}
+
 void FeederRunTracker::stop(uint8_t channelMask) {
   for (uint8_t i = 0; i < kFeederMaxChannels; ++i) {
     const uint8_t bit = static_cast<uint8_t>(1U << i);

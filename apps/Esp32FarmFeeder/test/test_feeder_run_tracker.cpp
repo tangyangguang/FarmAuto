@@ -26,11 +26,30 @@ int main() {
   assert(snapshot.channels[1].source == FeederRunSource::Schedule);
   assert(snapshot.channels[1].targetPulses == 2160);
 
+  assert(tracker.updateActualPulses(1, 1080));
+  snapshot = tracker.snapshot();
+  assert(snapshot.channels[1].actualPulses == 1080);
+  assert(!tracker.updateActualPulses(1, -1));
+  assert(!tracker.updateActualPulses(3, 100));
+
+  FeederRunChannel completed;
+  assert(tracker.finish(1, 2160, completed));
+  assert(completed.active);
+  assert(completed.source == FeederRunSource::Schedule);
+  assert(completed.targetPulses == 2160);
+  assert(completed.estimatedGramsX100 == 3500);
+  assert(completed.actualPulses == 2160);
+  snapshot = tracker.snapshot();
+  assert(!snapshot.channels[1].active);
+
   tracker.stop(0b0001);
   snapshot = tracker.snapshot();
   assert(!snapshot.channels[0].active);
-  assert(snapshot.channels[1].active);
+  assert(!snapshot.channels[1].active);
 
+  assert(!tracker.finish(1, 1, completed));
+
+  tracker.start(0b0010, FeederRunSource::Schedule, targets);
   tracker.stopAll();
   snapshot = tracker.snapshot();
   assert(!snapshot.channels[1].active);

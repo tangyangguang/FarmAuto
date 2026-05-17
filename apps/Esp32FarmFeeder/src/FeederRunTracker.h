@@ -20,6 +20,8 @@ struct FeederRunSnapshot {
 class FeederRunTracker {
  public:
   void start(uint8_t successMask, FeederRunSource source, const FeederTargetBatch& targets);
+  bool updateActualPulses(uint8_t channelIndex, int32_t actualPulses);
+  bool finish(uint8_t channelIndex, int32_t actualPulses, FeederRunChannel& completed);
   void stop(uint8_t channelMask);
   void stopAll();
   FeederRunSnapshot snapshot() const;
