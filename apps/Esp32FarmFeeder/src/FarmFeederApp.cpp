@@ -446,6 +446,8 @@ void sendScheduleSummary(const FeederScheduleSnapshot& snapshot) {
     sendUint8(plan.config.channelMask);
     Esp32BaseWeb::sendChunk(",\"skipToday\":");
     Esp32BaseWeb::sendChunk(plan.skipToday ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"skipServiceDate\":");
+    sendUint32(plan.skipServiceDate);
     Esp32BaseWeb::sendChunk(",\"scheduleAttemptedToday\":");
     Esp32BaseWeb::sendChunk(plan.scheduleAttemptedToday ? "true" : "false");
     Esp32BaseWeb::sendChunk(",\"todayExecuted\":");
@@ -1198,7 +1200,9 @@ void FarmFeederApp::sendSchedulePage() {
     Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/app/schedule-occurrence/skip'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='planId' value='");
     sendUint8(plan.config.planId);
-    Esp32BaseWeb::sendChunk("'><button>跳过本次</button></form></td></tr>");
+    Esp32BaseWeb::sendChunk("'><input name='date' value='");
+    sendUint32(schedules.serviceDate);
+    Esp32BaseWeb::sendChunk("' placeholder='YYYYMMDD'><button>跳过指定日期</button></form></td></tr>");
   }
   Esp32BaseWeb::sendChunk("</table></section>");
   Esp32BaseWeb::sendFooter();
@@ -1718,11 +1722,13 @@ void FarmFeederApp::handleScheduleDelete() {
 void FarmFeederApp::handleScheduleSkip() {
 #if ESP32BASE_ENABLE_WEB
   uint8_t planId = 0;
-  if (!readUint8Param("planId", planId)) {
+  uint32_t serviceDate = g_schedules.snapshot().serviceDate;
+  if (!readUint8Param("planId", planId) || !readUint32ParamOptional("date", serviceDate) ||
+      serviceDate == 0) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
-  const FeederScheduleResult result = g_schedules.skipToday(planId);
+  const FeederScheduleResult result = g_schedules.skipOccurrence(planId, serviceDate);
   if (result == FeederScheduleResult::Ok) {
     persistFeederScheduleIfReady();
   }
@@ -1733,11 +1739,13 @@ void FarmFeederApp::handleScheduleSkip() {
 void FarmFeederApp::handleScheduleCancelSkip() {
 #if ESP32BASE_ENABLE_WEB
   uint8_t planId = 0;
-  if (!readUint8Param("planId", planId)) {
+  uint32_t serviceDate = g_schedules.snapshot().serviceDate;
+  if (!readUint8Param("planId", planId) || !readUint32ParamOptional("date", serviceDate) ||
+      serviceDate == 0) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
-  const FeederScheduleResult result = g_schedules.cancelSkipToday(planId);
+  const FeederScheduleResult result = g_schedules.cancelSkipOccurrence(planId, serviceDate);
   if (result == FeederScheduleResult::Ok) {
     persistFeederScheduleIfReady();
   }

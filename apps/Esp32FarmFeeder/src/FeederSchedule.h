@@ -42,6 +42,7 @@ struct FeederPlanConfig {
 
 struct FeederPlanState {
   FeederPlanConfig config;
+  uint32_t skipServiceDate = 0;
   bool skipToday = false;
   bool scheduleAttemptedToday = false;
   bool todayExecuted = false;
@@ -72,6 +73,8 @@ class FeederScheduleService {
   FeederScheduleResult deletePlan(uint8_t planId);
   FeederScheduleResult skipToday(uint8_t planId);
   FeederScheduleResult cancelSkipToday(uint8_t planId);
+  FeederScheduleResult skipOccurrence(uint8_t planId, uint32_t serviceDate);
+  FeederScheduleResult cancelSkipOccurrence(uint8_t planId, uint32_t serviceDate);
   FeederScheduleResult markAttempted(uint8_t planId);
   FeederScheduleResult markExecuted(uint8_t planId);
   void clearToday();

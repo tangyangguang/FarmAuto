@@ -3,7 +3,11 @@
 void FeederScheduleService::beginDay(uint32_t serviceDate) {
   snapshot_.serviceDate = serviceDate;
   for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
-    snapshot_.plans[i].skipToday = false;
+    if (snapshot_.plans[i].skipServiceDate != 0 &&
+        snapshot_.plans[i].skipServiceDate < serviceDate) {
+      snapshot_.plans[i].skipServiceDate = 0;
+    }
+    snapshot_.plans[i].skipToday = snapshot_.plans[i].skipServiceDate == serviceDate;
     snapshot_.plans[i].scheduleAttemptedToday = false;
     snapshot_.plans[i].todayExecuted = false;
     snapshot_.plans[i].scheduleMissedToday = false;
@@ -63,20 +67,41 @@ FeederScheduleResult FeederScheduleService::deletePlan(uint8_t planId) {
 }
 
 FeederScheduleResult FeederScheduleService::skipToday(uint8_t planId) {
-  const int index = findPlan(planId);
-  if (index < 0) {
-    return FeederScheduleResult::NotFound;
-  }
-  snapshot_.plans[index].skipToday = true;
-  return FeederScheduleResult::Ok;
+  return skipOccurrence(planId, snapshot_.serviceDate);
 }
 
 FeederScheduleResult FeederScheduleService::cancelSkipToday(uint8_t planId) {
+  return cancelSkipOccurrence(planId, snapshot_.serviceDate);
+}
+
+FeederScheduleResult FeederScheduleService::skipOccurrence(uint8_t planId,
+                                                           uint32_t serviceDate) {
+  if (serviceDate == 0 || (snapshot_.serviceDate != 0 && serviceDate < snapshot_.serviceDate)) {
+    return FeederScheduleResult::InvalidArgument;
+  }
   const int index = findPlan(planId);
   if (index < 0) {
     return FeederScheduleResult::NotFound;
   }
-  snapshot_.plans[index].skipToday = false;
+  snapshot_.plans[index].skipServiceDate = serviceDate;
+  snapshot_.plans[index].skipToday = serviceDate == snapshot_.serviceDate;
+  return FeederScheduleResult::Ok;
+}
+
+FeederScheduleResult FeederScheduleService::cancelSkipOccurrence(uint8_t planId,
+                                                                 uint32_t serviceDate) {
+  if (serviceDate == 0) {
+    return FeederScheduleResult::InvalidArgument;
+  }
+  const int index = findPlan(planId);
+  if (index < 0) {
+    return FeederScheduleResult::NotFound;
+  }
+  if (snapshot_.plans[index].skipServiceDate == serviceDate) {
+    snapshot_.plans[index].skipServiceDate = 0;
+  }
+  snapshot_.plans[index].skipToday =
+      snapshot_.plans[index].skipServiceDate == snapshot_.serviceDate;
   return FeederScheduleResult::Ok;
 }
 
@@ -103,6 +128,9 @@ FeederScheduleResult FeederScheduleService::markExecuted(uint8_t planId) {
 
 void FeederScheduleService::clearToday() {
   for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
+    if (snapshot_.plans[i].skipServiceDate == snapshot_.serviceDate) {
+      snapshot_.plans[i].skipServiceDate = 0;
+    }
     snapshot_.plans[i].skipToday = false;
     snapshot_.plans[i].scheduleAttemptedToday = false;
     snapshot_.plans[i].todayExecuted = false;
@@ -173,6 +201,16 @@ FeederScheduleResult FeederScheduleService::restore(const FeederScheduleSnapshot
     }
   }
   snapshot_ = snapshot;
+  for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
+    FeederPlanState& plan = snapshot_.plans[i];
+    if (plan.skipServiceDate == 0 && plan.skipToday) {
+      plan.skipServiceDate = snapshot_.serviceDate;
+    }
+    if (plan.skipServiceDate != 0 && plan.skipServiceDate < snapshot_.serviceDate) {
+      plan.skipServiceDate = 0;
+    }
+    plan.skipToday = plan.skipServiceDate == snapshot_.serviceDate;
+  }
   return FeederScheduleResult::Ok;
 }
 

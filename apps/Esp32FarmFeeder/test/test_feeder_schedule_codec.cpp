@@ -31,6 +31,7 @@ int main() {
   second.config.targets[0].mode = FeederTargetMode::Grams;
   second.config.targets[0].targetGramsX100 = 9000;
   second.skipToday = true;
+  second.skipServiceDate = snapshot.serviceDate;
   second.scheduleMissedToday = true;
 
   uint8_t encoded[kFeederScheduleEncodedBytes] = {};
@@ -52,6 +53,7 @@ int main() {
   assert(decoded.plans[0].scheduleAttemptedToday);
   assert(decoded.plans[0].todayExecuted);
   assert(decoded.plans[1].skipToday);
+  assert(decoded.plans[1].skipServiceDate == snapshot.serviceDate);
   assert(decoded.plans[1].scheduleMissedToday);
 
   encoded[12] ^= 0xFF;

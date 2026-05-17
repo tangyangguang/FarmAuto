@@ -6,9 +6,12 @@
 #include "FeederSchedule.h"
 
 static constexpr uint32_t kFeederScheduleMagic = 0xFA5C0ED1u;
-static constexpr uint16_t kFeederScheduleSchemaVersion = 1;
+static constexpr uint16_t kFeederScheduleSchemaVersion = 2;
 static constexpr std::size_t kFeederScheduleHeaderBytes = 16;
-static constexpr std::size_t kFeederSchedulePlanBytes = 46;
+static constexpr std::size_t kFeederScheduleV1PlanBytes = 46;
+static constexpr std::size_t kFeederSchedulePlanBytes = 50;
+static constexpr std::size_t kFeederScheduleV1EncodedBytes =
+    kFeederScheduleHeaderBytes + (kFeederMaxPlans * kFeederScheduleV1PlanBytes);
 static constexpr std::size_t kFeederScheduleEncodedBytes =
     kFeederScheduleHeaderBytes + (kFeederMaxPlans * kFeederSchedulePlanBytes);
 

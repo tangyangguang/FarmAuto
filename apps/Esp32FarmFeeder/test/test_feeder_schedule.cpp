@@ -62,9 +62,26 @@ int main() {
   assert(schedules.skipToday(2) == FeederScheduleResult::Ok);
   assert(schedules.evaluate(19 * 60, true).action == FeederScheduleAction::NoAction);
 
+  assert(schedules.skipOccurrence(2, 20260516) == FeederScheduleResult::Ok);
+  assert(schedules.snapshot().plans[1].skipServiceDate == 20260516);
+  assert(schedules.snapshot().plans[1].skipToday);
+  assert(schedules.skipOccurrence(2, 20260518) == FeederScheduleResult::Ok);
+  assert(schedules.snapshot().plans[1].skipServiceDate == 20260518);
+  assert(!schedules.snapshot().plans[1].skipToday);
+  assert(schedules.cancelSkipOccurrence(2, 20260518) == FeederScheduleResult::Ok);
+  assert(schedules.snapshot().plans[1].skipServiceDate == 0);
+
   schedules.beginDay(20260517);
   assert(!schedules.snapshot().plans[0].todayExecuted);
   assert(!schedules.snapshot().plans[1].skipToday);
+  assert(schedules.skipOccurrence(2, 20260518) == FeederScheduleResult::Ok);
+  schedules.beginDay(20260518);
+  assert(schedules.snapshot().plans[1].skipToday);
+  assert(schedules.markExecuted(1) == FeederScheduleResult::Ok);
+  assert(schedules.evaluate(19 * 60, true).action == FeederScheduleAction::NoAction);
+  schedules.beginDay(20260519);
+  assert(!schedules.snapshot().plans[1].skipToday);
+  assert(schedules.snapshot().plans[1].skipServiceDate == 0);
 
   assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
   assert(schedules.snapshot().plans[0].scheduleMissedToday);

@@ -78,7 +78,8 @@
 `/api/app/schedule-occurrence/skip`
 `/api/app/schedule-occurrence/cancel-skip`
 
-- 跳过或取消跳过某个计划的今日执行实例。
+- 跳过或取消跳过某个计划的指定日期执行实例；请求应传 `planId` 和 `date=YYYYMMDD`。
+- 不传 `date` 时默认使用当前服务日期，页面首版必须支持今日和明日计划跳过。
 
 `/api/app/buckets`
 `/api/app/buckets/set-remaining`

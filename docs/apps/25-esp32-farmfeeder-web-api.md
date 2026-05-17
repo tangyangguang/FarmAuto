@@ -71,7 +71,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 
 - 应用标识：appKind=`FarmFeeder`、firmwareVersion、schemaVersion。
 - 全局状态：`Idle`、`Starting`、`Running`、`Stopping`、`RollingDay`、`Degraded`、`Fault`、`Maintenance`。
-- 计划状态：planCount、nextPlanId、nextPlanTimeMinutes、timeValid，以及每个计划的 enabled、timeMinutes、skipToday、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
+- 计划状态：planCount、nextPlanId、nextPlanTimeMinutes、timeValid，以及每个计划的 enabled、timeMinutes、skipToday、skipServiceDate、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
 - 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
 - 通道状态：channel、enabled、installed、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
 - 饲料桶：capacityGramsX100、remainGramsX100、remainPercent、lowWarningPercent、criticalWarningPercent、estimatedFeedCount、estimatedDays。
@@ -104,6 +104,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
         {"channel": 2, "targetMode": "Revolutions", "targetRevolutionsX100": 100}
       ],
       "skipToday": false,
+      "skipServiceDate": 0,
       "scheduleAttemptedToday": true,
       "todayExecuted": false,
       "scheduleMissedToday": false
@@ -136,6 +137,8 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 - 修改计划不清除长期记录。
 - 修改计划应写入 `ConfigChanged` 或计划变更业务事件。
 - `skipToday` 是单个计划的当天运行状态，不通过新增/修改计划接口设置，只通过专用 skip/cancel API。
+- `skipServiceDate` 保存被跳过的服务日期，格式为 `YYYYMMDD`；今日和明日计划跳过首版必须支持，计划蓝本不提供跳过操作。
+- `POST /api/app/schedule-occurrence/skip` 和 `POST /api/app/schedule-occurrence/cancel-skip` 必须传 `planId` 和 `date`；不传 `date` 时可默认当前服务日期，不能在时间未知且服务日期为 0 时静默成功。
 
 ## 投喂目标字段
 

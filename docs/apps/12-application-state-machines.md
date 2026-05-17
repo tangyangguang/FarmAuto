@@ -139,7 +139,7 @@ Maintenance
 - 如果被中断的是手动下料，只显示中断结果和实际已完成计数，用户需要重新发起新的手动下料。
 - 今日累计和饲料桶余量只按已可靠提交的实际脉冲或圈数更新；存在不确定计数时，对应通道标记 `estimateConfidence=Low`。
 
-`skipToday`、`timeValid`、`planEnabled`、`todayExecuted`、`scheduleAttemptedToday` 是单计划状态标志，不作为设备主状态。原因是它们可能与 `Idle`、`Running`、`Degraded` 同时存在；如果做成主状态，会掩盖真实运行状态。
+`skipToday`、`skipServiceDate`、`timeValid`、`planEnabled`、`todayExecuted`、`scheduleAttemptedToday` 是单计划状态标志，不作为设备主状态。原因是它们可能与 `Idle`、`Running`、`Degraded` 同时存在；如果做成主状态，会掩盖真实运行状态。
 
 状态说明：
 
@@ -183,6 +183,7 @@ Maintenance
 | `planTimeConfigured` | 该计划已配置每日执行时间；未配置时不自动投喂 |
 | `timeValid` | 当前日期/时间可信；不可信时暂停自动定时 |
 | `skipToday` | 该计划今日已跳过；日期切换后自动清除 |
+| `skipServiceDate` | 被跳过的具体服务日期，格式 `YYYYMMDD`；首版必须支持今日和明日执行实例跳过 |
 | `todayExecuted` | 该计划今日已成功完成，或所有计划通道都得到明确最终结果；不用于表达断电中断 |
 | `scheduleAttemptedToday` | 该计划今日已经开始过；即使被断电中断，也不自动再次触发 |
 | `scheduleMissedToday` | 该计划今日错过且不补投喂，仅记录事件 |
@@ -191,11 +192,12 @@ Maintenance
 
 首版默认没有自动投喂计划；新增计划并启用前，必须配置执行时间、参与通道和每个参与通道的投喂目标。
 
-1. `skipToday=true`：今日自动计划不触发，手动下料不受影响。
-2. `scheduleAttemptedToday=true`：该计划今日已经启动过；无论成功、部分成功还是断电中断，该计划都不再次自动触发。
-3. `todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `todayExecuted=false`。
-4. `scheduleMissedToday=true` 表示计划时间已错过且未触发；它不应与 `scheduleAttemptedToday=true` 同时出现。
-5. 一个计划断电中断，不影响其他尚未到时间的计划按自身状态触发。
+1. `skipServiceDate=当前服务日期` 时 `skipToday=true`：今日自动计划不触发，手动下料不受影响。
+2. `skipServiceDate=明日服务日期` 时，今日仍可正常执行；日期切换到明日后自动转为 `skipToday=true`。
+3. `scheduleAttemptedToday=true`：该计划今日已经启动过；无论成功、部分成功还是断电中断，该计划都不再次自动触发。
+4. `todayExecuted=true` 必须以 `scheduleAttemptedToday=true` 为前提；断电中断时 `todayExecuted=false`。
+5. `scheduleMissedToday=true` 表示计划时间已错过且未触发；它不应与 `scheduleAttemptedToday=true` 同时出现。
+6. 一个计划断电中断，不影响其他尚未到时间的计划按自身状态触发。
 
 关键事件：
 
