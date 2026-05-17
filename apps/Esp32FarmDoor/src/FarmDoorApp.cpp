@@ -75,6 +75,10 @@ void endRawJson() {
   Esp32BaseWeb::endResponse();
 }
 
+bool requireApiAuth() {
+  return Esp32BaseWeb::checkAuth();
+}
+
 void sendDigitalField(const char* name, uint8_t value) {
   Esp32BaseWeb::sendChunk("\"");
   Esp32BaseWeb::sendChunk(name);
@@ -932,6 +936,9 @@ void FarmDoorApp::sendDiagnosticsPage() {
 
 void FarmDoorApp::sendStatusJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const DoorSnapshot snapshot = g_door.snapshot();
   beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"appKind\":\"FarmDoor\",");
@@ -976,6 +983,9 @@ void FarmDoorApp::sendStatusJson() {
 
 void FarmDoorApp::sendDiagnosticsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const FarmDoorReadOnlyDiagnostics diagnostics = FarmDoorHw.readDiagnostics();
 
   beginRawJson(200);
@@ -1028,12 +1038,18 @@ void FarmDoorApp::sendDiagnosticsJson() {
 
 void FarmDoorApp::sendRecentEventsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   sendRecordSnapshotJson("ram");
 #endif
 }
 
 void FarmDoorApp::sendRecordsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   DoorRecordQuery query;
   uint32_t limitParam = query.limit;
   if (!readUint32ParamOptional("start", query.startIndex) ||
@@ -1135,6 +1151,9 @@ void FarmDoorApp::sendRecordsJson() {
 
 void FarmDoorApp::handleDoorOpen() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const uint32_t commandId = allocateCommandId();
   const DoorCommandResult result = g_door.requestOpen();
   DoorRecord record;
@@ -1150,6 +1169,9 @@ void FarmDoorApp::handleDoorOpen() {
 
 void FarmDoorApp::handleDoorClose() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const uint32_t commandId = allocateCommandId();
   const DoorCommandResult result = g_door.requestClose();
   DoorRecord record;
@@ -1164,6 +1186,9 @@ void FarmDoorApp::handleDoorClose() {
 
 void FarmDoorApp::handleDoorStop() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const uint32_t commandId = allocateCommandId();
   const DoorSnapshot snapshot = g_door.snapshot();
   const DoorCommandResult result = g_door.requestStop(snapshot.positionPulses);
@@ -1184,6 +1209,9 @@ void FarmDoorApp::handleDoorStop() {
 
 void FarmDoorApp::handleSetPosition() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const DoorSnapshot before = g_door.snapshot();
   DoorCommandResult result = DoorCommandResult::InvalidArgument;
   char position[16];
@@ -1279,6 +1307,9 @@ void FarmDoorApp::handleSetPosition() {
 
 void FarmDoorApp::handleSetTravel() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   int64_t openTargetPulses = 0;
   int64_t openTurnsX100 = 0;
   const bool hasPulses = hasParam("openTargetPulses");
@@ -1332,6 +1363,9 @@ void FarmDoorApp::handleSetTravel() {
 
 void FarmDoorApp::handleAdjustTravel() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   int64_t deltaPulses = 0;
   int64_t deltaTurnsX100 = 0;
   const bool hasDeltaPulses = hasParam("deltaPulses");
@@ -1381,6 +1415,9 @@ void FarmDoorApp::handleAdjustTravel() {
 
 void FarmDoorApp::handleClearFault() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   if (!requireConfirm("clear-fault", "door")) {
     return;
   }

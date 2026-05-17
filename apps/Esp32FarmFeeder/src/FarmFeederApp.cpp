@@ -74,6 +74,10 @@ void endRawJson() {
   Esp32BaseWeb::endResponse();
 }
 
+bool requireApiAuth() {
+  return Esp32BaseWeb::checkAuth();
+}
+
 uint32_t allocateCommandId() {
   const uint32_t commandId = g_nextCommandId;
   ++g_nextCommandId;
@@ -1566,6 +1570,9 @@ void FarmFeederApp::sendDiagnosticsPage() {
 
 void FarmFeederApp::sendStatusJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const FeederSnapshot snapshot = g_feeder.snapshot();
   const FeederRunSnapshot runSnapshot = g_runs.snapshot();
   const FeederScheduleSnapshot scheduleSnapshot = g_schedules.snapshot();
@@ -1605,6 +1612,9 @@ void FarmFeederApp::sendStatusJson() {
 
 void FarmFeederApp::sendDiagnosticsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const FeederSnapshot snapshot = g_feeder.snapshot();
   const FeederScheduleSnapshot scheduleSnapshot = g_schedules.snapshot();
   const FeederBucketSnapshot bucketSnapshot = g_buckets.snapshot();
@@ -1650,6 +1660,9 @@ void FarmFeederApp::sendDiagnosticsJson() {
 
 void FarmFeederApp::sendRecentEventsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const FeederRecordSnapshot snapshot = g_records.snapshot();
   beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"source\":\"ram\",\"count\":");
@@ -1665,6 +1678,9 @@ void FarmFeederApp::sendRecentEventsJson() {
 
 void FarmFeederApp::sendSchedulesJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   beginRawJson(200);
   sendScheduleSummary(g_schedules.snapshot());
   endRawJson();
@@ -1673,6 +1689,9 @@ void FarmFeederApp::sendSchedulesJson() {
 
 void FarmFeederApp::sendBucketsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"channels\":");
   sendBucketSummary(g_buckets.snapshot());
@@ -1683,6 +1702,9 @@ void FarmFeederApp::sendBucketsJson() {
 
 void FarmFeederApp::sendBaseInfoJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"channels\":");
   sendBaseInfoSummary(g_buckets.snapshot());
@@ -1693,6 +1715,9 @@ void FarmFeederApp::sendBaseInfoJson() {
 
 void FarmFeederApp::sendTargetsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   beginRawJson(200);
   Esp32BaseWeb::sendChunk("{\"channels\":");
   sendTargetSummary(g_targets.snapshot(), g_buckets.snapshot());
@@ -1703,6 +1728,9 @@ void FarmFeederApp::sendTargetsJson() {
 
 void FarmFeederApp::sendRecordsJson() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   FeederRecordQuery query;
   uint32_t limitParam = query.limit;
   if (!readUint32ParamOptional("start", query.startIndex) ||
@@ -1794,6 +1822,9 @@ void FarmFeederApp::sendRecordsJson() {
 
 void FarmFeederApp::handleFeederTarget() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channel = 0;
   FeederTargetRequest request;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
@@ -1814,6 +1845,9 @@ void FarmFeederApp::handleFeederTarget() {
 
 void FarmFeederApp::handleFeederManualStart() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channelMask = 0;
   if (!readUint8Param("channelMask", channelMask) ||
       (channelMask & static_cast<uint8_t>(~configuredChannelMask())) != 0) {
@@ -1845,6 +1879,9 @@ void FarmFeederApp::handleFeederManualStart() {
 
 void FarmFeederApp::handleFeederStart() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channelMask = 0;
   if (!readUint8Param("channelMask", channelMask)) {
     uint8_t channel = 0;
@@ -1877,6 +1914,9 @@ void FarmFeederApp::handleFeederStart() {
 
 void FarmFeederApp::handleFeederStop() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channelMask = 0;
   if (!readUint8Param("channelMask", channelMask)) {
     uint8_t channel = 0;
@@ -1909,6 +1949,9 @@ void FarmFeederApp::handleFeederStop() {
 
 void FarmFeederApp::handleFeederStopAll() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const uint8_t runningMask = g_feeder.snapshot().runningChannelMask;
   const uint32_t commandId = allocateCommandId();
   const FeederCommandResult result = g_feeder.stopAll();
@@ -1930,6 +1973,9 @@ void FarmFeederApp::handleFeederStopAll() {
 
 void FarmFeederApp::handleMaintenanceClearToday() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   const FeederSnapshot snapshot = g_feeder.snapshot();
   if (snapshot.runningChannelMask != 0) {
     sendResultJson(409, "Busy");
@@ -1960,6 +2006,9 @@ void FarmFeederApp::handleMaintenanceClearToday() {
 
 void FarmFeederApp::handleMaintenanceClearFault() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channelMask = 0;
   if (!readUint8Param("channelMask", channelMask)) {
     uint8_t channel = 0;
@@ -2026,6 +2075,9 @@ void FarmFeederApp::handleMaintenanceClearFault() {
 
 void FarmFeederApp::handleScheduleCreate() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   FeederPlanConfig config;
   if (!readPlanConfigFromParams(config)) {
     sendResultJson(400, "InvalidArgument");
@@ -2047,6 +2099,9 @@ void FarmFeederApp::handleScheduleCreate() {
 
 void FarmFeederApp::handleScheduleUpdate() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t planId = 0;
   FeederPlanConfig config;
   if (!readUint8Param("planId", planId) || !readPlanConfigFromParams(config)) {
@@ -2063,6 +2118,9 @@ void FarmFeederApp::handleScheduleUpdate() {
 
 void FarmFeederApp::handleScheduleDelete() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t planId = 0;
   if (!readUint8Param("planId", planId)) {
     sendResultJson(400, "InvalidArgument");
@@ -2083,6 +2141,9 @@ void FarmFeederApp::handleScheduleDelete() {
 
 void FarmFeederApp::handleScheduleSkip() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t planId = 0;
   uint32_t serviceDate = g_schedules.snapshot().serviceDate;
   if (!readUint8Param("planId", planId) || !readUint32ParamOptional("date", serviceDate) ||
@@ -2107,6 +2168,9 @@ void FarmFeederApp::handleScheduleSkip() {
 
 void FarmFeederApp::handleScheduleCancelSkip() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t planId = 0;
   uint32_t serviceDate = g_schedules.snapshot().serviceDate;
   if (!readUint8Param("planId", planId) || !readUint32ParamOptional("date", serviceDate) ||
@@ -2131,6 +2195,9 @@ void FarmFeederApp::handleScheduleCancelSkip() {
 
 void FarmFeederApp::handleBucketSetRemaining() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channel = 0;
   int32_t remainGramsX100 = 0;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
@@ -2153,6 +2220,9 @@ void FarmFeederApp::handleBucketSetRemaining() {
 
 void FarmFeederApp::handleBucketAddFeed() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channel = 0;
   int32_t addedGramsX100 = 0;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
@@ -2175,6 +2245,9 @@ void FarmFeederApp::handleBucketAddFeed() {
 
 void FarmFeederApp::handleBucketMarkFull() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channel = 0;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
     sendResultJson(400, "InvalidArgument");
@@ -2195,6 +2268,9 @@ void FarmFeederApp::handleBucketMarkFull() {
 
 void FarmFeederApp::handleBaseInfoChannel() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
   uint8_t channel = 0;
   bool enabled = false;
   int32_t outputPulsesPerRev = 0;
