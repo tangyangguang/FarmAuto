@@ -10,6 +10,7 @@ constexpr uint32_t kMagic = 0xFA24C001u;
 constexpr uint8_t kFlagWriting = 0x01u;
 constexpr uint8_t kFlagValid = 0x02u;
 constexpr std::size_t kHeaderSize = 32;
+constexpr std::size_t kMaxI2cTransferBytes = 64;
 
 uint16_t readU16(const uint8_t* bytes) {
   return static_cast<uint16_t>(bytes[0]) | (static_cast<uint16_t>(bytes[1]) << 8);
@@ -80,6 +81,93 @@ uint32_t headerCrcFor(SlotHeader header) {
 }
 
 }  // namespace
+
+At24cI2cDevice::At24cI2cDevice(II2cBus& bus, const At24cI2cDeviceConfig& config)
+    : bus_(bus), config_(config) {}
+
+bool At24cI2cDevice::read(uint32_t address, uint8_t* data, std::size_t length) {
+  if (data == nullptr || !validConfig() || !inRange(address, length)) {
+    return false;
+  }
+  std::size_t read = 0;
+  while (read < length) {
+    const std::size_t chunk =
+        (length - read) < config_.maxTransferBytes ? (length - read) : config_.maxTransferBytes;
+    uint8_t addressBytes[2] = {};
+    if (!writeAddress(address + read, addressBytes) ||
+        !bus_.writeRead(config_.deviceAddress,
+                        addressBytes,
+                        config_.addressBytes,
+                        data + read,
+                        chunk)) {
+      return false;
+    }
+    read += chunk;
+  }
+  return true;
+}
+
+bool At24cI2cDevice::write(uint32_t address, const uint8_t* data, std::size_t length) {
+  if ((data == nullptr && length > 0) || !validConfig() || !inRange(address, length)) {
+    return false;
+  }
+  std::size_t written = 0;
+  while (written < length) {
+    const uint32_t currentAddress = address + written;
+    const std::size_t pageRemaining = config_.pageSize - (currentAddress % config_.pageSize);
+    const std::size_t dataCapacity = config_.maxTransferBytes - config_.addressBytes;
+    std::size_t chunk = length - written;
+    if (chunk > pageRemaining) {
+      chunk = pageRemaining;
+    }
+    if (chunk > dataCapacity) {
+      chunk = dataCapacity;
+    }
+
+    uint8_t buffer[kMaxI2cTransferBytes] = {};
+    if (!writeAddress(currentAddress, buffer)) {
+      return false;
+    }
+    std::memcpy(buffer + config_.addressBytes, data + written, chunk);
+    if (!bus_.write(config_.deviceAddress, buffer, config_.addressBytes + chunk)) {
+      return false;
+    }
+    if (!waitForWriteComplete()) {
+      return false;
+    }
+    written += chunk;
+  }
+  return true;
+}
+
+bool At24cI2cDevice::validConfig() const {
+  return config_.totalBytes > 0 && config_.pageSize > 0 && config_.addressBytes == 2 &&
+         config_.maxTransferBytes > config_.addressBytes &&
+         config_.maxTransferBytes <= kMaxI2cTransferBytes && config_.writePollAttempts > 0;
+}
+
+bool At24cI2cDevice::inRange(uint32_t address, std::size_t length) const {
+  return address <= config_.totalBytes && length <= config_.totalBytes - address;
+}
+
+bool At24cI2cDevice::writeAddress(uint32_t address, uint8_t* out) const {
+  if (out == nullptr || address > 0xFFFFu) {
+    return false;
+  }
+  out[0] = static_cast<uint8_t>((address >> 8) & 0xFFu);
+  out[1] = static_cast<uint8_t>(address & 0xFFu);
+  return true;
+}
+
+bool At24cI2cDevice::waitForWriteComplete() {
+  for (uint8_t attempt = 0; attempt < config_.writePollAttempts; ++attempt) {
+    bus_.delayMs(config_.writePollDelayMs);
+    if (bus_.write(config_.deviceAddress, nullptr, 0)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 Result RecordStore::begin(IAt24cDevice& device,
                           const RecordStoreConfig& config,

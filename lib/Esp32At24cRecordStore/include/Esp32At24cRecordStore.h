@@ -33,6 +33,45 @@ public:
   virtual bool write(uint32_t address, const uint8_t* data, std::size_t length) = 0;
 };
 
+class II2cBus {
+public:
+  virtual ~II2cBus() = default;
+  virtual bool write(uint8_t deviceAddress, const uint8_t* data, std::size_t length) = 0;
+  virtual bool writeRead(uint8_t deviceAddress,
+                         const uint8_t* writeData,
+                         std::size_t writeLength,
+                         uint8_t* readData,
+                         std::size_t readLength) = 0;
+  virtual void delayMs(uint16_t ms) = 0;
+};
+
+struct At24cI2cDeviceConfig {
+  uint8_t deviceAddress = 0x50;
+  uint32_t totalBytes = 16UL * 1024UL;
+  uint16_t pageSize = 64;
+  uint8_t addressBytes = 2;
+  uint8_t maxTransferBytes = 32;
+  uint8_t writePollAttempts = 20;
+  uint16_t writePollDelayMs = 5;
+};
+
+class At24cI2cDevice : public IAt24cDevice {
+public:
+  At24cI2cDevice(II2cBus& bus, const At24cI2cDeviceConfig& config);
+
+  bool read(uint32_t address, uint8_t* data, std::size_t length) override;
+  bool write(uint32_t address, const uint8_t* data, std::size_t length) override;
+
+private:
+  bool validConfig() const;
+  bool inRange(uint32_t address, std::size_t length) const;
+  bool writeAddress(uint32_t address, uint8_t* out) const;
+  bool waitForWriteComplete();
+
+  II2cBus& bus_;
+  At24cI2cDeviceConfig config_{};
+};
+
 struct RecordStoreConfig {
   uint16_t layoutVersion = 1;
   uint32_t baseAddress = 0;
