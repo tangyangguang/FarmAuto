@@ -2328,6 +2328,7 @@ void FarmFeederApp::handleBaseInfoChannel() {
   if (result == FeederBucketResult::Ok) {
     syncFeederConfigFromBaseInfo();
     persistFeederCalibrationIfReady();
+    persistFeederBucketsIfReady();
   }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
