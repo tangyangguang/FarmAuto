@@ -26,8 +26,12 @@ int main() {
   assert(snapshot.channels[0].underflow);
 
   dynamic.channels[0].remainGramsX100 = 600000;
-  assert(restoreFeederBucketParts(buckets, calibration, dynamic) ==
-         FeederBucketResult::InvalidArgument);
+  dynamic.channels[0].underflow = true;
+  assert(restoreFeederBucketParts(buckets, calibration, dynamic) == FeederBucketResult::Ok);
+  snapshot = buckets.snapshot();
+  assert(snapshot.channels[0].remainGramsX100 == 500000);
+  assert(snapshot.channels[0].remainPercent == 100);
+  assert(!snapshot.channels[0].underflow);
 
   calibration.channels[0].baseInfo.capacityGramsX100 = 0;
   assert(restoreFeederBucketParts(buckets, calibration, FeederBucketSnapshot()) ==
