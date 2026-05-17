@@ -1374,15 +1374,15 @@ void FarmFeederApp::configureAppConfigPage() {
 void FarmFeederApp::configureBusinessShell() {
 #if ESP32BASE_ENABLE_WEB
   Esp32BaseWeb::setDeviceName("Esp32FarmFeeder");
-  Esp32BaseWeb::setHomePath("/");
+  Esp32BaseWeb::setHomePath("/app");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
-  Esp32BaseWeb::addNavItem("/", "首页");
+  Esp32BaseWeb::addNavItem("/app", "首页");
   Esp32BaseWeb::addNavItem("/schedule", "计划");
   Esp32BaseWeb::addNavItem("/records", "记录");
   Esp32BaseWeb::addNavItem("/base-info", "基础信息");
   Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
-  Esp32BaseWeb::addPage("/", "喂食器首页", FarmFeederApp::sendHomePage);
+  Esp32BaseWeb::addPage("/app", "喂食器首页", FarmFeederApp::sendHomePage);
   Esp32BaseWeb::addPage("/schedule", "喂食计划", FarmFeederApp::sendSchedulePage);
   Esp32BaseWeb::addPage("/records", "喂食记录", FarmFeederApp::sendRecordsPage);
   Esp32BaseWeb::addPage("/base-info", "基础信息", FarmFeederApp::sendBaseInfoPage);

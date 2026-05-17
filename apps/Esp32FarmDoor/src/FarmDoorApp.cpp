@@ -798,14 +798,14 @@ void FarmDoorApp::configureAppConfigPage() {
 void FarmDoorApp::configureBusinessShell() {
 #if ESP32BASE_ENABLE_WEB
   Esp32BaseWeb::setDeviceName("Esp32FarmDoor");
-  Esp32BaseWeb::setHomePath("/");
+  Esp32BaseWeb::setHomePath("/app");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
-  Esp32BaseWeb::addNavItem("/", "首页");
+  Esp32BaseWeb::addNavItem("/app", "首页");
   Esp32BaseWeb::addNavItem("/records", "记录");
   Esp32BaseWeb::addNavItem("/calibration", "校准");
   Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
-  Esp32BaseWeb::addPage("/", "自动门首页", FarmDoorApp::sendHomePage);
+  Esp32BaseWeb::addPage("/app", "自动门首页", FarmDoorApp::sendHomePage);
   Esp32BaseWeb::addPage("/records", "自动门记录", FarmDoorApp::sendRecordsPage);
   Esp32BaseWeb::addPage("/calibration", "行程校准", FarmDoorApp::sendCalibrationPage);
   Esp32BaseWeb::addPage("/diagnostics", "自动门诊断", FarmDoorApp::sendDiagnosticsPage);
