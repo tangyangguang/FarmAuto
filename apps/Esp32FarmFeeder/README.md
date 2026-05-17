@@ -14,6 +14,7 @@
 - 已接入通道基础信息/标定参数二进制编解码，后续可作为 AT24C128 `FeederCalibration` payload；料桶余量不写入该 payload。
 - 已固化喂食器 AT24C128 记录区布局，并用 host 测试校验容量、连续性和页对齐。
 - 已接入计划表、今日累计、手工下料默认目标、料桶估算余量和通道标定参数到 `Esp32At24cRecordStore` 的读写 glue，并用 fake AT24C host 测试验证。
+- 已在启动时初始化 AT24C128 I2C RecordStore，并恢复计划、今日累计、手工下料默认目标、料桶估算余量和通道标定参数；业务修改成功后写回对应记录区。
 - 已接入首页、计划、记录、基础信息、诊断 5 个最小业务页面，系统参数/日志/OTA/WiFi 仍使用 Esp32Base 页面。
 - 已接入业务最近记录 RAM 缓冲、Flash 二进制追加记录和基础文件轮转。
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
@@ -24,9 +25,8 @@
 
 当前尚未实现：
 
-- AT24C128 Wire 设备接入应用启动流程。
 - 最终版业务页面的精细交互和视觉样式。
-- GPIO、编码器、PWM 和 AT24C128 硬件适配。
+- GPIO、编码器和 PWM 硬件适配。
 - 业务记录索引和跨文件查询。
 - 真实电机输出和编码器计数。
 

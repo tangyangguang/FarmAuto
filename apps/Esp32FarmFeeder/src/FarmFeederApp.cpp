@@ -4,14 +4,19 @@
 #include <Esp32Base.h>
 
 #include <time.h>
+#include <Wire.h>
 
 #include "FeederBucket.h"
+#include "FeederBucketRestore.h"
 #include "FeederController.h"
+#include "FeederPersistenceStore.h"
 #include "FeederRecordFileStore.h"
 #include "FeederRecordLog.h"
 #include "FeederRunTracker.h"
 #include "FeederSchedule.h"
+#include "FeederStorageLayout.h"
 #include "FeederTarget.h"
+#include "FeederToday.h"
 
 namespace {
 
@@ -20,13 +25,20 @@ FeederControllerConfig g_feederConfig;
 FeederScheduleService g_schedules;
 FeederBucketService g_buckets;
 FeederTargetService g_targets;
+FeederTodayService g_today;
 FeederRunTracker g_runs;
 FeederRecordLog g_records;
 uint16_t g_lastScheduleMinute = 24 * 60;
 uint32_t g_lastScheduleDate = 0;
 bool g_recordStorageReady = false;
+Esp32At24cRecordStore::ArduinoWireI2cBus g_at24cBus;
+Esp32At24cRecordStore::At24cI2cDevice g_at24cDevice(g_at24cBus, {});
+Esp32At24cRecordStore::RecordStore g_at24cStore;
+bool g_at24cStoreReady = false;
 
 static constexpr uint8_t kFarmFeederRouteCount = 29;
+static constexpr uint8_t kFeederI2cSda = 21;
+static constexpr uint8_t kFeederI2cScl = 22;
 static constexpr const char* kFeederRecordRootDir = "/records";
 static constexpr const char* kFeederRecordDir = "/records/feeder";
 static constexpr const char* kFeederRecordCurrentPath = "/records/feeder/current.far";
@@ -58,6 +70,113 @@ void syncFeederConfigFromBaseInfo() {
     ESP32BASE_LOG_E("farmfeeder", "feeder_config_sync_failed result=%u",
                     static_cast<unsigned>(result));
   }
+}
+
+bool at24cWriteOk(Esp32At24cRecordStore::Result result) {
+  return result == Esp32At24cRecordStore::Result::Ok ||
+         result == Esp32At24cRecordStore::Result::Unchanged;
+}
+
+void persistFeederScheduleIfReady() {
+  if (!g_at24cStoreReady) {
+    return;
+  }
+  const Esp32At24cRecordStore::Result result =
+      saveFeederSchedule(g_at24cStore, g_schedules.snapshot());
+  if (!at24cWriteOk(result)) {
+    ESP32BASE_LOG_W("farmfeeder", "schedule_save_failed result=%u",
+                    static_cast<unsigned>(result));
+  }
+}
+
+void persistFeederTodayIfReady() {
+  if (!g_at24cStoreReady) {
+    return;
+  }
+  const Esp32At24cRecordStore::Result result = saveFeederToday(g_at24cStore, g_today.snapshot());
+  if (!at24cWriteOk(result)) {
+    ESP32BASE_LOG_W("farmfeeder", "today_save_failed result=%u", static_cast<unsigned>(result));
+  }
+}
+
+void persistFeederTargetsIfReady() {
+  if (!g_at24cStoreReady) {
+    return;
+  }
+  const Esp32At24cRecordStore::Result result =
+      saveFeederTargets(g_at24cStore, g_targets.snapshot());
+  if (!at24cWriteOk(result)) {
+    ESP32BASE_LOG_W("farmfeeder", "targets_save_failed result=%u",
+                    static_cast<unsigned>(result));
+  }
+}
+
+void persistFeederBucketsIfReady() {
+  if (!g_at24cStoreReady) {
+    return;
+  }
+  const Esp32At24cRecordStore::Result result =
+      saveFeederBuckets(g_at24cStore, g_buckets.snapshot());
+  if (!at24cWriteOk(result)) {
+    ESP32BASE_LOG_W("farmfeeder", "buckets_save_failed result=%u",
+                    static_cast<unsigned>(result));
+  }
+}
+
+void persistFeederCalibrationIfReady() {
+  if (!g_at24cStoreReady) {
+    return;
+  }
+  const Esp32At24cRecordStore::Result result =
+      saveFeederCalibration(g_at24cStore, g_buckets.snapshot());
+  if (!at24cWriteOk(result)) {
+    ESP32BASE_LOG_W("farmfeeder", "calibration_save_failed result=%u",
+                    static_cast<unsigned>(result));
+  }
+}
+
+void initializeFeederAt24cStore() {
+  const Esp32At24cRecordStore::Result beginResult =
+      g_at24cStore.begin(g_at24cDevice,
+                         kFeederAt24cConfig,
+                         kFeederAt24cRegions,
+                         kFeederAt24cRegionCount);
+  if (beginResult != Esp32At24cRecordStore::Result::Ok) {
+    ESP32BASE_LOG_W("farmfeeder", "at24c_store_begin_failed result=%u",
+                    static_cast<unsigned>(beginResult));
+    return;
+  }
+  g_at24cStoreReady = true;
+
+  FeederScheduleSnapshot schedule;
+  if (loadFeederSchedule(g_at24cStore, schedule) == Esp32At24cRecordStore::Result::Ok &&
+      g_schedules.restore(schedule) == FeederScheduleResult::Ok) {
+    g_lastScheduleDate = schedule.serviceDate;
+  }
+
+  FeederTodaySnapshot today;
+  if (loadFeederToday(g_at24cStore, today) == Esp32At24cRecordStore::Result::Ok) {
+    g_today.restore(today);
+  }
+
+  FeederTargetSnapshot targets;
+  if (loadFeederTargets(g_at24cStore, targets) == Esp32At24cRecordStore::Result::Ok) {
+    g_targets.restore(targets);
+  }
+
+  FeederBucketSnapshot calibration;
+  FeederBucketSnapshot dynamicBuckets;
+  const bool hasCalibration =
+      loadFeederCalibration(g_at24cStore, calibration) == Esp32At24cRecordStore::Result::Ok;
+  const bool hasDynamicBuckets =
+      loadFeederBuckets(g_at24cStore, dynamicBuckets) == Esp32At24cRecordStore::Result::Ok;
+  if (hasCalibration && hasDynamicBuckets) {
+    restoreFeederBucketParts(g_buckets, calibration, dynamicBuckets);
+  } else if (hasCalibration) {
+    g_buckets.restore(calibration);
+  }
+
+  syncFeederConfigFromBaseInfo();
 }
 
 const char* deviceStateName(FeederDeviceState state) {
@@ -369,6 +488,29 @@ void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
     Esp32BaseWeb::sendChunk("}");
   }
   Esp32BaseWeb::sendChunk("]");
+}
+
+void sendTodaySummary(const FeederTodaySnapshot& snapshot) {
+  Esp32BaseWeb::sendChunk("{\"serviceDate\":");
+  sendUint32(snapshot.serviceDate);
+  Esp32BaseWeb::sendChunk(",\"channels\":[");
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    const FeederTodayChannel& channel = snapshot.channels[i];
+    Esp32BaseWeb::sendChunk("{\"channel\":");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk(",\"pulses\":");
+    char number[16];
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(channel.pulses));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk(",\"gramsX100\":");
+    snprintf(number, sizeof(number), "%ld", static_cast<long>(channel.gramsX100));
+    Esp32BaseWeb::sendChunk(number);
+    Esp32BaseWeb::sendChunk("}");
+  }
+  Esp32BaseWeb::sendChunk("]}");
 }
 
 void sendBaseInfoSummary(const FeederBucketSnapshot& snapshot) {
@@ -821,6 +963,7 @@ FarmFeederApp FarmFeeder;
 
 void FarmFeederApp::begin() {
   Serial.begin(115200);
+  Wire.begin(kFeederI2cSda, kFeederI2cScl);
   configureStaticDefaults();
 
   Esp32Base::setFirmwareInfo("Esp32FarmFeeder", "0.1.0");
@@ -830,6 +973,7 @@ void FarmFeederApp::begin() {
   if (!Esp32Base::begin()) {
     ESP32BASE_LOG_E("farmfeeder", "Esp32Base begin failed: %s", Esp32Base::lastError());
   } else {
+    initializeFeederAt24cStore();
     ESP32BASE_LOG_I("farmfeeder", "skeleton ready enabled_mask=%u", g_feederConfig.enabledChannelMask);
   }
 }
@@ -854,8 +998,11 @@ void FarmFeederApp::handleScheduleTick() {
 
   if (serviceDate != g_lastScheduleDate) {
     g_schedules.beginDay(serviceDate);
+    g_today.beginDay(serviceDate);
     g_lastScheduleDate = serviceDate;
     g_lastScheduleMinute = 24 * 60;
+    persistFeederScheduleIfReady();
+    persistFeederTodayIfReady();
   }
   if (currentMinute == g_lastScheduleMinute) {
     return;
@@ -876,6 +1023,7 @@ void FarmFeederApp::handleScheduleTick() {
                     static_cast<unsigned>(tick.planId),
                     static_cast<unsigned long>(serviceDate),
                     static_cast<unsigned>(currentMinute));
+    persistFeederScheduleIfReady();
     return;
   }
 
@@ -899,6 +1047,7 @@ void FarmFeederApp::handleScheduleTick() {
   record.faultMask = result.faultMask;
   record.skippedMask = result.skippedMask;
   recordBusinessEvent(record);
+  persistFeederScheduleIfReady();
   ESP32BASE_LOG_I("farmfeeder",
                   "schedule_triggered plan_id=%u result=%u success_mask=%u skipped_mask=%u",
                   static_cast<unsigned>(tick.planId),
@@ -913,6 +1062,7 @@ void FarmFeederApp::configureStaticDefaults() {
   g_feederConfig.enabledChannelMask = configuredChannelMask();
 
   g_schedules.beginDay(0);
+  g_today.beginDay(0);
 
   FeederChannelBaseInfo channelInfo;
   channelInfo.enabled = true;
@@ -1144,6 +1294,8 @@ void FarmFeederApp::sendStatusJson() {
   sendScheduleSummary(scheduleSnapshot);
   Esp32BaseWeb::sendChunk(",\"buckets\":");
   sendBucketSummary(bucketSnapshot);
+  Esp32BaseWeb::sendChunk(",\"today\":");
+  sendTodaySummary(g_today.snapshot());
   Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
 #endif
@@ -1186,6 +1338,9 @@ void FarmFeederApp::sendDiagnosticsJson() {
   Esp32BaseWeb::sendChunk("false");
 #endif
   Esp32BaseWeb::sendChunk("},\"currentSensors\":{\"installed\":false},");
+  Esp32BaseWeb::sendChunk("\"at24c\":{\"storeReady\":");
+  Esp32BaseWeb::sendChunk(g_at24cStoreReady ? "true" : "false");
+  Esp32BaseWeb::sendChunk(",\"address\":\"0x50\"},");
   Esp32BaseWeb::sendChunk("\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
 #endif
@@ -1324,6 +1479,9 @@ void FarmFeederApp::handleFeederTarget() {
     return;
   }
   const FeederTargetResult result = g_targets.setTarget(channel, request);
+  if (result == FeederTargetResult::Ok) {
+    persistFeederTargetsIfReady();
+  }
   sendResultJson(result == FeederTargetResult::Ok ? 200 : 400,
                  result == FeederTargetResult::Ok ? "Ok" : "InvalidArgument");
 #endif
@@ -1435,6 +1593,9 @@ void FarmFeederApp::handleMaintenanceClearToday() {
   }
 
   g_schedules.clearToday();
+  g_today.beginDay(g_schedules.snapshot().serviceDate);
+  persistFeederScheduleIfReady();
+  persistFeederTodayIfReady();
 
   FeederRecord record;
   record.type = FeederRecordType::TodayCleared;
@@ -1510,6 +1671,9 @@ void FarmFeederApp::handleScheduleCreate() {
     return;
   }
   const FeederScheduleMutation mutation = g_schedules.addPlan(config);
+  if (mutation.result == FeederScheduleResult::Ok) {
+    persistFeederScheduleIfReady();
+  }
   Esp32BaseWeb::beginJson(mutation.result == FeederScheduleResult::Ok ? 200 : 400);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(scheduleResultName(mutation.result));
@@ -1529,6 +1693,9 @@ void FarmFeederApp::handleScheduleUpdate() {
     return;
   }
   const FeederScheduleResult result = g_schedules.updatePlan(planId, config);
+  if (result == FeederScheduleResult::Ok) {
+    persistFeederScheduleIfReady();
+  }
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 400, scheduleResultName(result));
 #endif
 }
@@ -1541,6 +1708,9 @@ void FarmFeederApp::handleScheduleDelete() {
     return;
   }
   const FeederScheduleResult result = g_schedules.deletePlan(planId);
+  if (result == FeederScheduleResult::Ok) {
+    persistFeederScheduleIfReady();
+  }
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
 #endif
 }
@@ -1553,6 +1723,9 @@ void FarmFeederApp::handleScheduleSkip() {
     return;
   }
   const FeederScheduleResult result = g_schedules.skipToday(planId);
+  if (result == FeederScheduleResult::Ok) {
+    persistFeederScheduleIfReady();
+  }
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
 #endif
 }
@@ -1565,6 +1738,9 @@ void FarmFeederApp::handleScheduleCancelSkip() {
     return;
   }
   const FeederScheduleResult result = g_schedules.cancelSkipToday(planId);
+  if (result == FeederScheduleResult::Ok) {
+    persistFeederScheduleIfReady();
+  }
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
 #endif
 }
@@ -1579,6 +1755,9 @@ void FarmFeederApp::handleBucketSetRemaining() {
     return;
   }
   const FeederBucketResult result = g_buckets.setRemaining(channel, remainGramsX100, 0);
+  if (result == FeederBucketResult::Ok) {
+    persistFeederBucketsIfReady();
+  }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
 }
@@ -1593,6 +1772,9 @@ void FarmFeederApp::handleBucketAddFeed() {
     return;
   }
   const FeederBucketResult result = g_buckets.addFeed(channel, addedGramsX100, 0);
+  if (result == FeederBucketResult::Ok) {
+    persistFeederBucketsIfReady();
+  }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
 }
@@ -1605,6 +1787,9 @@ void FarmFeederApp::handleBucketMarkFull() {
     return;
   }
   const FeederBucketResult result = g_buckets.markFull(channel, 0);
+  if (result == FeederBucketResult::Ok) {
+    persistFeederBucketsIfReady();
+  }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
 }
@@ -1637,6 +1822,7 @@ void FarmFeederApp::handleBaseInfoChannel() {
   const FeederBucketResult result = g_buckets.updateBaseInfo(channel, info);
   if (result == FeederBucketResult::Ok) {
     syncFeederConfigFromBaseInfo();
+    persistFeederCalibrationIfReady();
   }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
