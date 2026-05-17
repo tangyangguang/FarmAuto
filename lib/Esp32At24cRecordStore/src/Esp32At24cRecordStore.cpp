@@ -370,25 +370,54 @@ Result RecordStore::readLatest(uint16_t recordType,
     return Result::RegionNotFound;
   }
   const RegionConfig* region = findRegion(recordType);
-  SlotHeader header;
-  uint16_t slotIndex = 0;
-  if (!readLatestHeader(*region, header, slotIndex)) {
+  SlotHeader bestHeader;
+  uint16_t bestSlotIndex = 0;
+  bool foundHeader = false;
+  bool foundPayload = false;
+  for (uint16_t slot = 0; slot < region->slotCount; ++slot) {
+    SlotHeader header;
+    if (!readHeader(*region, slot, header)) {
+      return Result::DeviceOffline;
+    }
+    if (!validHeaderForRegion(*region, header)) {
+      continue;
+    }
+    foundHeader = true;
+    if (capacity < header.payloadLength) {
+      return Result::PayloadTooLarge;
+    }
+    if (header.payloadLength > 0 &&
+        !device_->read(slotAddress(config_, *region, slot) + kHeaderSize,
+                       payload,
+                       header.payloadLength)) {
+      return Result::DeviceOffline;
+    }
+    if (crc32IsoHdlc(payload, header.payloadLength) != header.payloadCrc) {
+      continue;
+    }
+    if (!foundPayload || sequenceAfter(header.sequence, bestHeader.sequence)) {
+      bestHeader = header;
+      bestSlotIndex = slot;
+      foundPayload = true;
+    }
+  }
+  if (!foundHeader) {
     return Result::FormatRequired;
   }
-  if (capacity < header.payloadLength) {
-    return Result::PayloadTooLarge;
+  if (!foundPayload) {
+    return Result::CrcMismatch;
   }
-  if (header.payloadLength > 0 &&
-      !device_->read(slotAddress(config_, *region, slotIndex) + kHeaderSize,
+  if (bestHeader.payloadLength > 0 &&
+      !device_->read(slotAddress(config_, *region, bestSlotIndex) + kHeaderSize,
                      payload,
-                     header.payloadLength)) {
+                     bestHeader.payloadLength)) {
     return Result::DeviceOffline;
   }
-  if (crc32IsoHdlc(payload, header.payloadLength) != header.payloadCrc) {
+  if (crc32IsoHdlc(payload, bestHeader.payloadLength) != bestHeader.payloadCrc) {
     length = 0;
     return Result::CrcMismatch;
   }
-  length = header.payloadLength;
+  length = bestHeader.payloadLength;
   return Result::Ok;
 }
 

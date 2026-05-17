@@ -82,7 +82,12 @@ int main() {
 
   device.bytes[128 + 32] ^= 0xFF;
   assert(store.readLatest(1, readBuffer, sizeof(readBuffer), readLength) ==
-         Esp32At24cRecordStore::Result::CrcMismatch);
+         Esp32At24cRecordStore::Result::Ok);
+  assert(readLength == sizeof(firstPayload));
+  assert(readBuffer[0] == 1);
+  assert(readBuffer[1] == 2);
+  assert(readBuffer[2] == 3);
+  assert(readBuffer[3] == 4);
 
   return 0;
 }
