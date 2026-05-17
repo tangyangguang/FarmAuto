@@ -1419,8 +1419,12 @@ void FarmFeederApp::sendRecordsPage() {
   Esp32BaseWeb::sendChunk("<form method='get' action='/api/app/records'>");
   Esp32BaseWeb::sendChunk("<label>开始序号 <input name='start' value='0'></label> ");
   Esp32BaseWeb::sendChunk("<label>每页 <input name='limit' value='16'></label> ");
+  Esp32BaseWeb::sendChunk("<label>归档 <input name='archive' value='0'></label> ");
+  Esp32BaseWeb::sendChunk("<label>开始时间戳 <input name='startUnixTime'></label> ");
+  Esp32BaseWeb::sendChunk("<label>结束时间戳 <input name='endUnixTime'></label> ");
   Esp32BaseWeb::sendChunk("<label>事件类型 <input name='eventType' placeholder='FeederManualRequested'></label> ");
-  Esp32BaseWeb::sendChunk("<button>查询 JSON</button></form></section>");
+  Esp32BaseWeb::sendChunk("<button>查询 JSON</button></form>");
+  Esp32BaseWeb::sendChunk("<p>归档 0 表示当前文件，1-16 表示轮转归档文件。</p></section>");
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -1451,6 +1455,8 @@ void FarmFeederApp::sendBaseInfoPage() {
   Esp32BaseWeb::sendChunk("<label>每圈信号数 <input name='outputPulsesPerRev' value='4320'></label> ");
   Esp32BaseWeb::sendChunk("<label>每圈克数 x100 <input name='gramsPerRevX100' value='7000'></label> ");
   Esp32BaseWeb::sendChunk("<label>满桶容量 x100 <input name='capacityGramsX100' value='500000'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
   Esp32BaseWeb::sendChunk("<button>保存</button></form></section>");
   Esp32BaseWeb::sendFooter();
 #endif
@@ -1463,9 +1469,15 @@ void FarmFeederApp::sendDiagnosticsPage() {
   Esp32BaseWeb::sendChunk("<p><a href='/api/app/diagnostics'>查看诊断 JSON</a></p>");
   Esp32BaseWeb::sendChunk("<p><a href='/api/app/status'>查看状态 JSON</a></p>");
   Esp32BaseWeb::sendChunk("</section><section><h2>维护动作</h2>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-today'><button>清空今日执行状态</button></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-today'>");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
+  Esp32BaseWeb::sendChunk("<button>清空今日执行状态</button></form>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault'>");
-  Esp32BaseWeb::sendChunk("<label>通道掩码 <input name='channelMask' value='7'></label> <button>清除通道故障</button></form>");
+  Esp32BaseWeb::sendChunk("<label>通道掩码 <input name='channelMask' value='7'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
+  Esp32BaseWeb::sendChunk("<button>清除通道故障</button></form>");
   Esp32BaseWeb::sendChunk("</section>");
   Esp32BaseWeb::sendFooter();
 #endif

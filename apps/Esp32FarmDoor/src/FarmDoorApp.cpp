@@ -856,8 +856,12 @@ void FarmDoorApp::sendRecordsPage() {
   Esp32BaseWeb::sendChunk("<form method='get' action='/api/app/records'>");
   Esp32BaseWeb::sendChunk("<label>开始序号 <input name='start' value='0'></label> ");
   Esp32BaseWeb::sendChunk("<label>每页 <input name='limit' value='16'></label> ");
+  Esp32BaseWeb::sendChunk("<label>归档 <input name='archive' value='0'></label> ");
+  Esp32BaseWeb::sendChunk("<label>开始时间戳 <input name='startUnixTime'></label> ");
+  Esp32BaseWeb::sendChunk("<label>结束时间戳 <input name='endUnixTime'></label> ");
   Esp32BaseWeb::sendChunk("<label>事件类型 <input name='eventType' placeholder='DoorTravelSet'></label> ");
   Esp32BaseWeb::sendChunk("<button>查询 JSON</button></form>");
+  Esp32BaseWeb::sendChunk("<p>归档 0 表示当前文件，1-16 表示轮转归档文件。</p>");
   Esp32BaseWeb::sendChunk("</section><section><h2>最近事件</h2>");
   Esp32BaseWeb::sendChunk("<p><a href='/api/app/events/recent'>查看最近事件 JSON</a></p></section>");
   Esp32BaseWeb::sendFooter();
@@ -877,16 +881,27 @@ void FarmDoorApp::sendCalibrationPage() {
   sendInt64(g_motorKinematics.outputPulsesPerRev);
   Esp32BaseWeb::sendChunk("</td></tr></table></section><section><h2>端点标定</h2>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-position'>");
-  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='closed'><button>把当前位置标为关门基准</button></form>");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='closed'>");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
+  Esp32BaseWeb::sendChunk("<button>把当前位置标为关门基准</button></form>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-position'>");
-  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='open'><button>把当前位置标为开门位置</button></form>");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='open'>");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
+  Esp32BaseWeb::sendChunk("<button>把当前位置标为开门位置</button></form>");
   Esp32BaseWeb::sendChunk("</section><section><h2>行程调整</h2>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-travel'>");
   Esp32BaseWeb::sendChunk("<label>开门目标 0.01 圈 <input name='openTurnsX100' value='500'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
   Esp32BaseWeb::sendChunk("<button>设置行程</button></form>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/adjust-travel'>");
   Esp32BaseWeb::sendChunk("<label>微调 0.01 圈 <input name='deltaTurnsX100' value='5'></label> ");
-  Esp32BaseWeb::sendChunk("<button>微调行程</button></form></section>");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
+  Esp32BaseWeb::sendChunk("<button>微调行程</button></form>");
+  Esp32BaseWeb::sendChunk("<p>危险操作首次提交会返回确认 token；确认后带相同参数、confirm=true 和 token 再提交。</p></section>");
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -898,7 +913,10 @@ void FarmDoorApp::sendDiagnosticsPage() {
   Esp32BaseWeb::sendChunk("<p><a href='/api/app/diagnostics'>查看诊断 JSON</a></p>");
   Esp32BaseWeb::sendChunk("<p><a href='/api/app/status'>查看状态 JSON</a></p>");
   Esp32BaseWeb::sendChunk("</section><section><h2>故障处理</h2>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault'><button>清除业务故障</button></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault'>");
+  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
+  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
+  Esp32BaseWeb::sendChunk("<button>清除业务故障</button></form>");
   Esp32BaseWeb::sendChunk("</section>");
   Esp32BaseWeb::sendFooter();
 #endif
