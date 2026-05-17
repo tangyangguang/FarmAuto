@@ -19,4 +19,5 @@ FarmAuto 是养殖自动化设备 monorepo，规划包含两个独立应用：
 ## Source Status
 
 Current source work includes public library skeletons under `lib/` and minimal compile-ready application shells under `apps/Esp32FarmDoor` and `apps/Esp32FarmFeeder`.
-Implemented host-tested application logic currently includes business record codecs, record file rotation, feeder scheduling, feeder bucket state handling, and fixed payload codecs for AT24C-backed recovery/state data.
+Implemented host-tested application logic currently includes business record codecs, record file rotation, feeder scheduling, feeder bucket state handling, fixed payload codecs for AT24C-backed recovery/state data, and AT24C128 RecordStore startup restore/write-back glue.
+The current firmware still does not output real motor PWM or read real encoder counts; those hardware paths require bench validation before enabling.
