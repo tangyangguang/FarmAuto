@@ -65,6 +65,14 @@ c++ -std=c++17 \
 
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_recovery_apply.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorRecoveryApply.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorController.cpp" \
+  -o /tmp/farmauto_test_door_recovery_apply
+/tmp/farmauto_test_door_recovery_apply
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
   -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_storage_layout.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorStorageLayout.cpp" \
