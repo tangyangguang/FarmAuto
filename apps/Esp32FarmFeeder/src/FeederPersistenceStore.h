@@ -6,6 +6,7 @@
 #include "FeederCalibrationCodec.h"
 #include "FeederScheduleCodec.h"
 #include "FeederTargetCodec.h"
+#include "FeederTodayCodec.h"
 
 Esp32At24cRecordStore::Result saveFeederSchedule(
     Esp32At24cRecordStore::RecordStore& store,
@@ -13,6 +14,12 @@ Esp32At24cRecordStore::Result saveFeederSchedule(
 
 Esp32At24cRecordStore::Result loadFeederSchedule(Esp32At24cRecordStore::RecordStore& store,
                                                  FeederScheduleSnapshot& out);
+
+Esp32At24cRecordStore::Result saveFeederToday(Esp32At24cRecordStore::RecordStore& store,
+                                              const FeederTodaySnapshot& snapshot);
+
+Esp32At24cRecordStore::Result loadFeederToday(Esp32At24cRecordStore::RecordStore& store,
+                                              FeederTodaySnapshot& out);
 
 Esp32At24cRecordStore::Result saveFeederTargets(Esp32At24cRecordStore::RecordStore& store,
                                                 const FeederTargetSnapshot& snapshot);

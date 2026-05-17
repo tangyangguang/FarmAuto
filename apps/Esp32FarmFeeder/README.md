@@ -7,12 +7,13 @@
 - 已接入 Esp32Base FULL profile。
 - 已接入 `FeederController` 纯业务状态机。
 - 已接入每日多计划服务、手工下料目标解析、料桶余量维护、通道基础信息维护。
-- 已接入喂食计划/今日状态二进制编解码，后续可作为 AT24C128 payload。
+- 已接入喂食计划二进制编解码，后续可作为 AT24C128 `FeederSchedule` payload。
+- 已接入今日通道累计脉冲/克数二进制编解码，后续可作为 AT24C128 `FeederToday` payload。
 - 已接入手工下料默认目标二进制编解码，后续可作为 AT24C128 `FeederChannelTarget` payload。
 - 已接入料桶估算余量二进制编解码，后续可作为 AT24C128 `FeederBucketState` payload；通道基础信息不写入该 payload。
 - 已接入通道基础信息/标定参数二进制编解码，后续可作为 AT24C128 `FeederCalibration` payload；料桶余量不写入该 payload。
 - 已固化喂食器 AT24C128 记录区布局，并用 host 测试校验容量、连续性和页对齐。
-- 已接入计划表、手工下料默认目标、料桶估算余量和通道标定参数到 `Esp32At24cRecordStore` 的读写 glue，并用 fake AT24C host 测试验证。
+- 已接入计划表、今日累计、手工下料默认目标、料桶估算余量和通道标定参数到 `Esp32At24cRecordStore` 的读写 glue，并用 fake AT24C host 测试验证。
 - 已接入首页、计划、记录、基础信息、诊断 5 个最小业务页面，系统参数/日志/OTA/WiFi 仍使用 Esp32Base 页面。
 - 已接入业务最近记录 RAM 缓冲、Flash 二进制追加记录和基础文件轮转。
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
@@ -23,7 +24,6 @@
 
 当前尚未实现：
 
-- 今日执行状态写入/读取 AT24C128。
 - AT24C128 Wire 设备接入应用启动流程。
 - 最终版业务页面的精细交互和视觉样式。
 - GPIO、编码器、PWM 和 AT24C128 硬件适配。

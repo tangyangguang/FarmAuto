@@ -110,6 +110,22 @@ c++ -std=c++17 \
 
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_today.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederToday.cpp" \
+  -o /tmp/farmauto_test_feeder_today
+/tmp/farmauto_test_feeder_today
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_today_codec.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederTodayCodec.cpp" \
+  "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
+  -o /tmp/farmauto_test_feeder_today_codec
+/tmp/farmauto_test_feeder_today_codec
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_bucket.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederBucket.cpp" \
   -o /tmp/farmauto_test_feeder_bucket
@@ -139,6 +155,7 @@ c++ -std=c++17 \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_storage_layout.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederStorageLayout.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederBucketCodec.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederTodayCodec.cpp" \
   "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
   -o /tmp/farmauto_test_feeder_storage_layout
 /tmp/farmauto_test_feeder_storage_layout
@@ -152,6 +169,7 @@ c++ -std=c++17 \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederCalibrationCodec.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederScheduleCodec.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederTargetCodec.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederTodayCodec.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederStorageLayout.cpp" \
   "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \
   -o /tmp/farmauto_test_feeder_persistence_store

@@ -34,6 +34,21 @@ Esp32At24cRecordStore::Result targetCodecResultToStoreResult(FeederTargetCodecRe
   return Esp32At24cRecordStore::Result::InvalidArgument;
 }
 
+Esp32At24cRecordStore::Result todayCodecResultToStoreResult(FeederTodayCodecResult result) {
+  switch (result) {
+    case FeederTodayCodecResult::Ok: return Esp32At24cRecordStore::Result::Ok;
+    case FeederTodayCodecResult::InvalidArgument:
+      return Esp32At24cRecordStore::Result::InvalidArgument;
+    case FeederTodayCodecResult::BufferTooSmall:
+      return Esp32At24cRecordStore::Result::PayloadTooLarge;
+    case FeederTodayCodecResult::UnsupportedVersion:
+      return Esp32At24cRecordStore::Result::LayoutMismatch;
+    case FeederTodayCodecResult::CrcMismatch:
+      return Esp32At24cRecordStore::Result::CrcMismatch;
+  }
+  return Esp32At24cRecordStore::Result::InvalidArgument;
+}
+
 Esp32At24cRecordStore::Result bucketCodecResultToStoreResult(FeederBucketCodecResult result) {
   switch (result) {
     case FeederBucketCodecResult::Ok: return Esp32At24cRecordStore::Result::Ok;
@@ -95,6 +110,35 @@ Esp32At24cRecordStore::Result loadFeederSchedule(Esp32At24cRecordStore::RecordSt
     return readResult;
   }
   return scheduleCodecResultToStoreResult(decodeFeederScheduleSnapshot(payload, length, out));
+}
+
+Esp32At24cRecordStore::Result saveFeederToday(Esp32At24cRecordStore::RecordStore& store,
+                                              const FeederTodaySnapshot& snapshot) {
+  uint8_t payload[kFeederTodayEncodedBytes] = {};
+  std::size_t encodedLength = 0;
+  const FeederTodayCodecResult encodeResult =
+      encodeFeederTodaySnapshot(snapshot, payload, sizeof(payload), encodedLength);
+  if (encodeResult != FeederTodayCodecResult::Ok) {
+    return todayCodecResultToStoreResult(encodeResult);
+  }
+  return store.write(static_cast<uint16_t>(FeederAt24cRecordType::Today),
+                     payload,
+                     encodedLength);
+}
+
+Esp32At24cRecordStore::Result loadFeederToday(Esp32At24cRecordStore::RecordStore& store,
+                                              FeederTodaySnapshot& out) {
+  uint8_t payload[kFeederTodayEncodedBytes] = {};
+  std::size_t length = 0;
+  const Esp32At24cRecordStore::Result readResult =
+      store.readLatest(static_cast<uint16_t>(FeederAt24cRecordType::Today),
+                       payload,
+                       sizeof(payload),
+                       length);
+  if (readResult != Esp32At24cRecordStore::Result::Ok) {
+    return readResult;
+  }
+  return todayCodecResultToStoreResult(decodeFeederTodaySnapshot(payload, length, out));
 }
 
 Esp32At24cRecordStore::Result saveFeederTargets(Esp32At24cRecordStore::RecordStore& store,

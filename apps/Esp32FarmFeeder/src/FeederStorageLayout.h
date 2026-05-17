@@ -9,6 +9,7 @@
 #include "FeederCalibrationCodec.h"
 #include "FeederScheduleCodec.h"
 #include "FeederTargetCodec.h"
+#include "FeederTodayCodec.h"
 
 enum class FeederAt24cRecordType : uint16_t {
   RecoveryPolicy = 1,

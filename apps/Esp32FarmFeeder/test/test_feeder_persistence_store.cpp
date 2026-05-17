@@ -59,6 +59,22 @@ int main() {
   assert(restoredSchedule.plans[0].config.planId == 1);
   assert(restoredSchedule.plans[0].todayExecuted);
 
+  FeederTodaySnapshot today;
+  today.serviceDate = 20260517;
+  today.channels[0].pulses = 4320;
+  today.channels[0].gramsX100 = 7000;
+  today.channels[1].pulses = 4000;
+  today.channels[1].gramsX100 = 6500;
+
+  assert(saveFeederToday(store, today) == Esp32At24cRecordStore::Result::Ok);
+  FeederTodaySnapshot restoredToday;
+  assert(loadFeederToday(store, restoredToday) == Esp32At24cRecordStore::Result::Ok);
+  assert(restoredToday.serviceDate == 20260517);
+  assert(restoredToday.channels[0].pulses == 4320);
+  assert(restoredToday.channels[0].gramsX100 == 7000);
+  assert(restoredToday.channels[1].pulses == 4000);
+  assert(restoredToday.channels[1].gramsX100 == 6500);
+
   FeederTargetSnapshot targets;
   targets.channels[0].mode = FeederTargetMode::Grams;
   targets.channels[0].targetGramsX100 = 5000;
@@ -110,6 +126,9 @@ int main() {
 
   schedule.planCount = kFeederMaxPlans + 1;
   assert(saveFeederSchedule(store, schedule) == Esp32At24cRecordStore::Result::InvalidArgument);
+
+  today.channels[0].pulses = -1;
+  assert(saveFeederToday(store, today) == Esp32At24cRecordStore::Result::InvalidArgument);
 
   buckets.channels[0].remainGramsX100 = 600000;
   assert(saveFeederBuckets(store, buckets) == Esp32At24cRecordStore::Result::InvalidArgument);
