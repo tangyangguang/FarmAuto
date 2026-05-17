@@ -8,6 +8,7 @@
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard`。
 - 已接入自动门业务状态机 `DoorController`。
 - 已提供状态、诊断、最近事件、Flash/RAM 记录、开门、关门、停止、位置标定、行程设置、行程微调和清除故障 API。
+- 已接入危险操作确认 token；位置标定、行程设置、行程微调和清除故障都需要二次确认。
 - 已接入自动门恢复状态二进制编解码，后续可作为 AT24C128 payload。
 - 已固化自动门 AT24C128 记录区布局，并用 host 测试校验容量、连续性和页对齐。
 - 已接入自动门恢复状态到 `Esp32At24cRecordStore` 的读写 glue，并用 fake AT24C host 测试验证。
@@ -69,6 +70,7 @@
 - `position=open`：把当前位置标为开门位置。
 - `position=unknown`：标记位置不可信。
 - `positionPulses=<value>&trustLevel=Trusted|Limited|Untrusted`：直接设置位置和可信等级。
+- 属于危险操作，需要确认 token。
 
 `/api/app/maintenance/set-travel`
 
@@ -76,15 +78,24 @@
 - `openTargetPulses=<value>`：按编码器脉冲设置开门目标。
 - 可选 `maxRunPulses=<value>`；未提供时按开门目标的 150% 生成保底上限。
 - 成功时同步写入 Esp32Base App Config 的 `door/openTurns`。
+- 属于危险操作，需要确认 token。
 
 `/api/app/maintenance/adjust-travel`
 
 - `deltaTurnsX100=<value>` 或 `deltaPulses=<value>`：对当前开门目标做微调。
 - 成功时同步写入 Esp32Base App Config 的 `door/openTurns`。
+- 属于危险操作，需要确认 token。
 
 `/api/app/maintenance/clear-fault`
 
 - 清除业务状态机故障。
+- 属于危险操作，需要确认 token。
+
+危险操作确认流程：
+
+1. 首次提交危险 API 时不带 `confirm=true`，服务端返回 `ConfirmRequired`、`actionId`、`resource`、`confirmToken` 和 `ttlMs`。
+2. 用户确认后，使用相同业务参数再次提交，并附加 `confirm=true&confirmToken=<token>`。
+3. token 绑定动作和资源，60 秒内有效，只能消费一次。
 
 编译验证：
 

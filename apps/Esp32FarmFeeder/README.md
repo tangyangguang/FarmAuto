@@ -19,6 +19,7 @@
 - 已接入业务最近记录 RAM 缓冲、Flash 二进制追加记录和基础文件轮转。
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
 - 已提供只读诊断 API、最近事件 API、清空今日状态和清除通道故障维护 API。
+- 已接入危险操作确认 token；跳过/取消跳过计划实例、删除计划、清空今日、清除故障、料桶余量维护和基础信息修改都需要二次确认。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard` 作为后续实现依赖。
 - 默认三路通道均已安装且启用；底层保留 4 路数组容量，但首版业务 API 只暴露和接受 3 路。
 - 当前不会输出 PWM，也不会驱动任何电机。
@@ -74,12 +75,14 @@
 `/api/app/schedules/delete`
 
 - 管理计划蓝本。
+- 删除计划属于危险操作，需要确认 token。
 
 `/api/app/schedule-occurrence/skip`
 `/api/app/schedule-occurrence/cancel-skip`
 
 - 跳过或取消跳过某个计划的指定日期执行实例；请求应传 `planId` 和 `date=YYYYMMDD`。
 - 不传 `date` 时默认使用当前服务日期，页面首版必须支持今日和明日计划跳过。
+- 属于危险操作，需要确认 token。
 
 `/api/app/buckets`
 `/api/app/buckets/set-remaining`
@@ -87,11 +90,13 @@
 `/api/app/buckets/mark-full`
 
 - 查看和维护每路料桶估算余量。
+- 修改余量属于危险操作，需要确认 token。
 
 `/api/app/base-info`
 `/api/app/base-info/channel`
 
 - 查看和维护每路通道基础信息。
+- 修改基础信息属于危险操作，需要确认 token。
 
 `/api/app/records`
 
@@ -102,11 +107,19 @@
 
 - 空闲时清除今日计划执行状态，包括跳过、已尝试、已完成和已错过。
 - 有通道运行时返回 `Busy`。
+- 属于危险操作，需要确认 token。
 
 `/api/app/maintenance/clear-fault`
 
 - 支持 `channel` 或 `channelMask`，清除指定通道故障。
 - 返回 `successMask` 和 `skippedMask`。
+- 属于危险操作，需要确认 token。
+
+危险操作确认流程：
+
+1. 首次提交危险 API 时不带 `confirm=true`，服务端返回 `ConfirmRequired`、`actionId`、`resource`、`confirmToken` 和 `ttlMs`。
+2. 用户确认后，使用相同业务参数再次提交，并附加 `confirm=true&confirmToken=<token>`。
+3. token 绑定动作和资源，60 秒内有效，只能消费一次。
 
 编译验证：
 
