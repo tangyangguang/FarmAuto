@@ -1091,6 +1091,17 @@ void FarmDoorApp::sendRecordsJson() {
     Esp32BaseWeb::endJson();
     return;
   }
+  if (archiveIndex > 0) {
+    Esp32BaseWeb::sendChunk("{\"source\":\"flash\",\"start\":0,\"archive\":");
+    sendUint32(archiveIndex);
+    Esp32BaseWeb::sendChunk(",\"nextIndex\":0,\"limit\":");
+    sendUint32(limitParam);
+    Esp32BaseWeb::sendChunk(",\"count\":0,\"totalRecords\":0,\"recordBytes\":");
+    sendUint32(kDoorRecordEncodedMaxBytes);
+    Esp32BaseWeb::sendChunk(",\"records\":[]}");
+    Esp32BaseWeb::endJson();
+    return;
+  }
 #endif
 
   const DoorRecordSnapshot snapshot = g_records.snapshot();
