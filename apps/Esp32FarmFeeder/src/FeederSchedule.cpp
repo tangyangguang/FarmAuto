@@ -186,13 +186,12 @@ int FeederScheduleService::findPlan(uint8_t planId) const {
 }
 
 uint8_t FeederScheduleService::allocatePlanId() const {
-  uint8_t maxId = 0;
-  for (uint8_t i = 0; i < snapshot_.planCount; ++i) {
-    if (snapshot_.plans[i].config.planId > maxId) {
-      maxId = snapshot_.plans[i].config.planId;
+  for (uint16_t candidate = 1; candidate <= 255; ++candidate) {
+    if (findPlan(static_cast<uint8_t>(candidate)) < 0) {
+      return static_cast<uint8_t>(candidate);
     }
   }
-  return static_cast<uint8_t>(maxId + 1);
+  return 0;
 }
 
 bool FeederScheduleService::planCanRunToday(const FeederPlanState& plan) const {

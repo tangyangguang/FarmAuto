@@ -26,6 +26,15 @@ int main() {
   assert(schedules.addPlan(duplicateIdPlan).result == FeederScheduleResult::InvalidArgument);
   assert(schedules.deletePlan(7) == FeederScheduleResult::Ok);
 
+  FeederPlanConfig highIdPlan = morning;
+  highIdPlan.planId = 255;
+  assert(schedules.addPlan(highIdPlan).result == FeederScheduleResult::Ok);
+  FeederScheduleMutation autoAfterHighId = schedules.addPlan(morning);
+  assert(autoAfterHighId.result == FeederScheduleResult::Ok);
+  assert(autoAfterHighId.planId == 1);
+  assert(schedules.deletePlan(255) == FeederScheduleResult::Ok);
+  assert(schedules.deletePlan(1) == FeederScheduleResult::Ok);
+
   FeederPlanConfig draft;
   draft.enabled = false;
   assert(schedules.addPlan(draft).result == FeederScheduleResult::Ok);
