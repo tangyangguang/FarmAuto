@@ -54,5 +54,21 @@ int main() {
   guard.reset();
   assert(guard.snapshot().state == CurrentGuardState::Normal);
 
+  MotorCurrentGuard delayedGuard;
+  config.startupGraceMs = 1000;
+  config.confirmationSamples = 1;
+  assert(delayedGuard.configure(config) == CurrentGuardResult::Ok);
+  CurrentSample delayedOver;
+  delayedOver.timestampMs = 60000;
+  delayedOver.sequence = 1;
+  delayedOver.currentMa = 1200;
+  assert(delayedGuard.update(delayedOver, 60000) == CurrentGuardResult::Ok);
+  assert(delayedGuard.snapshot().state == CurrentGuardState::Normal);
+  assert(delayedGuard.snapshot().faultReason == CurrentFaultReason::StartupGrace);
+  delayedOver.timestampMs = 61101;
+  delayedOver.sequence = 2;
+  assert(delayedGuard.update(delayedOver, 61101) == CurrentGuardResult::FaultActive);
+  assert(delayedGuard.snapshot().state == CurrentGuardState::Fault);
+
   return 0;
 }

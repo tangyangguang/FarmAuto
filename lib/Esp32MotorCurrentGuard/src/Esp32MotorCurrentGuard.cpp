@@ -33,6 +33,8 @@ void MotorCurrentGuard::reset() {
   trace_ = CurrentTracePoint{};
   hasFilteredSample_ = false;
   firstOverThresholdMs_ = 0;
+  hasMonitoringStartMs_ = false;
+  monitoringStartMs_ = 0;
 
   snapshot_.warningThresholdMa = config_.warningThresholdMa;
   snapshot_.faultThresholdMa = config_.faultThresholdMa;
@@ -76,7 +78,13 @@ CurrentGuardResult MotorCurrentGuard::update(const CurrentSample& sample, uint32
   snapshot_.rawCurrentMa = rawMa;
   snapshot_.lastSampleMs = nowMs;
 
-  if (nowMs < config_.startupGraceMs) {
+  if (!hasMonitoringStartMs_) {
+    monitoringStartMs_ = nowMs;
+    hasMonitoringStartMs_ = true;
+  }
+
+  const uint32_t elapsedMs = nowMs - monitoringStartMs_;
+  if (elapsedMs < config_.startupGraceMs) {
     snapshot_.state = CurrentGuardState::Normal;
     snapshot_.faultReason = CurrentFaultReason::StartupGrace;
     snapshot_.overThresholdSamples = 0;

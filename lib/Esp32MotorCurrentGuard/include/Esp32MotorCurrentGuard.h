@@ -127,6 +127,8 @@ class MotorCurrentGuard {
   CurrentTracePoint trace_;
   bool hasFilteredSample_ = false;
   uint32_t firstOverThresholdMs_ = 0;
+  bool hasMonitoringStartMs_ = false;
+  uint32_t monitoringStartMs_ = 0;
 };
 
 }  // namespace Esp32MotorCurrentGuard
