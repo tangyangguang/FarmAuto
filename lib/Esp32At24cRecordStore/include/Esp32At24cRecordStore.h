@@ -3,6 +3,11 @@
 #include <cstddef>
 #include <cstdint>
 
+#if defined(ARDUINO)
+#include <Arduino.h>
+#include <Wire.h>
+#endif
+
 namespace Esp32At24cRecordStore {
 
 enum class Result : uint8_t {
@@ -71,6 +76,24 @@ private:
   II2cBus& bus_;
   At24cI2cDeviceConfig config_{};
 };
+
+#if defined(ARDUINO)
+class ArduinoWireI2cBus : public II2cBus {
+public:
+  explicit ArduinoWireI2cBus(TwoWire& wire = Wire);
+
+  bool write(uint8_t deviceAddress, const uint8_t* data, std::size_t length) override;
+  bool writeRead(uint8_t deviceAddress,
+                 const uint8_t* writeData,
+                 std::size_t writeLength,
+                 uint8_t* readData,
+                 std::size_t readLength) override;
+  void delayMs(uint16_t ms) override;
+
+private:
+  TwoWire& wire_;
+};
+#endif
 
 struct RecordStoreConfig {
   uint16_t layoutVersion = 1;

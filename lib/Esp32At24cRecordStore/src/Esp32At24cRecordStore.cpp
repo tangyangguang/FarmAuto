@@ -169,6 +169,48 @@ bool At24cI2cDevice::waitForWriteComplete() {
   return false;
 }
 
+#if defined(ARDUINO)
+ArduinoWireI2cBus::ArduinoWireI2cBus(TwoWire& wire) : wire_(wire) {}
+
+bool ArduinoWireI2cBus::write(uint8_t deviceAddress, const uint8_t* data, std::size_t length) {
+  wire_.beginTransmission(deviceAddress);
+  for (std::size_t i = 0; i < length; ++i) {
+    wire_.write(data[i]);
+  }
+  return wire_.endTransmission() == 0;
+}
+
+bool ArduinoWireI2cBus::writeRead(uint8_t deviceAddress,
+                                  const uint8_t* writeData,
+                                  std::size_t writeLength,
+                                  uint8_t* readData,
+                                  std::size_t readLength) {
+  if ((writeData == nullptr && writeLength > 0) || (readData == nullptr && readLength > 0)) {
+    return false;
+  }
+  wire_.beginTransmission(deviceAddress);
+  for (std::size_t i = 0; i < writeLength; ++i) {
+    wire_.write(writeData[i]);
+  }
+  if (wire_.endTransmission(false) != 0) {
+    return false;
+  }
+  const std::size_t received = wire_.requestFrom(static_cast<int>(deviceAddress),
+                                                 static_cast<int>(readLength));
+  if (received != readLength) {
+    return false;
+  }
+  for (std::size_t i = 0; i < readLength; ++i) {
+    readData[i] = static_cast<uint8_t>(wire_.read());
+  }
+  return true;
+}
+
+void ArduinoWireI2cBus::delayMs(uint16_t ms) {
+  delay(ms);
+}
+#endif
+
 Result RecordStore::begin(IAt24cDevice& device,
                           const RecordStoreConfig& config,
                           const RegionConfig* regions,
