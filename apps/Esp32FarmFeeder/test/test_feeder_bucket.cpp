@@ -1,4 +1,5 @@
 #include <cassert>
+#include <climits>
 
 #include "FeederBucket.h"
 
@@ -38,6 +39,17 @@ int main() {
   snapshot = buckets.snapshot();
   assert(snapshot.channels[0].remainGramsX100 == 250000);
   assert(snapshot.channels[0].remainPercent == 50);
+
+  info.capacityGramsX100 = INT_MAX;
+  assert(buckets.updateBaseInfo(0, info) == FeederBucketResult::Ok);
+  assert(buckets.setRemaining(0, INT_MAX - 10, 1350) == FeederBucketResult::Ok);
+  assert(buckets.addFeed(0, 1000, 1360) == FeederBucketResult::Ok);
+  snapshot = buckets.snapshot();
+  assert(snapshot.channels[0].remainGramsX100 == INT_MAX);
+  assert(snapshot.channels[0].remainPercent == 100);
+  info.capacityGramsX100 = 500000;
+  assert(buckets.updateBaseInfo(0, info) == FeederBucketResult::Ok);
+  assert(buckets.setRemaining(0, 250000, 1370) == FeederBucketResult::Ok);
 
   assert(buckets.consume(0, 300000) == FeederBucketResult::Underflow);
   snapshot = buckets.snapshot();

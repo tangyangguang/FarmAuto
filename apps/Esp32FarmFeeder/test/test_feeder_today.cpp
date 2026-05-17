@@ -1,4 +1,5 @@
 #include <cassert>
+#include <climits>
 
 #include "FeederToday.h"
 
@@ -33,6 +34,16 @@ int main() {
 
   restored.channels[0].pulses = -1;
   assert(today.restore(restored) == FeederTodayResult::InvalidArgument);
+
+  FeederTodaySnapshot nearLimit;
+  nearLimit.serviceDate = 20260519;
+  nearLimit.channels[0].pulses = INT_MAX - 5;
+  nearLimit.channels[0].gramsX100 = INT_MAX - 5;
+  assert(today.restore(nearLimit) == FeederTodayResult::Ok);
+  assert(today.addChannelFeed(0, 5, 5) == FeederTodayResult::Ok);
+  assert(today.snapshot().channels[0].pulses == INT_MAX);
+  assert(today.addChannelFeed(0, 1, 0) == FeederTodayResult::InvalidArgument);
+  assert(today.addChannelFeed(0, 0, 1) == FeederTodayResult::InvalidArgument);
 
   return 0;
 }

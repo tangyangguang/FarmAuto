@@ -48,11 +48,12 @@ FeederBucketResult FeederBucketService::addFeed(uint8_t channelIndex,
   if (capacity <= 0) {
     return FeederBucketResult::InvalidArgument;
   }
-  int32_t nextRemain = snapshot_.channels[channelIndex].remainGramsX100 + addedGramsX100;
+  int64_t nextRemain = static_cast<int64_t>(snapshot_.channels[channelIndex].remainGramsX100) +
+                       addedGramsX100;
   if (nextRemain > capacity) {
     nextRemain = capacity;
   }
-  snapshot_.channels[channelIndex].remainGramsX100 = nextRemain;
+  snapshot_.channels[channelIndex].remainGramsX100 = static_cast<int32_t>(nextRemain);
   snapshot_.channels[channelIndex].lastRefillUnixTime = unixTime;
   snapshot_.channels[channelIndex].underflow = false;
   recomputePercent(channelIndex);
@@ -146,7 +147,8 @@ void FeederBucketService::recomputePercent(uint8_t channelIndex) {
     channel.remainPercent = 0;
     return;
   }
-  int32_t percent = (channel.remainGramsX100 * 100) / capacity;
+  int32_t percent = static_cast<int32_t>(
+      (static_cast<int64_t>(channel.remainGramsX100) * 100) / capacity);
   if (percent > 100) {
     percent = 100;
   }
