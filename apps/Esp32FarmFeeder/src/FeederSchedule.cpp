@@ -20,6 +20,10 @@ FeederScheduleMutation FeederScheduleService::addPlan(const FeederPlanConfig& co
     mutation.result = FeederScheduleResult::InvalidArgument;
     return mutation;
   }
+  if (config.planId != 0 && findPlan(config.planId) >= 0) {
+    mutation.result = FeederScheduleResult::InvalidArgument;
+    return mutation;
+  }
 
   FeederPlanState& plan = snapshot_.plans[snapshot_.planCount++];
   plan = FeederPlanState{};

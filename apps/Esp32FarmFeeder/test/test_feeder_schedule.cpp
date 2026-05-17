@@ -20,6 +20,12 @@ int main() {
   evening.timeMinutes = 18 * 60;
   evening.channelMask = 0b0001;
 
+  FeederPlanConfig duplicateIdPlan = morning;
+  duplicateIdPlan.planId = 7;
+  assert(schedules.addPlan(duplicateIdPlan).result == FeederScheduleResult::Ok);
+  assert(schedules.addPlan(duplicateIdPlan).result == FeederScheduleResult::InvalidArgument);
+  assert(schedules.deletePlan(7) == FeederScheduleResult::Ok);
+
   FeederPlanConfig draft;
   draft.enabled = false;
   assert(schedules.addPlan(draft).result == FeederScheduleResult::Ok);
