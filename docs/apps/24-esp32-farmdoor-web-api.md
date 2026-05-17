@@ -11,9 +11,9 @@
 Esp32FarmDoor 页面：
 
 - `/`：自动门总览，显示门状态、位置、保护状态、常用操作、上次运行回放和最近事件。
-- `/records`：自动门长期业务记录查询和导出。
-- `/calibration`：行程校准，含手动运行、标定关门基准、用当前位置更新开门目标和端点验证。
-- `/diagnostics`：自动门业务诊断信息，含状态 snapshot、端点快照、最近事件、AT24C inspect、flash 记录范围和业务只读检查。
+- `/records`：自动门长期业务记录查询；导出作为后续增强。
+- `/calibration`：行程校准，含标定关门基准、用当前位置更新开门目标、直接设置行程和微调行程。手动运行和端点验证等真实电机动作进入硬件适配阶段。
+- `/diagnostics`：自动门业务诊断信息，含状态 snapshot、最近事件、GPIO/ADC/AT24C/flash 只读检查。
 
 系统参数、系统日志、OTA、WiFi 和文件系统格式化由 Esp32Base 自己提供，不进入自动门业务导航和静态原型。
 
@@ -36,30 +36,32 @@ Esp32FarmDoor 页面：
 
 维护：
 
-- `POST /api/app/maintenance/manual-move`
 - `POST /api/app/maintenance/set-position`
 - `POST /api/app/maintenance/set-travel`
 - `POST /api/app/maintenance/adjust-travel`
-- `POST /api/app/maintenance/save-endpoints`
+- `POST /api/app/maintenance/clear-fault`
+
+硬件适配阶段再增加的维护 API：
+
+- `POST /api/app/maintenance/manual-move`
 - `POST /api/app/maintenance/verify-endpoints`
 - `POST /api/app/maintenance/calibrate-open-limit`
 - `POST /api/app/maintenance/calibrate-current-zero`
-- `POST /api/app/maintenance/clear-fault`
 
 ## Status Snapshot
 
 `GET /api/app/status` 应只包含自动门字段：
 
 - 应用标识：appKind=`FarmDoor`、firmwareVersion、schemaVersion。
-- 应用状态：`PositionUnknown`、`IdleClosed`、`IdleOpen`、`IdlePartial`、`Opening`、`Closing`、`Stopping`、`Maintenance`、`Fault`。
-- 维护流程：activeFlow，可为空，或为 `EndpointTeaching`、`EndpointVerifying`、`LimitHoming`、`CurrentZeroCalibration`、`StorageFormat`。
+- 应用状态：`PositionUnknown`、`IdleClosed`、`IdleOpen`、`IdlePartial`、`Opening`、`Closing`、`Fault`。
+- 维护流程：首版不单独暴露 activeFlow；硬件适配阶段如增加手动运行、端点验证、限位校准或电流零点校准，再增加 activeFlow 字段。
 - 当前位置：positionPulses、positionPercent、positionTrustLevel、positionSource、lastPositionSavedAt。
-- 端点：closePositionPulses、openTargetPulses、maxRunPulses、maxCloseUnwindPulses。
-- 行程：travelTurnsX100、travelPulses、positionConfidence。
+- 端点：closedPulses、openTargetPulses、maxRunPulses、maxRunMs。
+- 行程：openTurnsX100、outputPulsesPerRev。
 - 限位：第一版显示禁用；下一阶段显示 openLimit/closeLimit 的启用、触发、断线和冲突状态。
-- 电机：state、speedPps、outputPercent、remainingPulses、faultReason。
-- 电流：enabled、currentMa、filteredMa、thresholdMa、guardState、faultReason。
-- 存储：AT24C 在线状态、flash 剩余空间、最近写入错误、记录范围。
+- 电机：当前返回 `motorOutput.enabled=false`；AT8236/PCNT 接入后再扩展 state、speedPps、outputPercent、remainingPulses、faultReason。
+- 电流：首版返回 INA240A2 编译开关和运行开关；GPIO33 ADC 原始值在 diagnostics 中查看。电流换算、零点校准和保护停机策略在硬件实测后接入。
+- 存储：AT24C 在线状态、record store ready、flash 记录分页信息。
 - 最近命令：commandId、command、source、startedAt、result。
 - 最近停止原因：lastStopReason，例如 TargetReached、UserStop、MaxRunTime、MaxRunPulses、OverCurrent、EncoderNoPulse。
 
@@ -83,11 +85,14 @@ Esp32FarmDoor 页面：
 - 设置当前位置。
 - 直接设置行程圈数或脉冲数。
 - 微调行程。
-- 保存端点。
+- 清除故障后恢复运行。
+
+以下危险操作属于硬件适配阶段：
+
+- 低速手动运行。
 - 低速端点验证。
 - 下一阶段上限位校准。
 - INA240A2 零点校准。
-- 清除故障后恢复运行。
 
 二次确认建议：
 
@@ -102,7 +107,8 @@ Esp32FarmDoor 页面：
 
 - `PositionUnknown` 下禁止普通开门和关门。
 - 允许进入行程校准页执行手动运行、设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程和低速端点验证。
-- `manual-move` 单次动作必须限制最大时长和最大脉冲，并允许随时停止。
+- 当前无电机输出版本只支持设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程；低速手动运行和低速端点验证等真实电机动作进入硬件适配阶段。
+- 硬件适配阶段的 `manual-move` 单次动作必须限制最大时长和最大脉冲，并允许随时停止。
 - 端点验证成功前，不建议退出 `PositionUnknown` 进入普通控制；如果用户选择直接设置行程但跳过验证，必须标记为低可信恢复来源并持续提示。
 - 没有远程视频、现场观察或机械标记时，不建议远程重新示教端点。
 
