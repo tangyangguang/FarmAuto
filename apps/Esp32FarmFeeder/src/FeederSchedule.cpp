@@ -124,9 +124,10 @@ FeederScheduleTick FeederScheduleService::evaluate(uint16_t currentMinutes, bool
     }
     if (currentMinutes > plan.config.timeMinutes) {
       plan.scheduleMissedToday = true;
-      tick.action = FeederScheduleAction::MarkMissed;
-      tick.planId = plan.config.planId;
-      return tick;
+      if (tick.action == FeederScheduleAction::NoAction) {
+        tick.action = FeederScheduleAction::MarkMissed;
+        tick.planId = plan.config.planId;
+      }
     }
   }
   return tick;

@@ -53,8 +53,8 @@ int main() {
 
   assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
   assert(schedules.snapshot().plans[0].scheduleMissedToday);
-  assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
   assert(schedules.snapshot().plans[1].scheduleMissedToday);
+  assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::NoAction);
 
   assert(schedules.skipToday(2) == FeederScheduleResult::Ok);
   schedules.clearToday();
