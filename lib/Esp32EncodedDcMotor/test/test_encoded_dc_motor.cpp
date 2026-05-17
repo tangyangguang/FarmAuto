@@ -110,5 +110,38 @@ int main() {
   assert(snapshot.elapsedMs == 100);
   assert(snapshot.faultReason == Esp32EncodedDcMotor::FaultReason::None);
 
+  FakeDriver stallDriver;
+  FakeEncoder stallEncoder;
+  Esp32EncodedDcMotor::EncodedDcMotor stallMotor;
+  protection.maxRunMs = 0;
+  protection.maxRunPulses = 0;
+  protection.startupGraceMs = 100;
+  protection.stallCheckIntervalMs = 50;
+  protection.minPulseDelta = 1;
+  assert(stallMotor.begin(stallDriver, stallEncoder, hardware, encoderConfig) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(stallMotor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(stallMotor.requestMovePulses(1000) == Esp32EncodedDcMotor::MotorResult::Ok);
+  stallMotor.update(90);
+  assert(stallMotor.snapshot().faultReason == Esp32EncodedDcMotor::FaultReason::None);
+  stallMotor.update(160);
+  assert(stallMotor.snapshot().state == Esp32EncodedDcMotor::MotorState::Fault);
+  assert(stallMotor.snapshot().faultReason == Esp32EncodedDcMotor::FaultReason::EncoderNoPulse);
+
+  FakeDriver movingDriver;
+  FakeEncoder movingEncoder;
+  Esp32EncodedDcMotor::EncodedDcMotor movingMotor;
+  assert(movingMotor.begin(movingDriver, movingEncoder, hardware, encoderConfig) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(movingMotor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(movingMotor.requestMovePulses(1000) == Esp32EncodedDcMotor::MotorResult::Ok);
+  movingMotor.update(90);
+  movingEncoder.position = 2;
+  movingMotor.update(160);
+  assert(movingMotor.snapshot().state != Esp32EncodedDcMotor::MotorState::Fault);
+  assert(movingMotor.snapshot().faultReason == Esp32EncodedDcMotor::FaultReason::None);
+
   return 0;
 }

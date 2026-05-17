@@ -219,6 +219,8 @@ private:
   bool configured_ = false;
   uint32_t commandStartMs_ = 0;
   uint32_t stopStartMs_ = 0;
+  uint32_t lastStallCheckMs_ = 0;
+  int64_t lastStallCheckPosition_ = 0;
 };
 
 }  // namespace Esp32EncodedDcMotor

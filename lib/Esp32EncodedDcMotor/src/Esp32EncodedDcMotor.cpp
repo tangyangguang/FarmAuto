@@ -120,6 +120,20 @@ void EncodedDcMotor::update(uint32_t nowMs) {
     return;
   }
 
+  if ((snapshot_.state == MotorState::SoftStarting || snapshot_.state == MotorState::Running) &&
+      protection_.stallCheckIntervalMs > 0 && protection_.minPulseDelta > 0 &&
+      snapshot_.elapsedMs > protection_.startupGraceMs &&
+      nowMs - lastStallCheckMs_ >= protection_.stallCheckIntervalMs) {
+    const int64_t delta = absoluteDistance(snapshot_.positionPulses, lastStallCheckPosition_);
+    if (delta < protection_.minPulseDelta) {
+      requestEmergencyStop(FaultReason::EncoderNoPulse);
+      updateTrace(nowMs);
+      return;
+    }
+    lastStallCheckMs_ = nowMs;
+    lastStallCheckPosition_ = snapshot_.positionPulses;
+  }
+
   const bool reachedTarget =
       (snapshot_.direction == MotorDirection::Forward &&
        snapshot_.positionPulses >= snapshot_.targetPulses) ||
@@ -223,6 +237,8 @@ MotorResult EncodedDcMotor::startMoveTo(int64_t targetPulses) {
   snapshot_.faultReason = FaultReason::None;
   snapshot_.lastCommandResult = MotorResult::Ok;
   commandStartMs_ = snapshot_.lastUpdateMs;
+  lastStallCheckMs_ = commandStartMs_;
+  lastStallCheckPosition_ = current;
   return MotorResult::Ok;
 }
 
