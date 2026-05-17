@@ -1562,10 +1562,10 @@ void FarmFeederApp::sendHomePage() {
     Esp32BaseWeb::sendChunk("<tr><td>");
     sendUint8(static_cast<uint8_t>(i + 1));
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendInt32(buckets.channels[i].remainGramsX100);
-    Esp32BaseWeb::sendChunk(" / 100 g</td><td>");
-    sendInt32(buckets.channels[i].baseInfo.capacityGramsX100);
-    Esp32BaseWeb::sendChunk(" / 100 g</td></tr>");
+    sendFixedX100(buckets.channels[i].remainGramsX100);
+    Esp32BaseWeb::sendChunk(" g</td><td>");
+    sendFixedX100(buckets.channels[i].baseInfo.capacityGramsX100);
+    Esp32BaseWeb::sendChunk(" g</td></tr>");
   }
   Esp32BaseWeb::sendChunk("</table></section>");
   Esp32BaseWeb::sendFooter();
@@ -1697,8 +1697,8 @@ void FarmFeederApp::sendBaseInfoPage() {
     Esp32BaseWeb::sendChunk("</td><td>");
     sendInt32(buckets.channels[i].baseInfo.outputPulsesPerRev);
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendInt32(buckets.channels[i].baseInfo.gramsPerRevX100);
-    Esp32BaseWeb::sendChunk(" / 100 g</td></tr>");
+    sendFixedX100(buckets.channels[i].baseInfo.gramsPerRevX100);
+    Esp32BaseWeb::sendChunk(" g</td></tr>");
   }
   Esp32BaseWeb::sendChunk("</table></section><section><h2>修改单路信息</h2>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/base-info/channel'>");
