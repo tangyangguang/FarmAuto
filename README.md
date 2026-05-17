@@ -35,3 +35,12 @@ platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t uploadfs --upload-port 
 ```
 
 Without AT24C128 or motor hardware connected, startup should still complete. I2C warnings are expected on a bare core board; PWM and motor output remain disabled in the current firmware.
+
+After the board joins WiFi, run non-destructive HTTP smoke tests:
+
+```bash
+./tools/smoke_http.sh door http://192.168.2.156 admin admin
+./tools/smoke_http.sh feeder http://192.168.2.156 admin admin
+```
+
+The smoke script checks business pages, read-only JSON APIs, and unauthenticated API rejection. It does not trigger motor output, calibration writes, feeding, or door movement.
