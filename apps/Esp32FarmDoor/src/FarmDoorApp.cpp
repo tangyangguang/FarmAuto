@@ -561,6 +561,23 @@ void initializeDoorAt24cStore() {
   }
 }
 
+bool persistDoorRecoveryStateIfReady() {
+  if (!g_at24cStoreReady) {
+    return false;
+  }
+  const DoorRecordTime time = currentRecordTime();
+  const DoorRecoveryState state = doorRecoveryStateFromSnapshot(
+      g_door.snapshot(), g_doorConfig, time.unixTime, time.uptimeSec, time.bootId);
+  const Esp32At24cRecordStore::Result result = saveDoorRecoveryState(g_at24cStore, state);
+  if (result == Esp32At24cRecordStore::Result::Ok ||
+      result == Esp32At24cRecordStore::Result::Unchanged) {
+    return true;
+  }
+  ESP32BASE_LOG_W("farmdoor", "door_recovery_save_failed result=%u",
+                  static_cast<unsigned>(result));
+  return false;
+}
+
 }  // namespace
 
 FarmDoorApp FarmDoor;
@@ -992,6 +1009,9 @@ void FarmDoorApp::handleDoorStop() {
   record.oldPositionPulses = snapshot.positionPulses;
   record.newPositionPulses = g_door.snapshot().positionPulses;
   recordBusinessEvent(record);
+  if (result == DoorCommandResult::Ok) {
+    persistDoorRecoveryStateIfReady();
+  }
   sendCommandResultJson(result);
 #endif
 }
@@ -1010,6 +1030,9 @@ void FarmDoorApp::handleSetPosition() {
       record.oldPositionPulses = before.positionPulses;
       record.newPositionPulses = g_door.snapshot().positionPulses;
       recordBusinessEvent(record);
+      if (result == DoorCommandResult::Ok) {
+        persistDoorRecoveryStateIfReady();
+      }
       sendCommandResultJson(result);
       return;
     }
@@ -1021,6 +1044,9 @@ void FarmDoorApp::handleSetPosition() {
       record.oldPositionPulses = before.positionPulses;
       record.newPositionPulses = g_door.snapshot().positionPulses;
       recordBusinessEvent(record);
+      if (result == DoorCommandResult::Ok) {
+        persistDoorRecoveryStateIfReady();
+      }
       sendCommandResultJson(result);
       return;
     }
@@ -1032,6 +1058,9 @@ void FarmDoorApp::handleSetPosition() {
       record.oldPositionPulses = before.positionPulses;
       record.newPositionPulses = g_door.snapshot().positionPulses;
       recordBusinessEvent(record);
+      if (result == DoorCommandResult::Ok) {
+        persistDoorRecoveryStateIfReady();
+      }
       sendCommandResultJson(result);
       return;
     }
@@ -1052,6 +1081,9 @@ void FarmDoorApp::handleSetPosition() {
   record.oldPositionPulses = before.positionPulses;
   record.newPositionPulses = g_door.snapshot().positionPulses;
   recordBusinessEvent(record);
+  if (result == DoorCommandResult::Ok) {
+    persistDoorRecoveryStateIfReady();
+  }
   sendCommandResultJson(result);
 #endif
 }
@@ -1094,6 +1126,9 @@ void FarmDoorApp::handleSetTravel() {
   record.newTravelPulses = g_door.snapshot().openTargetPulses;
   record.deltaPulses = record.newTravelPulses - record.oldTravelPulses;
   recordBusinessEvent(record);
+  if (result == DoorCommandResult::Ok) {
+    persistDoorRecoveryStateIfReady();
+  }
   sendTravelResultJson(result, configSaved);
 #endif
 }
@@ -1132,6 +1167,9 @@ void FarmDoorApp::handleAdjustTravel() {
   record.newTravelPulses = g_door.snapshot().openTargetPulses;
   record.deltaPulses = deltaPulses;
   recordBusinessEvent(record);
+  if (result == DoorCommandResult::Ok) {
+    persistDoorRecoveryStateIfReady();
+  }
   sendTravelResultJson(result, configSaved);
 #endif
 }
