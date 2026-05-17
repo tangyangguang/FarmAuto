@@ -40,6 +40,13 @@ c++ -std=c++17 \
 
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_confirm.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorConfirm.cpp" \
+  -o /tmp/farmauto_test_door_confirm
+/tmp/farmauto_test_door_confirm
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmDoor/src" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/test/test_door_record_log.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmDoor/src/DoorRecordLog.cpp" \
   -o /tmp/farmauto_test_door_record_log

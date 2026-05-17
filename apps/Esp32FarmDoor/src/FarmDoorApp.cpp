@@ -6,8 +6,10 @@
 #include <Esp32EncodedDcMotor.h>
 #include <Esp32MotorCurrentGuard.h>
 
+#include <esp_system.h>
 #include <cstring>
 
+#include "DoorConfirm.h"
 #include "DoorController.h"
 #include "DoorRecordFileStore.h"
 #include "DoorRecordLog.h"
@@ -26,6 +28,7 @@ constexpr int64_t kDefaultMaxRunPulses = (kDefaultOpenTargetPulses * 150) / 100;
 
 DoorController g_door;
 DoorRecordLog g_records;
+DoorConfirmGuard g_confirm;
 bool g_recordStorageReady = false;
 DoorControllerConfig g_doorConfig;
 Esp32EncodedDcMotor::MotorHardwareConfig g_motorHardware;
@@ -241,6 +244,57 @@ bool readUint32Param(const char* name, uint32_t& out) {
 
 bool readUint32ParamOptional(const char* name, uint32_t& out) {
   return !Esp32BaseWeb::hasParam(name) || readUint32Param(name, out);
+}
+
+bool readBoolParam(const char* name, bool& out) {
+  char raw[8];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  if (strcmp(raw, "true") == 0 || strcmp(raw, "1") == 0) {
+    out = true;
+    return true;
+  }
+  if (strcmp(raw, "false") == 0 || strcmp(raw, "0") == 0) {
+    out = false;
+    return true;
+  }
+  return false;
+}
+
+void sendConfirmRequired(const char* action, const char* resource) {
+  char token[9] = {};
+  if (!g_confirm.issue(action, resource, millis(), esp_random(), token, sizeof(token))) {
+    Esp32BaseWeb::beginJson(500);
+    Esp32BaseWeb::sendChunk("{\"result\":\"InvalidArgument\"}");
+    Esp32BaseWeb::endJson();
+    return;
+  }
+  Esp32BaseWeb::beginJson(409);
+  Esp32BaseWeb::sendChunk("{\"result\":\"ConfirmRequired\",\"actionId\":\"");
+  Esp32BaseWeb::sendChunk(action);
+  Esp32BaseWeb::sendChunk("\",\"resource\":\"");
+  Esp32BaseWeb::sendChunk(resource);
+  Esp32BaseWeb::sendChunk("\",\"confirmToken\":\"");
+  Esp32BaseWeb::sendChunk(token);
+  Esp32BaseWeb::sendChunk("\",\"ttlMs\":60000}");
+  Esp32BaseWeb::endJson();
+}
+
+bool confirmAccepted() {
+  bool confirm = false;
+  return readBoolParam("confirm", confirm) && confirm;
+}
+
+bool requireConfirm(const char* action, const char* resource) {
+  char token[16] = {};
+  if (confirmAccepted() &&
+      Esp32BaseWeb::getParam("confirmToken", token, sizeof(token)) &&
+      g_confirm.consume(action, resource, token, millis())) {
+    return true;
+  }
+  sendConfirmRequired(action, resource);
+  return false;
 }
 
 int64_t openTargetPulsesFromTurnsX100(int64_t turnsX100) {
@@ -1023,6 +1077,9 @@ void FarmDoorApp::handleSetPosition() {
   char position[16];
   if (Esp32BaseWeb::getParam("position", position, sizeof(position))) {
     if (strcmp(position, "closed") == 0 || strcmp(position, "Closed") == 0) {
+      if (!requireConfirm("set-position", "position:closed")) {
+        return;
+      }
       result = g_door.markPositionClosed();
       DoorRecord record;
       record.type = DoorRecordType::PositionSet;
@@ -1037,6 +1094,9 @@ void FarmDoorApp::handleSetPosition() {
       return;
     }
     if (strcmp(position, "open") == 0 || strcmp(position, "Open") == 0) {
+      if (!requireConfirm("set-position", "position:open")) {
+        return;
+      }
       result = g_door.markPositionOpen();
       DoorRecord record;
       record.type = DoorRecordType::PositionSet;
@@ -1051,6 +1111,9 @@ void FarmDoorApp::handleSetPosition() {
       return;
     }
     if (strcmp(position, "unknown") == 0 || strcmp(position, "Unknown") == 0) {
+      if (!requireConfirm("set-position", "position:unknown")) {
+        return;
+      }
       result = g_door.setTrustedPosition(0, PositionTrustLevel::Untrusted);
       DoorRecord record;
       record.type = DoorRecordType::PositionSet;
@@ -1072,6 +1135,12 @@ void FarmDoorApp::handleSetPosition() {
   PositionTrustLevel trustLevel = PositionTrustLevel::Trusted;
   if (!readInt64Param("positionPulses", positionPulses) || !readTrustLevelParam(trustLevel)) {
     sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "positionPulses:%lld",
+           static_cast<long long>(positionPulses));
+  if (!requireConfirm("set-position", resource)) {
     return;
   }
   result = g_door.setTrustedPosition(positionPulses, trustLevel);
@@ -1113,6 +1182,12 @@ void FarmDoorApp::handleSetTravel() {
   int64_t maxRunPulses = defaultMaxRunPulsesForTarget(openTargetPulses);
   if (!readInt64ParamOptional("maxRunPulses", maxRunPulses)) {
     sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+    return;
+  }
+  char resource[40];
+  snprintf(resource, sizeof(resource), "travel:%lld",
+           static_cast<long long>(openTargetPulses));
+  if (!requireConfirm("set-travel", resource)) {
     return;
   }
 
@@ -1157,6 +1232,12 @@ void FarmDoorApp::handleAdjustTravel() {
 
   const int64_t openTargetPulses = g_door.snapshot().openTargetPulses + deltaPulses;
   const int64_t maxRunPulses = defaultMaxRunPulsesForTarget(openTargetPulses);
+  char resource[40];
+  snprintf(resource, sizeof(resource), "adjust:%lld",
+           static_cast<long long>(deltaPulses));
+  if (!requireConfirm("adjust-travel", resource)) {
+    return;
+  }
   bool configSaved = false;
   const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
   const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
@@ -1176,6 +1257,9 @@ void FarmDoorApp::handleAdjustTravel() {
 
 void FarmDoorApp::handleClearFault() {
 #if ESP32BASE_ENABLE_WEB
+  if (!requireConfirm("clear-fault", "door")) {
+    return;
+  }
   const DoorCommandResult result = g_door.clearFault();
   DoorRecord record;
   record.type = DoorRecordType::FaultCleared;
