@@ -31,6 +31,7 @@ struct FeederRecord {
   uint32_t unixTime = 0;
   uint32_t uptimeSec = 0;
   uint32_t bootId = 0;
+  uint32_t commandId = 0;
   FeederRecordType type = FeederRecordType::ManualRequested;
   FeederRecordResult result = FeederRecordResult::Ok;
   uint8_t planId = 0;

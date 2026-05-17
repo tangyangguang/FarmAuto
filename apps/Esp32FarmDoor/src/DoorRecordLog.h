@@ -27,6 +27,7 @@ struct DoorRecord {
   uint32_t unixTime = 0;
   uint32_t uptimeSec = 0;
   uint32_t bootId = 0;
+  uint32_t commandId = 0;
   DoorRecordType type = DoorRecordType::CommandRequested;
   DoorRecordResult result = DoorRecordResult::Ok;
   DoorCommand command = DoorCommand::None;

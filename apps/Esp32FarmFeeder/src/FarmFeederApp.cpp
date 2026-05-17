@@ -31,6 +31,7 @@ FeederTodayService g_today;
 FeederRunTracker g_runs;
 FeederRecordLog g_records;
 FeederConfirmGuard g_confirm;
+uint32_t g_nextCommandId = 1;
 uint16_t g_lastScheduleMinute = 24 * 60;
 uint32_t g_lastScheduleDate = 0;
 bool g_recordStorageReady = false;
@@ -62,6 +63,15 @@ void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   if (!Esp32BaseWeb::addApi(path, handler)) {
     ESP32BASE_LOG_E("farmfeeder", "api_route_register_failed path=%s", path);
   }
+}
+
+uint32_t allocateCommandId() {
+  const uint32_t commandId = g_nextCommandId;
+  ++g_nextCommandId;
+  if (g_nextCommandId == 0) {
+    g_nextCommandId = 1;
+  }
+  return commandId;
 }
 
 void syncFeederConfigFromBaseInfo() {
@@ -745,6 +755,8 @@ void sendRecordJson(const FeederRecord& record) {
   sendUint32(record.uptimeSec);
   Esp32BaseWeb::sendChunk(",\"bootId\":");
   sendUint32(record.bootId);
+  Esp32BaseWeb::sendChunk(",\"commandId\":");
+  sendUint32(record.commandId);
   Esp32BaseWeb::sendChunk(",\"eventType\":\"");
   Esp32BaseWeb::sendChunk(recordTypeName(record.type));
   Esp32BaseWeb::sendChunk("\",\"result\":\"");
@@ -893,11 +905,13 @@ const char* bucketResultName(FeederBucketResult result) {
   return "InvalidArgument";
 }
 
-void sendResultJson(int code, const char* result) {
+void sendResultJson(int code, const char* result, uint32_t commandId = 0) {
   Esp32BaseWeb::beginJson(code);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(result);
-  Esp32BaseWeb::sendChunk("\"}");
+  Esp32BaseWeb::sendChunk("\",\"commandId\":");
+  sendUint32(commandId);
+  Esp32BaseWeb::sendChunk("}");
   Esp32BaseWeb::endJson();
 }
 
@@ -956,13 +970,17 @@ const char* feederCommandResultName(FeederCommandResult result) {
   return "InvalidArgument";
 }
 
-void sendStartResultJson(const FeederStartResult& result, const FeederTargetBatch* targets = nullptr) {
+void sendStartResultJson(const FeederStartResult& result,
+                         const FeederTargetBatch* targets = nullptr,
+                         uint32_t commandId = 0) {
   const bool success = result.result == FeederCommandResult::Ok ||
                        result.result == FeederCommandResult::Partial;
   Esp32BaseWeb::beginJson(success ? 200 : 400);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(feederCommandResultName(result.result));
-  Esp32BaseWeb::sendChunk("\",\"successMask\":");
+  Esp32BaseWeb::sendChunk("\",\"commandId\":");
+  sendUint32(commandId);
+  Esp32BaseWeb::sendChunk(",\"successMask\":");
   sendUint8(result.successMask);
   Esp32BaseWeb::sendChunk(",\"busyMask\":");
   sendUint8(result.busyMask);
@@ -984,7 +1002,9 @@ void sendStartResultJson(const FeederStartResult& result, const FeederTargetBatc
   Esp32BaseWeb::endJson();
 }
 
-FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource source,
+FeederStartResult startResolvedTargets(uint8_t channelMask,
+                                       FeederRunSource source,
+                                       uint32_t commandId,
                                        FeederTargetBatch& targets) {
   targets = resolveFeederTargetsForMask(g_buckets.snapshot(), g_targets.snapshot(), channelMask);
   if (targets.okMask == 0) {
@@ -1002,6 +1022,7 @@ FeederStartResult startResolvedTargets(uint8_t channelMask, FeederRunSource sour
         continue;
       }
       FeederRecord record;
+      record.commandId = commandId;
       record.type = FeederRecordType::ChannelStarted;
       record.result = FeederRecordResult::Ok;
       record.channel = i;
@@ -1174,8 +1195,10 @@ void FarmFeederApp::handleScheduleTick() {
 
   g_schedules.markAttempted(tick.planId);
   FeederTargetBatch targets;
+  const uint32_t commandId = allocateCommandId();
   const FeederStartResult result = startPlanTargets(plan, targets);
   FeederRecord record;
+  record.commandId = commandId;
   record.type = FeederRecordType::ScheduleTriggered;
   record.result = feederRecordResultFromCommand(result.result);
   record.planId = tick.planId;
@@ -1633,8 +1656,11 @@ void FarmFeederApp::handleFeederManualStart() {
     return;
   }
   FeederTargetBatch targets;
-  const FeederStartResult result = startResolvedTargets(channelMask, FeederRunSource::Manual, targets);
+  const uint32_t commandId = allocateCommandId();
+  const FeederStartResult result =
+      startResolvedTargets(channelMask, FeederRunSource::Manual, commandId, targets);
   FeederRecord record;
+  record.commandId = commandId;
   record.type = FeederRecordType::ManualRequested;
   record.result = feederRecordResultFromCommand(result.result);
   record.requestedMask = channelMask;
@@ -1643,7 +1669,7 @@ void FarmFeederApp::handleFeederManualStart() {
   record.faultMask = result.faultMask;
   record.skippedMask = result.skippedMask;
   recordBusinessEvent(record);
-  sendStartResultJson(result, &targets);
+  sendStartResultJson(result, &targets, commandId);
 #endif
 }
 
@@ -1662,8 +1688,11 @@ void FarmFeederApp::handleFeederStart() {
     return;
   }
   FeederTargetBatch targets;
-  const FeederStartResult result = startResolvedTargets(channelMask, FeederRunSource::Manual, targets);
+  const uint32_t commandId = allocateCommandId();
+  const FeederStartResult result =
+      startResolvedTargets(channelMask, FeederRunSource::Manual, commandId, targets);
   FeederRecord record;
+  record.commandId = commandId;
   record.type = FeederRecordType::ManualRequested;
   record.result = feederRecordResultFromCommand(result.result);
   record.requestedMask = channelMask;
@@ -1672,7 +1701,7 @@ void FarmFeederApp::handleFeederStart() {
   record.faultMask = result.faultMask;
   record.skippedMask = result.skippedMask;
   recordBusinessEvent(record);
-  sendStartResultJson(result, &targets);
+  sendStartResultJson(result, &targets, commandId);
 #endif
 }
 
@@ -1690,34 +1719,42 @@ void FarmFeederApp::handleFeederStop() {
     sendResultJson(400, "InvalidArgument");
     return;
   }
+  const uint32_t commandId = allocateCommandId();
   const FeederCommandResult result = g_feeder.stopChannels(channelMask);
   if (result == FeederCommandResult::Ok) {
     g_runs.stop(channelMask);
   }
   FeederRecord record;
+  record.commandId = commandId;
   record.type = FeederRecordType::ChannelStopped;
   record.result = feederRecordResultFromCommand(result);
   record.requestedMask = channelMask;
   record.successMask = result == FeederCommandResult::Ok ? channelMask : 0;
   recordBusinessEvent(record);
-  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
+  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400,
+                 feederCommandResultName(result),
+                 commandId);
 #endif
 }
 
 void FarmFeederApp::handleFeederStopAll() {
 #if ESP32BASE_ENABLE_WEB
   const uint8_t runningMask = g_feeder.snapshot().runningChannelMask;
+  const uint32_t commandId = allocateCommandId();
   const FeederCommandResult result = g_feeder.stopAll();
   if (result == FeederCommandResult::Ok) {
     g_runs.stopAll();
   }
   FeederRecord record;
+  record.commandId = commandId;
   record.type = FeederRecordType::ChannelStopped;
   record.result = feederRecordResultFromCommand(result);
   record.requestedMask = runningMask;
   record.successMask = result == FeederCommandResult::Ok ? runningMask : 0;
   recordBusinessEvent(record);
-  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400, feederCommandResultName(result));
+  sendResultJson(result == FeederCommandResult::Ok ? 200 : 400,
+                 feederCommandResultName(result),
+                 commandId);
 #endif
 }
 
@@ -1735,17 +1772,19 @@ void FarmFeederApp::handleMaintenanceClearToday() {
     return;
   }
 
+  const uint32_t commandId = allocateCommandId();
   g_schedules.clearToday();
   g_today.beginDay(g_schedules.snapshot().serviceDate);
   persistFeederScheduleIfReady();
   persistFeederTodayIfReady();
 
   FeederRecord record;
+  record.commandId = commandId;
   record.type = FeederRecordType::TodayCleared;
   record.result = FeederRecordResult::Ok;
   recordBusinessEvent(record);
 
-  sendResultJson(200, "Ok");
+  sendResultJson(200, "Ok", commandId);
 #endif
 }
 
@@ -1769,6 +1808,7 @@ void FarmFeederApp::handleMaintenanceClearFault() {
     return;
   }
 
+  const uint32_t commandId = allocateCommandId();
   uint8_t successMask = 0;
   uint8_t skippedMask = 0;
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
@@ -1785,6 +1825,7 @@ void FarmFeederApp::handleMaintenanceClearFault() {
   }
 
   FeederRecord record;
+  record.commandId = commandId;
   record.type = FeederRecordType::FaultCleared;
   record.result = successMask != 0 && skippedMask == 0
                     ? FeederRecordResult::Ok
@@ -1800,7 +1841,9 @@ void FarmFeederApp::handleMaintenanceClearFault() {
   Esp32BaseWeb::sendChunk(successMask != 0 && skippedMask == 0
                             ? "Ok"
                             : (successMask != 0 ? "Partial" : "InvalidArgument"));
-  Esp32BaseWeb::sendChunk("\",\"requestedMask\":");
+  Esp32BaseWeb::sendChunk("\",\"commandId\":");
+  sendUint32(commandId);
+  Esp32BaseWeb::sendChunk(",\"requestedMask\":");
   sendUint8(channelMask);
   Esp32BaseWeb::sendChunk(",\"successMask\":");
   sendUint8(successMask);

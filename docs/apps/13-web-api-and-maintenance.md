@@ -129,12 +129,12 @@ handler 原则：
 
 `commandId` 用于远程轮询、业务记录和断电后解释上一次动作：
 
-- 类型推荐 `uint32_t`，设备内单调递增。
+- 类型推荐 `uint32_t`，单次启动内单调递增。
 - 每个应用固件内部使用一个全局序列，不按通道单独编号；喂食器通过 `channelMask` 或 `channel` 区分通道。
 - 创建命令时立即分配，响应和长期记录都使用同一个 id。
 - `commandId=0` 表示无活动命令。
-- 重启后从持久化的最近 commandId 或长期记录 sequence 推进，不能回退到仍可能混淆近期记录的值。
-- 溢出按 uint32 回绕处理，但记录比较只用于短窗口诊断；长期唯一性依赖 unixTime/uptime/sequence 组合。
+- 重启后不为了 commandId 单独写入持久化计数器，避免增加 AT24C/Flash 磨损；长期记录用 `bootId + commandId + sequence` 区分不同启动周期。
+- 溢出按 uint32 回绕处理，但记录比较只用于短窗口诊断；长期唯一性依赖 bootId/unixTime/uptime/sequence 组合。
 - 自动门运行中断电恢复需要保留上次运动命令 id；喂食器运行中断电后 `FeederPowerLossAborted` 必须记录被中断 commandId。
 
 ## 时间可信规则

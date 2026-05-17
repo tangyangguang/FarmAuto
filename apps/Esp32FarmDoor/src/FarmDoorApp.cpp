@@ -29,6 +29,7 @@ constexpr int64_t kDefaultMaxRunPulses = (kDefaultOpenTargetPulses * 150) / 100;
 DoorController g_door;
 DoorRecordLog g_records;
 DoorConfirmGuard g_confirm;
+uint32_t g_nextCommandId = 1;
 bool g_recordStorageReady = false;
 DoorControllerConfig g_doorConfig;
 Esp32EncodedDcMotor::MotorHardwareConfig g_motorHardware;
@@ -83,6 +84,15 @@ void sendUint32(uint32_t value) {
   char number[16];
   snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(value));
   Esp32BaseWeb::sendChunk(number);
+}
+
+uint32_t allocateCommandId() {
+  const uint32_t commandId = g_nextCommandId;
+  ++g_nextCommandId;
+  if (g_nextCommandId == 0) {
+    g_nextCommandId = 1;
+  }
+  return commandId;
 }
 
 const char* stateName(DoorState state) {
@@ -457,6 +467,8 @@ void sendRecordJson(const DoorRecord& record) {
   sendUint32(record.uptimeSec);
   Esp32BaseWeb::sendChunk(",\"bootId\":");
   sendUint32(record.bootId);
+  Esp32BaseWeb::sendChunk(",\"commandId\":");
+  sendUint32(record.commandId);
   Esp32BaseWeb::sendChunk(",\"eventType\":\"");
   Esp32BaseWeb::sendChunk(recordTypeName(record.type));
   Esp32BaseWeb::sendChunk("\",\"result\":\"");
@@ -494,13 +506,15 @@ void sendRecordSnapshotJson(const char* source) {
   Esp32BaseWeb::endJson();
 }
 
-void sendCommandResultJson(DoorCommandResult result) {
+void sendCommandResultJson(DoorCommandResult result, uint32_t commandId = 0) {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
   Esp32BaseWeb::beginJson(httpCodeFor(result));
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(commandResultName(result));
-  Esp32BaseWeb::sendChunk("\",\"state\":\"");
+  Esp32BaseWeb::sendChunk("\",\"commandId\":");
+  sendUint32(commandId);
+  Esp32BaseWeb::sendChunk(",\"state\":\"");
   Esp32BaseWeb::sendChunk(stateName(snapshot.state));
   Esp32BaseWeb::sendChunk("\",\"activeCommand\":\"");
   Esp32BaseWeb::sendChunk(commandName(snapshot.activeCommand));
@@ -513,13 +527,15 @@ void sendCommandResultJson(DoorCommandResult result) {
 #endif
 }
 
-void sendTravelResultJson(DoorCommandResult result, bool configSaved) {
+void sendTravelResultJson(DoorCommandResult result, bool configSaved, uint32_t commandId = 0) {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
   Esp32BaseWeb::beginJson(httpCodeFor(result));
   Esp32BaseWeb::sendChunk("{\"result\":\"");
   Esp32BaseWeb::sendChunk(commandResultName(result));
-  Esp32BaseWeb::sendChunk("\",\"state\":\"");
+  Esp32BaseWeb::sendChunk("\",\"commandId\":");
+  sendUint32(commandId);
+  Esp32BaseWeb::sendChunk(",\"state\":\"");
   Esp32BaseWeb::sendChunk(stateName(snapshot.state));
   Esp32BaseWeb::sendChunk("\",\"openTargetPulses\":");
   sendInt64(snapshot.openTargetPulses);
@@ -1029,34 +1045,40 @@ void FarmDoorApp::sendRecordsJson() {
 
 void FarmDoorApp::handleDoorOpen() {
 #if ESP32BASE_ENABLE_WEB
+  const uint32_t commandId = allocateCommandId();
   const DoorCommandResult result = g_door.requestOpen();
   DoorRecord record;
+  record.commandId = commandId;
   record.type = DoorRecordType::CommandRequested;
   record.result = doorRecordResultFromCommand(result);
   record.command = DoorCommand::Open;
   record.newTravelPulses = g_door.snapshot().openTargetPulses;
   recordBusinessEvent(record);
-  sendCommandResultJson(result);
+  sendCommandResultJson(result, commandId);
 #endif
 }
 
 void FarmDoorApp::handleDoorClose() {
 #if ESP32BASE_ENABLE_WEB
+  const uint32_t commandId = allocateCommandId();
   const DoorCommandResult result = g_door.requestClose();
   DoorRecord record;
+  record.commandId = commandId;
   record.type = DoorRecordType::CommandRequested;
   record.result = doorRecordResultFromCommand(result);
   record.command = DoorCommand::Close;
   recordBusinessEvent(record);
-  sendCommandResultJson(result);
+  sendCommandResultJson(result, commandId);
 #endif
 }
 
 void FarmDoorApp::handleDoorStop() {
 #if ESP32BASE_ENABLE_WEB
+  const uint32_t commandId = allocateCommandId();
   const DoorSnapshot snapshot = g_door.snapshot();
   const DoorCommandResult result = g_door.requestStop(snapshot.positionPulses);
   DoorRecord record;
+  record.commandId = commandId;
   record.type = DoorRecordType::CommandRequested;
   record.result = doorRecordResultFromCommand(result);
   record.command = DoorCommand::Stop;
@@ -1066,7 +1088,7 @@ void FarmDoorApp::handleDoorStop() {
   if (result == DoorCommandResult::Ok) {
     persistDoorRecoveryStateIfReady();
   }
-  sendCommandResultJson(result);
+  sendCommandResultJson(result, commandId);
 #endif
 }
 
@@ -1080,8 +1102,10 @@ void FarmDoorApp::handleSetPosition() {
       if (!requireConfirm("set-position", "position:closed")) {
         return;
       }
+      const uint32_t commandId = allocateCommandId();
       result = g_door.markPositionClosed();
       DoorRecord record;
+      record.commandId = commandId;
       record.type = DoorRecordType::PositionSet;
       record.result = doorRecordResultFromCommand(result);
       record.oldPositionPulses = before.positionPulses;
@@ -1090,15 +1114,17 @@ void FarmDoorApp::handleSetPosition() {
       if (result == DoorCommandResult::Ok) {
         persistDoorRecoveryStateIfReady();
       }
-      sendCommandResultJson(result);
+      sendCommandResultJson(result, commandId);
       return;
     }
     if (strcmp(position, "open") == 0 || strcmp(position, "Open") == 0) {
       if (!requireConfirm("set-position", "position:open")) {
         return;
       }
+      const uint32_t commandId = allocateCommandId();
       result = g_door.markPositionOpen();
       DoorRecord record;
+      record.commandId = commandId;
       record.type = DoorRecordType::PositionSet;
       record.result = doorRecordResultFromCommand(result);
       record.oldPositionPulses = before.positionPulses;
@@ -1107,15 +1133,17 @@ void FarmDoorApp::handleSetPosition() {
       if (result == DoorCommandResult::Ok) {
         persistDoorRecoveryStateIfReady();
       }
-      sendCommandResultJson(result);
+      sendCommandResultJson(result, commandId);
       return;
     }
     if (strcmp(position, "unknown") == 0 || strcmp(position, "Unknown") == 0) {
       if (!requireConfirm("set-position", "position:unknown")) {
         return;
       }
+      const uint32_t commandId = allocateCommandId();
       result = g_door.setTrustedPosition(0, PositionTrustLevel::Untrusted);
       DoorRecord record;
+      record.commandId = commandId;
       record.type = DoorRecordType::PositionSet;
       record.result = doorRecordResultFromCommand(result);
       record.oldPositionPulses = before.positionPulses;
@@ -1124,7 +1152,7 @@ void FarmDoorApp::handleSetPosition() {
       if (result == DoorCommandResult::Ok) {
         persistDoorRecoveryStateIfReady();
       }
-      sendCommandResultJson(result);
+      sendCommandResultJson(result, commandId);
       return;
     }
     sendCommandResultJson(DoorCommandResult::InvalidArgument);
@@ -1143,8 +1171,10 @@ void FarmDoorApp::handleSetPosition() {
   if (!requireConfirm("set-position", resource)) {
     return;
   }
+  const uint32_t commandId = allocateCommandId();
   result = g_door.setTrustedPosition(positionPulses, trustLevel);
   DoorRecord record;
+  record.commandId = commandId;
   record.type = DoorRecordType::PositionSet;
   record.result = doorRecordResultFromCommand(result);
   record.oldPositionPulses = before.positionPulses;
@@ -1153,7 +1183,7 @@ void FarmDoorApp::handleSetPosition() {
   if (result == DoorCommandResult::Ok) {
     persistDoorRecoveryStateIfReady();
   }
-  sendCommandResultJson(result);
+  sendCommandResultJson(result, commandId);
 #endif
 }
 
@@ -1191,10 +1221,12 @@ void FarmDoorApp::handleSetTravel() {
     return;
   }
 
+  const uint32_t commandId = allocateCommandId();
   bool configSaved = false;
   const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
   const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
   DoorRecord record;
+  record.commandId = commandId;
   record.type = DoorRecordType::TravelSet;
   record.result = doorRecordResultFromCommand(result);
   record.oldTravelPulses = oldTravelPulses;
@@ -1204,7 +1236,7 @@ void FarmDoorApp::handleSetTravel() {
   if (result == DoorCommandResult::Ok) {
     persistDoorRecoveryStateIfReady();
   }
-  sendTravelResultJson(result, configSaved);
+  sendTravelResultJson(result, configSaved, commandId);
 #endif
 }
 
@@ -1238,10 +1270,12 @@ void FarmDoorApp::handleAdjustTravel() {
   if (!requireConfirm("adjust-travel", resource)) {
     return;
   }
+  const uint32_t commandId = allocateCommandId();
   bool configSaved = false;
   const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
   const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
   DoorRecord record;
+  record.commandId = commandId;
   record.type = DoorRecordType::TravelAdjusted;
   record.result = doorRecordResultFromCommand(result);
   record.oldTravelPulses = oldTravelPulses;
@@ -1251,7 +1285,7 @@ void FarmDoorApp::handleAdjustTravel() {
   if (result == DoorCommandResult::Ok) {
     persistDoorRecoveryStateIfReady();
   }
-  sendTravelResultJson(result, configSaved);
+  sendTravelResultJson(result, configSaved, commandId);
 #endif
 }
 
@@ -1260,11 +1294,13 @@ void FarmDoorApp::handleClearFault() {
   if (!requireConfirm("clear-fault", "door")) {
     return;
   }
+  const uint32_t commandId = allocateCommandId();
   const DoorCommandResult result = g_door.clearFault();
   DoorRecord record;
+  record.commandId = commandId;
   record.type = DoorRecordType::FaultCleared;
   record.result = doorRecordResultFromCommand(result);
   recordBusinessEvent(record);
-  sendCommandResultJson(result);
+  sendCommandResultJson(result, commandId);
 #endif
 }

@@ -35,6 +35,7 @@ int main() {
   record.unixTime = 1800000000;
   record.uptimeSec = 123;
   record.bootId = 7;
+  record.commandId = 987654;
   record.type = FeederRecordType::ScheduleTriggered;
   record.result = FeederRecordResult::Partial;
   record.planId = 3;
@@ -63,7 +64,8 @@ int main() {
   assert(encoded[9] == static_cast<uint8_t>(FeederRecordResult::Partial));
   assert(readU16(encoded + 10) == kFeederRecordPayloadSize);
   assert(readU32(encoded + 12) == 42);
-  assert(readU64(encoded + 16) == 1800000000ull);
+  assert(static_cast<uint32_t>(readU64(encoded + 16)) == 1800000000u);
+  assert(static_cast<uint32_t>(readU64(encoded + 16) >> 32) == record.commandId);
 
   const uint32_t payloadCrc = readU32(encoded + 24);
   const uint32_t headerCrc = readU32(encoded + 28);
@@ -77,6 +79,7 @@ int main() {
   assert(decoded.unixTime == record.unixTime);
   assert(decoded.uptimeSec == record.uptimeSec);
   assert(decoded.bootId == record.bootId);
+  assert(decoded.commandId == record.commandId);
   assert(decoded.type == record.type);
   assert(decoded.result == record.result);
   assert(decoded.planId == record.planId);

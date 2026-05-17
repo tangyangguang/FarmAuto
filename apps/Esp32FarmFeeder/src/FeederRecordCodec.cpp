@@ -107,7 +107,11 @@ FeederRecordEncodeResult encodeFeederRecord(const FeederRecord& record,
   header[9] = static_cast<uint8_t>(record.result);
   writeU16(header + 10, static_cast<uint16_t>(kFeederRecordPayloadSize));
   writeU32(header + 12, record.sequence);
-  writeU64(header + 16, record.unixTime);
+  // The record schema keeps the fixed header size: low 32 bits are unixTime,
+  // high 32 bits are commandId. Older records decode commandId as 0.
+  writeU64(header + 16,
+           static_cast<uint64_t>(record.unixTime) |
+               (static_cast<uint64_t>(record.commandId) << 32));
   writeU32(header + 24, result.payloadCrc);
   result.headerCrc = headerCrcFor(header);
   writeU32(header + 28, result.headerCrc);
@@ -167,7 +171,9 @@ FeederRecordCodecResult decodeFeederEncodedRecord(const uint8_t* data,
   record.type = static_cast<FeederRecordType>(data[8]);
   record.result = static_cast<FeederRecordResult>(data[9]);
   record.sequence = readU32(data + 12);
-  record.unixTime = static_cast<uint32_t>(readU64(data + 16));
+  const uint64_t timeAndCommand = readU64(data + 16);
+  record.unixTime = static_cast<uint32_t>(timeAndCommand);
+  record.commandId = static_cast<uint32_t>(timeAndCommand >> 32);
   record.bootId = readU32(payload + 0);
   record.uptimeSec = readU32(payload + 4);
   record.channel = payload[8];

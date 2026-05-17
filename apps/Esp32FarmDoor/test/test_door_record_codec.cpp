@@ -35,6 +35,7 @@ int main() {
   record.unixTime = 1800001234;
   record.uptimeSec = 99;
   record.bootId = 4;
+  record.commandId = 123456;
   record.type = DoorRecordType::TravelAdjusted;
   record.result = DoorRecordResult::Ok;
   record.command = DoorCommand::Open;
@@ -59,7 +60,8 @@ int main() {
   assert(encoded[9] == static_cast<uint8_t>(DoorRecordResult::Ok));
   assert(readU16(encoded + 10) == kDoorRecordPayloadSize);
   assert(readU32(encoded + 12) == 12);
-  assert(readU64(encoded + 16) == 1800001234ull);
+  assert(static_cast<uint32_t>(readU64(encoded + 16)) == 1800001234u);
+  assert(static_cast<uint32_t>(readU64(encoded + 16) >> 32) == record.commandId);
   assert(verifyDoorEncodedRecord(encoded, encodedLength) == DoorRecordCodecResult::Ok);
 
   DoorRecord decoded;
@@ -68,6 +70,7 @@ int main() {
   assert(decoded.unixTime == record.unixTime);
   assert(decoded.uptimeSec == record.uptimeSec);
   assert(decoded.bootId == record.bootId);
+  assert(decoded.commandId == record.commandId);
   assert(decoded.type == record.type);
   assert(decoded.result == record.result);
   assert(decoded.command == record.command);
