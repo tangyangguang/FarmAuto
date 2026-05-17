@@ -21,3 +21,17 @@ FarmAuto 是养殖自动化设备 monorepo，规划包含两个独立应用：
 Current source work includes public library skeletons under `lib/` and minimal compile-ready application shells under `apps/Esp32FarmDoor` and `apps/Esp32FarmFeeder`.
 Implemented host-tested application logic currently includes business record codecs, record file rotation, feeder scheduling, feeder bucket state handling, fixed payload codecs for AT24C-backed recovery/state data, and AT24C128 RecordStore startup restore/write-back glue.
 The current firmware still does not output real motor PWM or read real encoder counts; those hardware paths require bench validation before enabling.
+
+## Core Board Smoke Test
+
+For a new ESP32 board, upload both firmware and the LittleFS image. The firmware uses Esp32Base `FULL` profile and expects a LittleFS partition for file log and business records.
+
+```bash
+platformio run -d apps/Esp32FarmDoor -e esp32e_full -t upload --upload-port /dev/cu.usbserial-130
+platformio run -d apps/Esp32FarmDoor -e esp32e_full -t uploadfs --upload-port /dev/cu.usbserial-130
+
+platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t upload --upload-port /dev/cu.usbserial-130
+platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t uploadfs --upload-port /dev/cu.usbserial-130
+```
+
+Without AT24C128 or motor hardware connected, startup should still complete. I2C warnings are expected on a bare core board; PWM and motor output remain disabled in the current firmware.
