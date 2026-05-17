@@ -3,12 +3,12 @@
 #include <Arduino.h>
 #include <Esp32Base.h>
 
-#include <time.h>
 #include <Wire.h>
 
 #include "FeederBucket.h"
 #include "FeederBucketRestore.h"
 #include "FeederController.h"
+#include "FeederDate.h"
 #include "FeederPersistenceStore.h"
 #include "FeederRecordFileStore.h"
 #include "FeederRecordLog.h"
@@ -457,6 +457,119 @@ void sendScheduleSummary(const FeederScheduleSnapshot& snapshot) {
     Esp32BaseWeb::sendChunk("}");
   }
   Esp32BaseWeb::sendChunk("]}");
+}
+
+void sendPlanTime(uint16_t timeMinutes) {
+  sendUint8(static_cast<uint8_t>(timeMinutes / 60));
+  Esp32BaseWeb::sendChunk(":");
+  if (timeMinutes % 60 < 10) {
+    Esp32BaseWeb::sendChunk("0");
+  }
+  sendUint8(static_cast<uint8_t>(timeMinutes % 60));
+}
+
+void sendPlanTargetSummary(const FeederPlanConfig& config) {
+  bool first = true;
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((config.channelMask & bit) == 0) {
+      continue;
+    }
+    if (!first) {
+      Esp32BaseWeb::sendChunk("；");
+    }
+    first = false;
+    Esp32BaseWeb::sendChunk("通道");
+    sendUint8(static_cast<uint8_t>(i + 1));
+    Esp32BaseWeb::sendChunk(" ");
+    const FeederChannelTarget& target = config.targets[i];
+    if (target.mode == FeederTargetMode::Grams) {
+      sendInt32(target.targetGramsX100);
+      Esp32BaseWeb::sendChunk("/100 g");
+    } else if (target.mode == FeederTargetMode::Revolutions) {
+      sendInt32(target.targetRevolutionsX100);
+      Esp32BaseWeb::sendChunk("/100 圈");
+    } else {
+      Esp32BaseWeb::sendChunk("未配置");
+    }
+  }
+  if (first) {
+    Esp32BaseWeb::sendChunk("未配置通道");
+  }
+}
+
+void sendOccurrenceStatus(const FeederPlanState& plan,
+                          uint32_t serviceDate,
+                          uint32_t currentServiceDate) {
+  if (!plan.config.enabled || !plan.config.timeConfigured) {
+    Esp32BaseWeb::sendChunk("未启用");
+    return;
+  }
+  if (plan.skipServiceDate == serviceDate) {
+    Esp32BaseWeb::sendChunk("已跳过本次");
+    return;
+  }
+  if (serviceDate == currentServiceDate) {
+    if (plan.todayExecuted) {
+      Esp32BaseWeb::sendChunk("已完成");
+    } else if (plan.scheduleAttemptedToday) {
+      Esp32BaseWeb::sendChunk("已尝试");
+    } else if (plan.scheduleMissedToday) {
+      Esp32BaseWeb::sendChunk("已错过");
+    } else {
+      Esp32BaseWeb::sendChunk("待执行");
+    }
+    return;
+  }
+  Esp32BaseWeb::sendChunk("将执行");
+}
+
+void sendOccurrenceAction(const FeederPlanState& plan, uint32_t serviceDate) {
+  if (!plan.config.enabled || !plan.config.timeConfigured || serviceDate == 0) {
+    Esp32BaseWeb::sendChunk("-");
+    return;
+  }
+  const bool skipped = plan.skipServiceDate == serviceDate;
+  Esp32BaseWeb::sendChunk("<form method='post' action='");
+  Esp32BaseWeb::sendChunk(skipped ? "/api/app/schedule-occurrence/cancel-skip"
+                                  : "/api/app/schedule-occurrence/skip");
+  Esp32BaseWeb::sendChunk("'><input type='hidden' name='planId' value='");
+  sendUint8(plan.config.planId);
+  Esp32BaseWeb::sendChunk("'><input type='hidden' name='date' value='");
+  sendUint32(serviceDate);
+  Esp32BaseWeb::sendChunk("'><button>");
+  Esp32BaseWeb::sendChunk(skipped ? "取消跳过" : "跳过本次");
+  Esp32BaseWeb::sendChunk("</button></form>");
+}
+
+void sendOccurrenceTable(const FeederScheduleSnapshot& schedules,
+                         uint32_t serviceDate,
+                         const char* title) {
+  Esp32BaseWeb::sendChunk("<section><h2>");
+  Esp32BaseWeb::sendChunk(title);
+  Esp32BaseWeb::sendChunk("</h2>");
+  if (serviceDate == 0) {
+    Esp32BaseWeb::sendChunk("<p>时间未同步，暂不能展示具体执行日期。</p></section>");
+    return;
+  }
+  Esp32BaseWeb::sendChunk("<p>服务日期 ");
+  sendUint32(serviceDate);
+  Esp32BaseWeb::sendChunk("</p><table><tr><th>时间</th><th>计划</th><th>状态</th><th>目标</th><th>操作</th></tr>");
+  for (uint8_t i = 0; i < schedules.planCount; ++i) {
+    const FeederPlanState& plan = schedules.plans[i];
+    Esp32BaseWeb::sendChunk("<tr><td>");
+    sendPlanTime(plan.config.timeMinutes);
+    Esp32BaseWeb::sendChunk("</td><td>计划 ");
+    sendUint8(plan.config.planId);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    sendOccurrenceStatus(plan, serviceDate, schedules.serviceDate);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    sendPlanTargetSummary(plan.config);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    sendOccurrenceAction(plan, serviceDate);
+    Esp32BaseWeb::sendChunk("</td></tr>");
+  }
+  Esp32BaseWeb::sendChunk("</table></section>");
 }
 
 void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
@@ -909,19 +1022,6 @@ FeederStartResult startPlanTargets(const FeederPlanConfig& plan, FeederTargetBat
   return result;
 }
 
-bool localDateAndMinute(uint32_t epochSec, uint32_t& date, uint16_t& minute) {
-  time_t raw = static_cast<time_t>(epochSec);
-  tm value = {};
-  if (!localtime_r(&raw, &value)) {
-    return false;
-  }
-  date = static_cast<uint32_t>((value.tm_year + 1900) * 10000 +
-                               (value.tm_mon + 1) * 100 +
-                               value.tm_mday);
-  minute = static_cast<uint16_t>(value.tm_hour * 60 + value.tm_min);
-  return true;
-}
-
 bool readPlanConfigFromParams(FeederPlanConfig& config) {
   int32_t raw = 0;
   if (!readBoolParam("enabled", config.enabled)) {
@@ -994,7 +1094,7 @@ void FarmFeederApp::handleScheduleTick() {
 
   uint32_t serviceDate = 0;
   uint16_t currentMinute = 0;
-  if (!localDateAndMinute(timeSnapshot.epochSec, serviceDate, currentMinute)) {
+  if (!feederLocalDateAndMinute(timeSnapshot.epochSec, serviceDate, currentMinute)) {
     return;
   }
 
@@ -1178,10 +1278,15 @@ void FarmFeederApp::sendHomePage() {
 void FarmFeederApp::sendSchedulePage() {
 #if ESP32BASE_ENABLE_WEB
   const FeederScheduleSnapshot schedules = g_schedules.snapshot();
+  uint32_t tomorrowDate = 0;
+  feederNextServiceDate(schedules.serviceDate, tomorrowDate);
   Esp32BaseWeb::sendHeader("计划");
-  Esp32BaseWeb::sendChunk("<h1>计划</h1><section><h2>今日和明日计划</h2>");
-  Esp32BaseWeb::sendChunk("<p><a href='/api/app/schedules'>查看计划 JSON</a></p></section>");
-  Esp32BaseWeb::sendChunk("<section><h2>计划管理</h2><table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>操作</th></tr>");
+  Esp32BaseWeb::sendChunk("<h1>计划</h1>");
+  sendOccurrenceTable(schedules, schedules.serviceDate, "今日计划");
+  sendOccurrenceTable(schedules, tomorrowDate, "明日计划");
+  Esp32BaseWeb::sendChunk("<section><h2>计划管理</h2><p>计划管理只维护长期蓝本；跳过只在今日或明日执行实例上操作。</p>");
+  Esp32BaseWeb::sendChunk("<p><a href='/api/app/schedules'>查看计划 JSON</a></p>");
+  Esp32BaseWeb::sendChunk("<table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th></tr>");
   for (uint8_t i = 0; i < schedules.planCount; ++i) {
     const FeederPlanState& plan = schedules.plans[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
@@ -1189,20 +1294,12 @@ void FarmFeederApp::sendSchedulePage() {
     Esp32BaseWeb::sendChunk("</td><td>计划 ");
     sendUint8(plan.config.planId);
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendUint8(static_cast<uint8_t>(plan.config.timeMinutes / 60));
-    Esp32BaseWeb::sendChunk(":");
-    if (plan.config.timeMinutes % 60 < 10) {
-      Esp32BaseWeb::sendChunk("0");
-    }
-    sendUint8(static_cast<uint8_t>(plan.config.timeMinutes % 60));
+    sendPlanTime(plan.config.timeMinutes);
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::sendChunk(plan.config.enabled ? "是" : "否");
-    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/app/schedule-occurrence/skip'>");
-    Esp32BaseWeb::sendChunk("<input type='hidden' name='planId' value='");
-    sendUint8(plan.config.planId);
-    Esp32BaseWeb::sendChunk("'><input name='date' value='");
-    sendUint32(schedules.serviceDate);
-    Esp32BaseWeb::sendChunk("' placeholder='YYYYMMDD'><button>跳过指定日期</button></form></td></tr>");
+    Esp32BaseWeb::sendChunk("</td><td>");
+    sendPlanTargetSummary(plan.config);
+    Esp32BaseWeb::sendChunk("</td></tr>");
   }
   Esp32BaseWeb::sendChunk("</table></section>");
   Esp32BaseWeb::sendFooter();

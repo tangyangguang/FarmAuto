@@ -109,6 +109,13 @@ c++ -std=c++17 \
 
 c++ -std=c++17 \
   -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_date.cpp" \
+  "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederDate.cpp" \
+  -o /tmp/farmauto_test_feeder_date
+/tmp/farmauto_test_feeder_date
+
+c++ -std=c++17 \
+  -I"${ROOT_DIR}/apps/Esp32FarmFeeder/src" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/test/test_feeder_schedule.cpp" \
   "${ROOT_DIR}/apps/Esp32FarmFeeder/src/FeederSchedule.cpp" \
   -o /tmp/farmauto_test_feeder_schedule
