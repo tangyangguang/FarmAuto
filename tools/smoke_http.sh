@@ -46,10 +46,34 @@ cleanup() {
 }
 trap cleanup EXIT
 
+request() {
+  local path="$1"
+  local auth_mode="$2"
+  local code
+  for attempt in 1 2 3; do
+    if [[ "${auth_mode}" == "auth" ]]; then
+      code="$(curl -sS --connect-timeout 5 --max-time 25 -u "${AUTH}" -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")" && {
+        printf '%s' "${code}"
+        return 0
+      }
+    else
+      code="$(curl -sS --connect-timeout 5 --max-time 25 -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")" && {
+        printf '%s' "${code}"
+        return 0
+      }
+    fi
+    if [[ "${attempt}" != "3" ]]; then
+      sleep 2
+    fi
+  done
+  printf '%s' "${code:-000}"
+  return 1
+}
+
 check_page() {
   local path="$1"
   local code
-  code="$(curl -sS --connect-timeout 5 --max-time 25 -u "${AUTH}" -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
+  code="$(request "${path}" auth || true)"
   if [[ "${code}" != "200" ]]; then
     echo "FAIL page ${path}: HTTP ${code}" >&2
     return 1
@@ -64,7 +88,7 @@ check_page() {
 check_api() {
   local path="$1"
   local code
-  code="$(curl -sS --connect-timeout 5 --max-time 25 -u "${AUTH}" -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
+  code="$(request "${path}" auth || true)"
   if [[ "${code}" != "200" ]]; then
     echo "FAIL api ${path}: HTTP ${code}" >&2
     cat "${tmp}" >&2 || true
@@ -81,7 +105,7 @@ check_api() {
 check_unauth() {
   local path="$1"
   local code
-  code="$(curl -sS --connect-timeout 5 --max-time 25 -o "${tmp}" -w '%{http_code}' "${BASE_URL}${path}")"
+  code="$(request "${path}" unauth || true)"
   if [[ "${code}" != "401" ]]; then
     echo "FAIL unauth ${path}: expected 401, got ${code}" >&2
     cat "${tmp}" >&2 || true

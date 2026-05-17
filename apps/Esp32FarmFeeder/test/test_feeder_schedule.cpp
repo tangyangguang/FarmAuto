@@ -82,6 +82,13 @@ int main() {
   schedules.beginDay(20260519);
   assert(!schedules.snapshot().plans[1].skipToday);
   assert(schedules.snapshot().plans[1].skipServiceDate == 0);
+  assert(schedules.skipOccurrence(2, 20260518) == FeederScheduleResult::InvalidArgument);
+
+  assert(schedules.skipOccurrence(2, 20260520) == FeederScheduleResult::Ok);
+  assert(!schedules.snapshot().plans[1].skipToday);
+  assert(schedules.evaluate(19 * 60, true).action == FeederScheduleAction::TriggerPlan);
+  assert(schedules.cancelSkipOccurrence(2, 20260520) == FeederScheduleResult::Ok);
+  assert(schedules.snapshot().plans[1].skipServiceDate == 0);
 
   assert(schedules.evaluate(19 * 60 + 1, true).action == FeederScheduleAction::MarkMissed);
   assert(schedules.snapshot().plans[0].scheduleMissedToday);
@@ -115,6 +122,13 @@ int main() {
   assert(schedules.snapshot().planCount == 1);
   assert(schedules.snapshot().plans[0].config.planId == 9);
   assert(schedules.snapshot().plans[0].skipToday);
+
+  FeederPlanConfig disabledWithNoTarget;
+  disabledWithNoTarget.enabled = false;
+  disabledWithNoTarget.timeConfigured = true;
+  disabledWithNoTarget.timeMinutes = 9 * 60;
+  assert(schedules.addPlan(disabledWithNoTarget).result == FeederScheduleResult::Ok);
+  assert(schedules.evaluate(9 * 60, true).action == FeederScheduleAction::NoAction);
 
   persisted.planCount = kFeederMaxPlans + 1;
   assert(schedules.restore(persisted) == FeederScheduleResult::InvalidArgument);

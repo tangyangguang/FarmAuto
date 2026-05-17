@@ -44,8 +44,16 @@ int main() {
   assert(feeder.setChannelFault(2) == FeederCommandResult::Ok);
   assert(feeder.snapshot().faultChannelMask == 0b0100);
   assert(feeder.startChannels(0b0100, FeederRunSource::Manual).result == FeederCommandResult::Fault);
+  FeederStartResult mixed = feeder.startChannels(0b1111, FeederRunSource::Manual);
+  assert(mixed.result == FeederCommandResult::Partial);
+  assert(mixed.successMask == 0b0001);
+  assert(mixed.busyMask == 0b0010);
+  assert(mixed.faultMask == 0b0100);
+  assert(mixed.skippedMask == 0b1000);
+  assert(feeder.snapshot().runningChannelMask == 0b0011);
 
   assert(feeder.completeChannel(1) == FeederCommandResult::Ok);
+  assert(feeder.completeChannel(0) == FeederCommandResult::Ok);
   assert(feeder.snapshot().runningChannelMask == 0);
   assert(feeder.snapshot().state == FeederDeviceState::Degraded);
 
