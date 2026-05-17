@@ -16,6 +16,7 @@
 - 已接入计划表、今日累计、手工下料默认目标、料桶估算余量和通道标定参数到 `Esp32At24cRecordStore` 的读写 glue，并用 fake AT24C host 测试验证。
 - 已在启动时初始化 AT24C128 I2C RecordStore，并恢复计划、今日累计、手工下料默认目标、料桶估算余量和通道标定参数；业务修改成功后写回对应记录区。
 - 已接入首页、计划、记录、基础信息、诊断 5 个最小业务页面，系统参数/日志/OTA/WiFi 仍使用 Esp32Base 页面。
+- 首版喂食器暂无需要放入 Esp32Base App Config 的已实现业务参数；通道启用、信号数、每圈克数和料桶容量统一通过“基础信息”业务页/API 维护。
 - 已接入业务最近记录 RAM 缓冲、Flash 二进制追加记录和基础文件轮转。
 - 已为业务命令分配 `commandId`，状态接口和业务记录都可关联最近命令。
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。

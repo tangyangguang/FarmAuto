@@ -1321,17 +1321,6 @@ void FarmFeederApp::configureStaticDefaults() {
 void FarmFeederApp::configureAppConfigPage() {
 #if ESP32BASE_ENABLE_APP_CONFIG
   Esp32BaseAppConfig::setTitle("Esp32FarmFeeder 参数");
-  Esp32BaseAppConfig::addGroup({"channels", "通道"});
-  Esp32BaseAppConfig::addGroup({"schedule", "计划"});
-
-  Esp32BaseAppConfig::addBool({"channels", "feeder", "channel1Enabled", "通道 1 启用", true,
-                               "业务通道启用状态。", false, nullptr});
-  Esp32BaseAppConfig::addBool({"channels", "feeder", "channel2Enabled", "通道 2 启用", true,
-                               "业务通道启用状态。", false, nullptr});
-  Esp32BaseAppConfig::addBool({"channels", "feeder", "channel3Enabled", "通道 3 启用", true,
-                               "业务通道启用状态。", false, nullptr});
-  Esp32BaseAppConfig::addInt({"schedule", "feeder", "startIntervalMs", "顺序启动间隔", 1000, 0,
-                              10000, 100, "ms", "多通道启动时降低浪涌。", false, nullptr});
 #endif
 }
 
