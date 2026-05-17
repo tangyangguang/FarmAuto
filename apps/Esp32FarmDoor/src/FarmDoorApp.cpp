@@ -11,6 +11,9 @@
 #include "DoorController.h"
 #include "DoorRecordFileStore.h"
 #include "DoorRecordLog.h"
+#include "DoorRecoveryApply.h"
+#include "DoorRecoveryStore.h"
+#include "DoorStorageLayout.h"
 #include "FarmDoorHardware.h"
 
 namespace {
@@ -34,6 +37,10 @@ Esp32EncodedDcMotor::MotorStopPolicy g_motorStopPolicy;
 Esp32MotorCurrentGuard::Ina240A2AnalogConfig g_currentSensor;
 Esp32MotorCurrentGuard::MotorCurrentGuardConfig g_currentGuard;
 Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
+Esp32At24cRecordStore::ArduinoWireI2cBus g_at24cBus;
+Esp32At24cRecordStore::At24cI2cDevice g_at24cDevice(g_at24cBus, {});
+Esp32At24cRecordStore::RecordStore g_at24cStore;
+bool g_at24cStoreReady = false;
 
 static constexpr uint8_t kFarmDoorRouteCount = 15;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorRouteCount,
@@ -514,6 +521,46 @@ void onAppConfigChange(const Esp32BaseAppConfig::Change& change) {
 }
 #endif
 
+void applyRecoveredDoorConfig(const DoorRecoveryState& state) {
+  g_doorConfig.closedPositionPulses = state.closedPositionPulses;
+  g_doorConfig.openTargetPulses = state.openTargetPulses;
+  g_doorConfig.maxRunPulses = state.maxRunPulses;
+  g_doorConfig.maxRunMs = state.maxRunMs;
+  g_motorProtection.maxRunPulses = state.maxRunPulses;
+  g_motorProtection.maxRunMs = state.maxRunMs;
+}
+
+void initializeDoorAt24cStore() {
+  const Esp32At24cRecordStore::Result beginResult =
+      g_at24cStore.begin(g_at24cDevice, kDoorAt24cConfig, kDoorAt24cRegions, kDoorAt24cRegionCount);
+  if (beginResult != Esp32At24cRecordStore::Result::Ok) {
+    ESP32BASE_LOG_W("farmdoor", "at24c_store_begin_failed result=%u",
+                    static_cast<unsigned>(beginResult));
+    return;
+  }
+  g_at24cStoreReady = true;
+
+  DoorRecoveryState recovered;
+  const Esp32At24cRecordStore::Result loadResult = loadDoorRecoveryState(g_at24cStore, recovered);
+  if (loadResult == Esp32At24cRecordStore::Result::Ok) {
+    const DoorCommandResult applyResult = applyDoorRecoveryState(g_door, recovered);
+    if (applyResult == DoorCommandResult::Ok) {
+      applyRecoveredDoorConfig(recovered);
+      ESP32BASE_LOG_I("farmdoor", "door_recovery_restored position=%lld target=%lld",
+                      static_cast<long long>(recovered.positionPulses),
+                      static_cast<long long>(recovered.openTargetPulses));
+    } else {
+      ESP32BASE_LOG_W("farmdoor", "door_recovery_apply_failed result=%u",
+                      static_cast<unsigned>(applyResult));
+    }
+    return;
+  }
+  if (loadResult != Esp32At24cRecordStore::Result::FormatRequired) {
+    ESP32BASE_LOG_W("farmdoor", "door_recovery_load_failed result=%u",
+                    static_cast<unsigned>(loadResult));
+  }
+}
+
 }  // namespace
 
 FarmDoorApp FarmDoor;
@@ -530,6 +577,7 @@ void FarmDoorApp::begin() {
   if (!Esp32Base::begin()) {
     ESP32BASE_LOG_E("farmdoor", "Esp32Base begin failed: %s", Esp32Base::lastError());
   } else {
+    initializeDoorAt24cStore();
     applyRuntimeConfigFromBase();
     ESP32BASE_LOG_I("farmdoor", "skeleton ready, ina240a2_gpio=%u enabled=%s",
                     FarmDoorHw.pins().currentAdc,
@@ -817,6 +865,8 @@ void FarmDoorApp::sendDiagnosticsJson() {
   Esp32BaseWeb::sendChunk(boolJson(g_currentGuard.enabled));
   Esp32BaseWeb::sendChunk("},\"at24c\":{\"address\":\"0x50\",\"online\":");
   Esp32BaseWeb::sendChunk(boolJson(diagnostics.at24cOnline));
+  Esp32BaseWeb::sendChunk(",\"storeReady\":");
+  Esp32BaseWeb::sendChunk(boolJson(g_at24cStoreReady));
   Esp32BaseWeb::sendChunk("},\"motorOutput\":{\"enabled\":false}}");
   Esp32BaseWeb::endJson();
 #endif
