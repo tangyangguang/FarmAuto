@@ -1620,15 +1620,24 @@ void FarmFeederApp::sendHomePage() {
   }
   Esp32BaseWeb::sendChunk("<button>开始手工喂食</button></form>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/feeders/stop-all'><button>停止全部</button></form>");
-  Esp32BaseWeb::sendChunk("</section><section><h2>料桶余量</h2><table><tr><th>通道</th><th>当前估算</th><th>满桶容量</th></tr>");
+  Esp32BaseWeb::sendChunk("</section><section><h2>料桶余量</h2><table><tr><th>通道</th><th>当前估算</th><th>满桶容量</th><th>维护</th></tr>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const FeederBucketState& channel = buckets.channels[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
-    sendUint8(static_cast<uint8_t>(i + 1));
+    Esp32BaseWeb::writeHtmlEscaped(channel.baseInfo.name);
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendFixedX100(buckets.channels[i].remainGramsX100);
+    sendFixedX100(channel.remainGramsX100);
     Esp32BaseWeb::sendChunk(" g</td><td>");
-    sendFixedX100(buckets.channels[i].baseInfo.capacityGramsX100);
-    Esp32BaseWeb::sendChunk(" g</td></tr>");
+    sendFixedX100(channel.baseInfo.capacityGramsX100);
+    Esp32BaseWeb::sendChunk(" g</td><td><form method='post' action='/api/app/buckets/set-remaining'><input type='hidden' name='channel' value='");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk("'><input name='remainGrams' placeholder='当前克数'><button>设置余量</button></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/buckets/add-feed'><input type='hidden' name='channel' value='");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk("'><input name='addedGrams' placeholder='加料克数'><button>记录加料</button></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/buckets/mark-full'><input type='hidden' name='channel' value='");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk("'><button>标记已满</button></form></td></tr>");
   }
   Esp32BaseWeb::sendChunk("</table></section>");
   Esp32BaseWeb::sendFooter();
@@ -2454,7 +2463,7 @@ void FarmFeederApp::handleBucketSetRemaining() {
   uint8_t channel = 0;
   int32_t remainGramsX100 = 0;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
-      !readInt32Param("remainGramsX100", remainGramsX100)) {
+      !readFixedX100ParamOptional("remainGrams", "remainGramsX100", remainGramsX100)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
@@ -2479,7 +2488,7 @@ void FarmFeederApp::handleBucketAddFeed() {
   uint8_t channel = 0;
   int32_t addedGramsX100 = 0;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
-      !readInt32Param("addedGramsX100", addedGramsX100)) {
+      !readFixedX100ParamOptional("addedGrams", "addedGramsX100", addedGramsX100)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }
