@@ -47,14 +47,14 @@ The smoke script checks business pages, read-only JSON APIs, and unauthenticated
 
 ## Web OTA
 
-Both application projects reuse Esp32Base Web OTA. After an initial serial upload and WiFi provisioning, upload firmware through the device HTTP OTA endpoint:
+Both application projects reuse Esp32Base Web OTA. After an initial serial upload and WiFi provisioning, upload firmware through each app's `platformio.webota.ini` configuration:
 
 ```bash
-ESP32BASE_WEBOTA_HOST=192.168.2.156 ESP32BASE_WEBOTA_USER=admin ESP32BASE_WEBOTA_PASSWORD=admin \
-  platformio run -d apps/Esp32FarmDoor -e esp32e_full -t webota
+platformio run -d apps/Esp32FarmDoor -e esp32e_full -t webota
 
-ESP32BASE_WEBOTA_HOST=192.168.2.156 ESP32BASE_WEBOTA_USER=admin ESP32BASE_WEBOTA_PASSWORD=admin \
-  platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t webota
+platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t webota
 ```
+
+The default hosts are `esp32-farmdoor.local` and `esp32-farmfeeder.local`. If mDNS is slow or unavailable, edit the matching `platformio.webota.ini` and replace `esp32base_webota_host` with the device IP.
 
 The `webota` target is provided by `Esp32Base/scripts/esp32base_webota.py`. FarmAuto does not implement its own OTA page, upload handler, SHA256 check, rollback, or restart flow.
