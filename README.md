@@ -44,3 +44,17 @@ After the board joins WiFi, run non-destructive HTTP smoke tests:
 ```
 
 The smoke script checks business pages, read-only JSON APIs, and unauthenticated API rejection. It does not trigger motor output, calibration writes, feeding, or door movement.
+
+## Web OTA
+
+Both application projects reuse Esp32Base Web OTA. After an initial serial upload and WiFi provisioning, upload firmware through the device HTTP OTA endpoint:
+
+```bash
+ESP32BASE_WEBOTA_HOST=192.168.2.156 ESP32BASE_WEBOTA_USER=admin ESP32BASE_WEBOTA_PASSWORD=admin \
+  platformio run -d apps/Esp32FarmDoor -e esp32e_full -t webota
+
+ESP32BASE_WEBOTA_HOST=192.168.2.156 ESP32BASE_WEBOTA_USER=admin ESP32BASE_WEBOTA_PASSWORD=admin \
+  platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t webota
+```
+
+The `webota` target is provided by `Esp32Base/scripts/esp32base_webota.py`. FarmAuto does not implement its own OTA page, upload handler, SHA256 check, rollback, or restart flow.
