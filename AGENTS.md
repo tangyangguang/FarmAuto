@@ -10,10 +10,10 @@
 
 ## 当前阶段
 
-- 当前阶段以分析、策划和文档为主。
-- 未经用户明确同意，不进入编码阶段。
-- 未经用户明确同意，不创建 PlatformIO 应用工程或公共库源码骨架。
-- 可以创建和修改 Markdown 文档、README、AGENTS.md、.gitignore 等规划类文件。
+- 当前阶段以测试、联调、缺陷修复和小范围收尾为主。
+- 可以按用户目标修改应用源码、公共库源码、测试、工具脚本和文档。
+- 修复编译、测试、上板验证、Web/API、OTA、持久化读写和硬件适配问题时，应直接落地最小合理改动。
+- 新增大功能、重做交互流程、改变硬件方案或调整持久化结构前，仍需先做整体评估并让用户确认方案。
 
 ## 仓库与目录
 
@@ -21,8 +21,8 @@
 - 正式文档统一放在 `docs/`，并使用编号方便阅读。
 - 应用文档放在 `docs/apps/`。
 - 公共库文档放在 `docs/libs/`。
-- 未来应用目录命名使用 `apps/Esp32FarmDoor` 和 `apps/Esp32FarmFeeder`。
-- 未来公共库目录命名使用 `lib/Esp32EncodedDcMotor`、`lib/Esp32MotorCurrentGuard`、`lib/Esp32At24cRecordStore`。
+- 应用目录为 `apps/Esp32FarmDoor` 和 `apps/Esp32FarmFeeder`。
+- 公共库目录为 `lib/Esp32EncodedDcMotor`、`lib/Esp32MotorCurrentGuard`、`lib/Esp32At24cRecordStore`。
 
 ## 只读边界
 
