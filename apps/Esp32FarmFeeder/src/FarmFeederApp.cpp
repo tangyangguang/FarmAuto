@@ -1558,6 +1558,7 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::addPage("/schedule/edit", "编辑计划", FarmFeederApp::sendScheduleEditPage);
   Esp32BaseWeb::addPage("/records", "喂食记录", FarmFeederApp::sendRecordsPage);
   Esp32BaseWeb::addPage("/base-info", "基础信息", FarmFeederApp::sendBaseInfoPage);
+  Esp32BaseWeb::addPage("/base-info/edit", "编辑通道", FarmFeederApp::sendBaseInfoEditPage);
   Esp32BaseWeb::addPage("/diagnostics", "喂食器诊断", FarmFeederApp::sendDiagnosticsPage);
   addFarmFeederApi("/api/app/status", FarmFeederApp::sendStatusJson);
   addFarmFeederApi("/api/app/diagnostics", FarmFeederApp::sendDiagnosticsJson);
@@ -1759,33 +1760,76 @@ void FarmFeederApp::sendBaseInfoPage() {
   const FeederBucketSnapshot buckets = g_buckets.snapshot();
   Esp32BaseWeb::sendHeader("基础信息");
   Esp32BaseWeb::sendChunk("<h1>基础信息</h1><section><h2>通道基础信息</h2><table>");
-  Esp32BaseWeb::sendChunk("<tr><th>通道</th><th>名称</th><th>启用</th><th>每圈信号数</th><th>每圈克数</th></tr>");
+  Esp32BaseWeb::sendChunk("<tr><th>通道</th><th>名称</th><th>启用</th><th>每圈信号数</th><th>每圈克数</th><th>满桶容量</th><th>操作</th></tr>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const FeederBucketState& channel = buckets.channels[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
     sendUint8(static_cast<uint8_t>(i + 1));
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(buckets.channels[i].baseInfo.name);
+    Esp32BaseWeb::writeHtmlEscaped(channel.baseInfo.name);
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::sendChunk(buckets.channels[i].baseInfo.enabled ? "是" : "否");
+    Esp32BaseWeb::sendChunk(channel.baseInfo.enabled ? "是" : "否");
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendInt32(buckets.channels[i].baseInfo.outputPulsesPerRev);
+    sendInt32(channel.baseInfo.outputPulsesPerRev);
     Esp32BaseWeb::sendChunk("</td><td>");
-    sendFixedX100(buckets.channels[i].baseInfo.gramsPerRevX100);
-    Esp32BaseWeb::sendChunk(" g</td></tr>");
+    sendFixedX100(channel.baseInfo.gramsPerRevX100);
+    Esp32BaseWeb::sendChunk(" g</td><td>");
+    sendFixedX100(channel.baseInfo.capacityGramsX100);
+    Esp32BaseWeb::sendChunk(" g</td><td><a href='/base-info/edit?channel=");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk("'>编辑</a></td></tr>");
   }
-  Esp32BaseWeb::sendChunk("</table></section><section><h2>修改单路信息</h2>");
+  Esp32BaseWeb::sendChunk("</table><p>当前余量属于运行维护数据，在首页“料桶余量”中维护；本页只管理通道基础信息。</p></section>");
+  Esp32BaseWeb::sendFooter();
+#endif
+}
+
+void FarmFeederApp::sendBaseInfoEditPage() {
+#if ESP32BASE_ENABLE_WEB
+  uint8_t channel = 0;
+  if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
+    Esp32BaseWeb::sendHeader("编辑通道");
+    Esp32BaseWeb::sendChunk("<h1>编辑通道</h1><section><h2>通道不存在</h2><p>指定通道不存在或参数无效。</p><p><a href='/base-info'>返回基础信息</a></p></section>");
+    Esp32BaseWeb::sendFooter();
+    return;
+  }
+
+  const FeederBucketSnapshot buckets = g_buckets.snapshot();
+  const FeederBucketState& info = buckets.channels[channel];
+  Esp32BaseWeb::sendHeader("编辑通道");
+  Esp32BaseWeb::sendChunk("<h1>编辑通道</h1><section><h2>");
+  Esp32BaseWeb::writeHtmlEscaped(info.baseInfo.name);
+  Esp32BaseWeb::sendChunk("</h2><p>修改会影响后续手工喂食、计划投喂和料桶余量估算。运行中不能保存。</p>");
   Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/base-info/channel'>");
-  Esp32BaseWeb::sendChunk("<label>通道 <input name='channel' value='0'></label> ");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='channel' value='");
+  sendUint8(channel);
+  Esp32BaseWeb::sendChunk("'>");
   Esp32BaseWeb::sendChunk("<label>名称 <input name='name' maxlength='");
   sendUint8(kFeederChannelNameMaxBytes);
-  Esp32BaseWeb::sendChunk("' value='通道 1'></label> ");
-  Esp32BaseWeb::sendChunk("<label>启用 <input name='enabled' value='1'></label> ");
-  Esp32BaseWeb::sendChunk("<label>每圈信号数 <input name='outputPulsesPerRev' value='4320'></label> ");
-  Esp32BaseWeb::sendChunk("<label>每圈克数 x100 <input name='gramsPerRevX100' value='7000'></label> ");
-  Esp32BaseWeb::sendChunk("<label>满桶容量 x100 <input name='capacityGramsX100' value='500000'></label> ");
+  Esp32BaseWeb::sendChunk("' value='");
+  Esp32BaseWeb::writeHtmlEscaped(info.baseInfo.name);
+  Esp32BaseWeb::sendChunk("'></label> ");
+  Esp32BaseWeb::sendChunk("<label>启用 <select name='enabled'><option value='1'");
+  if (info.baseInfo.enabled) {
+    Esp32BaseWeb::sendChunk(" selected");
+  }
+  Esp32BaseWeb::sendChunk(">启用</option><option value='0'");
+  if (!info.baseInfo.enabled) {
+    Esp32BaseWeb::sendChunk(" selected");
+  }
+  Esp32BaseWeb::sendChunk(">停用</option></select></label> ");
+  Esp32BaseWeb::sendChunk("<label>每圈信号数 <input name='outputPulsesPerRev' value='");
+  sendInt32(info.baseInfo.outputPulsesPerRev);
+  Esp32BaseWeb::sendChunk("'></label> ");
+  Esp32BaseWeb::sendChunk("<label>每圈克数 <input name='gramsPerRev' value='");
+  sendFixedX100(info.baseInfo.gramsPerRevX100);
+  Esp32BaseWeb::sendChunk("'></label> ");
+  Esp32BaseWeb::sendChunk("<label>满桶容量（克） <input name='capacityGrams' value='");
+  sendFixedX100(info.baseInfo.capacityGramsX100);
+  Esp32BaseWeb::sendChunk("'></label> ");
   Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
   Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>保存</button></form></section>");
+  Esp32BaseWeb::sendChunk("<button>保存通道</button> <a href='/base-info'>返回基础信息</a></form></section>");
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -2541,8 +2585,8 @@ void FarmFeederApp::handleBaseInfoChannel() {
   if (!readUint8Param("channel", channel) || !validAppChannel(channel) ||
       !readBoolParam("enabled", enabled) ||
       !readInt32Param("outputPulsesPerRev", outputPulsesPerRev) ||
-      !readInt32Param("gramsPerRevX100", gramsPerRevX100) ||
-      !readInt32Param("capacityGramsX100", capacityGramsX100)) {
+      !readFixedX100ParamOptional("gramsPerRev", "gramsPerRevX100", gramsPerRevX100) ||
+      !readFixedX100ParamOptional("capacityGrams", "capacityGramsX100", capacityGramsX100)) {
     sendResultJson(400, "InvalidArgument");
     return;
   }

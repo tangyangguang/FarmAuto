@@ -15,6 +15,7 @@ class FarmFeederApp {
   static void sendScheduleEditPage();
   static void sendRecordsPage();
   static void sendBaseInfoPage();
+  static void sendBaseInfoEditPage();
   static void sendDiagnosticsPage();
   static void sendStatusJson();
   static void sendDiagnosticsJson();
