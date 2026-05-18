@@ -55,6 +55,6 @@ platformio run -d apps/Esp32FarmDoor -e esp32e_full -t webota
 platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t webota
 ```
 
-The default hosts are `esp32-farmdoor.local` and `esp32-farmfeeder.local`. If mDNS is slow or unavailable, edit the matching `platformio.webota.ini` and replace `esp32base_webota_host` with the device IP.
+The default Web OTA host is `192.168.2.158`. If the device IP changes, edit the matching `platformio.webota.ini` and update `esp32base_webota_host`.
 
 The `webota` target is provided by `Esp32Base/scripts/esp32base_webota.py`. FarmAuto does not implement its own OTA page, upload handler, SHA256 check, rollback, or restart flow.
