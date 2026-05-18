@@ -79,6 +79,31 @@ void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   }
 }
 
+void sendFarmAutoBusinessStyle() {
+  Esp32BaseWeb::sendChunk(
+      "<style>"
+      "main.page{max-width:980px;margin:0 auto}"
+      "main.page>h1{font-size:24px;margin:4px 0 14px}"
+      "main.page>section{background:#fff;border:1px solid #d8e0e6;border-radius:8px;box-shadow:0 1px 3px rgba(16,24,40,.06);padding:14px 16px;margin:14px 0}"
+      "main.page>section>h2{font-size:18px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #e5ebef}"
+      "table{width:100%;border-collapse:collapse;margin:8px 0 4px;background:#fff}"
+      "th,td{border-bottom:1px solid #e5ebef;padding:9px 8px;text-align:left;vertical-align:top}"
+      "th{color:#64707d;font-size:13px;font-weight:700;background:#f8faf9}"
+      "tr:last-child td{border-bottom:0}"
+      "select,textarea{width:100%;font-size:14px;padding:7px 9px;margin:0 0 12px;border:1px solid #ccd5dd;border-radius:5px;box-sizing:border-box;background:#fff;color:#1f2933}"
+      "fieldset{border:1px solid #d8e0e6;border-radius:7px;padding:10px 12px;margin:10px 0;background:#fbfcfc}"
+      "legend{font-weight:700;color:#25313f;padding:0 4px}"
+      "form{margin:0}"
+      "td form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px}"
+      "td form input:not([type]),td form input[type=text],td form input[type=number]{width:12ch;margin:0}"
+      "td form button{margin:0}"
+      "section>a,form>a{display:inline-block;padding:7px 10px;border:1px solid #ccd5dd;border-radius:5px;background:#fff;margin:0 6px 6px 0}"
+      ".hint{color:#64707d;font-size:13px}"
+      "@media(max-width:720px){body{padding:8px}main.page>h1{font-size:22px}main.page>section{padding:12px;margin:10px 0;overflow-x:auto}"
+      "table{font-size:13px;min-width:620px}fieldset{padding:9px}td form{display:block}td form input:not([type]),td form input[type=text],td form input[type=number]{width:100%;margin:0 0 6px}}"
+      "</style>");
+}
+
 void beginRawJson(int code) {
   Esp32BaseWeb::beginResponse(code, "application/json", nullptr);
 }
@@ -1548,6 +1573,7 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setHomePath("/app");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
+  Esp32BaseWeb::setHeadExtraCallback(sendFarmAutoBusinessStyle);
   Esp32BaseWeb::addNavItem("/app", "首页");
   Esp32BaseWeb::addNavItem("/schedule", "计划");
   Esp32BaseWeb::addNavItem("/records", "记录");
@@ -1555,11 +1581,15 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
   Esp32BaseWeb::addPage("/app", "喂食器首页", FarmFeederApp::sendHomePage);
   Esp32BaseWeb::addPage("/schedule", "喂食计划", FarmFeederApp::sendSchedulePage);
-  Esp32BaseWeb::addPage("/schedule/edit", "编辑计划", FarmFeederApp::sendScheduleEditPage);
   Esp32BaseWeb::addPage("/records", "喂食记录", FarmFeederApp::sendRecordsPage);
   Esp32BaseWeb::addPage("/base-info", "基础信息", FarmFeederApp::sendBaseInfoPage);
-  Esp32BaseWeb::addPage("/base-info/edit", "编辑通道", FarmFeederApp::sendBaseInfoEditPage);
   Esp32BaseWeb::addPage("/diagnostics", "喂食器诊断", FarmFeederApp::sendDiagnosticsPage);
+  if (!Esp32BaseWeb::addRoute("/schedule/edit", Esp32BaseWeb::METHOD_GET, FarmFeederApp::sendScheduleEditPage)) {
+    ESP32BASE_LOG_E("farmfeeder", "page_route_register_failed path=/schedule/edit");
+  }
+  if (!Esp32BaseWeb::addRoute("/base-info/edit", Esp32BaseWeb::METHOD_GET, FarmFeederApp::sendBaseInfoEditPage)) {
+    ESP32BASE_LOG_E("farmfeeder", "page_route_register_failed path=/base-info/edit");
+  }
   addFarmFeederApi("/api/app/status", FarmFeederApp::sendStatusJson);
   addFarmFeederApi("/api/app/diagnostics", FarmFeederApp::sendDiagnosticsJson);
   addFarmFeederApi("/api/app/events/recent", FarmFeederApp::sendRecentEventsJson);
