@@ -12,7 +12,7 @@ Esp32FarmDoor 页面：
 
 - `/`：自动门总览，显示门状态、位置、保护状态、常用操作、上次运行回放和最近事件。
 - `/records`：自动门长期业务记录查询；导出作为后续增强。
-- `/calibration`：行程校准，含标定关门基准、用当前位置更新开门目标、直接设置行程和微调行程。手动运行和端点验证等真实电机动作进入硬件适配阶段。
+- `/calibration`：行程校准，含标定关门基准、用当前位置更新开门目标、直接设置行程和微调行程。真实电机输出由 `door/motorOutput` 控制，默认关闭。
 - `/diagnostics`：自动门业务诊断信息，含状态 snapshot、最近事件、GPIO/ADC/AT24C/flash 只读检查。
 
 系统参数、系统日志、OTA、WiFi 和文件系统格式化由 Esp32Base 自己提供，不进入自动门业务导航和静态原型。
@@ -59,7 +59,7 @@ Esp32FarmDoor 页面：
 - 端点：closedPulses、openTargetPulses、maxRunPulses、maxRunMs。
 - 行程：openTurnsX100、outputPulsesPerRev。
 - 限位：第一版显示禁用；下一阶段显示 openLimit/closeLimit 的启用、触发、断线和冲突状态。
-- 电机：当前返回 `motorOutput.enabled=false`；AT8236/PCNT 接入后再扩展 state、speedPps、outputPercent、remainingPulses、faultReason。
+- 电机：返回 `motorOutput.enabled`、ready、motor snapshot、encoder、driver output 和 fault；`door/motorOutput` 默认关闭，启用后才驱动 AT8236。
 - 电流：首版返回 INA240A2 编译开关和运行开关；GPIO33 ADC 原始值在 diagnostics 中查看。电流换算、零点校准和保护停机策略在硬件实测后接入。
 - 存储：AT24C 在线状态、record store ready、flash 记录分页信息。
 - 最近命令：commandId、command、source、startedAt、result。
@@ -99,7 +99,7 @@ Esp32FarmDoor 页面：
 - 请求体包含 `confirm=true` 和短期 `confirmToken`。
 - 响应返回 commandId。
 - 页面轮询 `GET /api/app/status` 展示进度。
-- 所有危险操作写入自动门长期业务记录。
+- 门开/关/停、位置/行程相关操作写入自动门长期业务记录；清故障等维护事件写入 App Events。
 
 ## 第一版无限位维护
 
@@ -107,7 +107,7 @@ Esp32FarmDoor 页面：
 
 - `PositionUnknown` 下禁止普通开门和关门。
 - 允许进入行程校准页执行手动运行、设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程和低速端点验证。
-- 当前无电机输出版本只支持设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程；低速手动运行和低速端点验证等真实电机动作进入硬件适配阶段。
+- 当前版本支持设置关闭点、保存开门目标、直接设置行程圈数或脉冲数、微调行程；真实输出默认关闭，启用 `door/motorOutput` 后才执行 AT8236/PCNT 闭环动作。
 - 硬件适配阶段的 `manual-move` 单次动作必须限制最大时长和最大脉冲，并允许随时停止。
 - 端点验证成功前，不建议退出 `PositionUnknown` 进入普通控制；如果用户选择直接设置行程但跳过验证，必须标记为低可信恢复来源并持续提示。
 - 没有远程视频、现场观察或机械标记时，不建议远程重新示教端点。

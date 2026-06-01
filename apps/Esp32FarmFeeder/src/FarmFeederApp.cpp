@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 #include <Esp32Base.h>
+#include <Esp32EncodedDcMotor.h>
+#include <FarmAutoEventLog.h>
 
 #include <esp_system.h>
 #include <Wire.h>
@@ -47,6 +49,9 @@ bool g_at24cStoreReady = false;
 static constexpr uint8_t kFarmFeederRouteCount = 29;
 static constexpr uint8_t kFeederI2cSda = 21;
 static constexpr uint8_t kFeederI2cScl = 22;
+static constexpr uint8_t kFeederPwmPins[kFeederConfiguredChannels] = {16, 17, 18};
+static constexpr uint8_t kFeederEncoderPinsA[kFeederConfiguredChannels] = {33, 26, 14};
+static constexpr uint8_t kFeederEncoderPinsB[kFeederConfiguredChannels] = {32, 25, 27};
 static constexpr const char* kFeederRecordRootDir = "/records";
 static constexpr const char* kFeederRecordDir = "/records/feeder";
 static constexpr const char* kFeederRecordCurrentPath = "/records/feeder/current.far";
@@ -54,6 +59,18 @@ static constexpr uint32_t kFeederRecordMaxCurrentBytes = 64UL * 1024UL;
 static constexpr uint8_t kFeederRecordMaxArchives = 16;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmFeederRouteCount,
               "Esp32FarmFeeder requires ESP32BASE_WEB_MAX_ROUTES >= 29");
+
+Esp32EncodedDcMotor::MotorHardwareConfig g_feederMotorHardware[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::EncoderBackendConfig g_feederEncoderBackend[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::MotorKinematics g_feederMotorKinematics[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::MotorMotionProfile g_feederMotorProfile[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::MotorProtection g_feederMotorProtection[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::MotorStopPolicy g_feederMotorStopPolicy[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::SinglePwmMotorDriver g_feederMotorDriver[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::PcntEncoderReader g_feederMotorEncoder[kFeederConfiguredChannels];
+Esp32EncodedDcMotor::EncodedDcMotor g_feederMotor[kFeederConfiguredChannels];
+bool g_feederMotorOutputEnabled = false;
+uint8_t g_feederMotorReadyMask = 0;
 
 uint8_t configuredChannelMask() {
   return static_cast<uint8_t>((1U << kFeederConfiguredChannels) - 1U);
@@ -79,31 +96,6 @@ void addFarmFeederApi(const char* path, Esp32BaseWeb::Handler handler) {
   }
 }
 
-void sendFarmAutoBusinessStyle() {
-  Esp32BaseWeb::sendChunk(
-      "<style>"
-      "main.page{max-width:980px;margin:0 auto}"
-      "main.page>h1{font-size:24px;margin:4px 0 14px}"
-      "main.page>section{background:#fff;border:1px solid #d8e0e6;border-radius:8px;box-shadow:0 1px 3px rgba(16,24,40,.06);padding:14px 16px;margin:14px 0}"
-      "main.page>section>h2{font-size:18px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #e5ebef}"
-      "table{width:100%;border-collapse:collapse;margin:8px 0 4px;background:#fff}"
-      "th,td{border-bottom:1px solid #e5ebef;padding:9px 8px;text-align:left;vertical-align:top}"
-      "th{color:#64707d;font-size:13px;font-weight:700;background:#f8faf9}"
-      "tr:last-child td{border-bottom:0}"
-      "select,textarea{width:100%;font-size:14px;padding:7px 9px;margin:0 0 12px;border:1px solid #ccd5dd;border-radius:5px;box-sizing:border-box;background:#fff;color:#1f2933}"
-      "fieldset{border:1px solid #d8e0e6;border-radius:7px;padding:10px 12px;margin:10px 0;background:#fbfcfc}"
-      "legend{font-weight:700;color:#25313f;padding:0 4px}"
-      "form{margin:0}"
-      "td form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px}"
-      "td form input:not([type]),td form input[type=text],td form input[type=number]{width:12ch;margin:0}"
-      "td form button{margin:0}"
-      "section>a,form>a{display:inline-block;padding:7px 10px;border:1px solid #ccd5dd;border-radius:5px;background:#fff;margin:0 6px 6px 0}"
-      ".hint{color:#64707d;font-size:13px}"
-      "@media(max-width:720px){body{padding:8px}main.page>h1{font-size:22px}main.page>section{padding:12px;margin:10px 0;overflow-x:auto}"
-      "table{font-size:13px;min-width:620px}fieldset{padding:9px}td form{display:block}td form input:not([type]),td form input[type=text],td form input[type=number]{width:100%;margin:0 0 6px}}"
-      "</style>");
-}
-
 void beginRawJson(int code) {
   Esp32BaseWeb::beginResponse(code, "application/json", nullptr);
 }
@@ -113,6 +105,9 @@ void endRawJson() {
 }
 
 bool requireApiAuth() {
+  if (Esp32BaseWeb::isMethod(Esp32BaseWeb::METHOD_POST)) {
+    return Esp32BaseWeb::checkPostAllowed("farmfeeder");
+  }
   return Esp32BaseWeb::checkAuth();
 }
 
@@ -472,12 +467,18 @@ void recordBusinessEvent(const FeederRecord& record) {
   if (rotateResult != FeederRecordRotateResult::Ok) {
     ESP32BASE_LOG_W("farmfeeder", "record_rotate_failed result=%u",
                     static_cast<unsigned>(rotateResult));
+    FarmAutoEventLog::recordStorageWarning("feeder_records",
+                                           "rotate_failed",
+                                           static_cast<uint16_t>(rotateResult));
   }
   const FeederRecordWriteResult result = appendFeederRecordToPath(
       stored, kFeederRecordCurrentPath, appendFeederRecordBytes, nullptr);
   if (result != FeederRecordWriteResult::Ok) {
     ESP32BASE_LOG_W("farmfeeder", "record_append_failed result=%u",
                     static_cast<unsigned>(result));
+    FarmAutoEventLog::recordStorageWarning("feeder_records",
+                                           "append_failed",
+                                           static_cast<uint16_t>(result));
   }
 #endif
 }
@@ -961,6 +962,67 @@ void sendRecordArray(const FeederRecordPage& page) {
   Esp32BaseWeb::sendChunk("]");
 }
 
+const char* appEventLevelName(FarmAutoEventLog::Level level) {
+  switch (level) {
+    case FarmAutoEventLog::LEVEL_INFO: return "info";
+    case FarmAutoEventLog::LEVEL_WARN: return "warn";
+    case FarmAutoEventLog::LEVEL_ERROR: return "error";
+  }
+  return "info";
+}
+
+void sendBusinessEventJson(const FarmAutoEventLog::BusinessEvent& event) {
+  Esp32BaseWeb::sendChunk("{\"id\":");
+  sendUint32(event.id);
+  Esp32BaseWeb::sendChunk(",\"epochSec\":");
+  sendUint32(event.epochSec);
+  Esp32BaseWeb::sendChunk(",\"bootId\":");
+  sendUint32(event.bootId);
+  Esp32BaseWeb::sendChunk(",\"uptimeSec\":");
+  sendUint32(event.uptimeSec);
+  Esp32BaseWeb::sendChunk(",\"timeSynced\":");
+  Esp32BaseWeb::sendChunk(event.timeSynced ? "true" : "false");
+  Esp32BaseWeb::sendChunk(",\"level\":\"");
+  Esp32BaseWeb::sendChunk(appEventLevelName(event.level));
+  Esp32BaseWeb::sendChunk("\",\"domain\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.domain);
+  Esp32BaseWeb::sendChunk("\",\"action\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.action);
+  Esp32BaseWeb::sendChunk("\",\"target\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.target);
+  Esp32BaseWeb::sendChunk("\",\"message\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.message);
+  Esp32BaseWeb::sendChunk("\",\"detail\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.detail);
+  Esp32BaseWeb::sendChunk("\",\"code\":");
+  sendUint32(event.code);
+  Esp32BaseWeb::sendChunk(",\"valueMask\":");
+  sendUint32(event.valueMask);
+  Esp32BaseWeb::sendChunk(",\"value1\":");
+  sendInt32(event.value1);
+  Esp32BaseWeb::sendChunk(",\"value2\":");
+  sendInt32(event.value2);
+  Esp32BaseWeb::sendChunk(",\"value3\":");
+  sendInt32(event.value3);
+  Esp32BaseWeb::sendChunk("}");
+}
+
+struct BusinessEventJsonState {
+  uint16_t emitted = 0;
+};
+
+void sendBusinessEventJsonCallback(const FarmAutoEventLog::BusinessEvent& event, void* user) {
+  BusinessEventJsonState* state = static_cast<BusinessEventJsonState*>(user);
+  if (state == nullptr) {
+    return;
+  }
+  if (state->emitted > 0) {
+    Esp32BaseWeb::sendChunk(",");
+  }
+  sendBusinessEventJson(event);
+  ++state->emitted;
+}
+
 void sendRecentCommandJson() {
   const FeederRecordSnapshot records = g_records.snapshot();
   for (uint8_t i = records.count; i > 0; --i) {
@@ -1174,6 +1236,113 @@ bool requireConfirm(const char* action, const char* resource) {
   return false;
 }
 
+bool feederMotorReady(uint8_t channelIndex) {
+  return channelIndex < kFeederConfiguredChannels &&
+         (g_feederMotorReadyMask & static_cast<uint8_t>(1U << channelIndex)) != 0;
+}
+
+bool configureFeederMotorIfEnabled(uint8_t channelIndex, int32_t maxRunPulses = 0) {
+  if (!g_feederMotorOutputEnabled || !validAppChannel(channelIndex)) {
+    return false;
+  }
+  const uint8_t bit = static_cast<uint8_t>(1U << channelIndex);
+  if ((g_feederMotorReadyMask & bit) == 0) {
+    Esp32EncodedDcMotor::MotorResult result =
+        g_feederMotorEncoder[channelIndex].begin(g_feederEncoderBackend[channelIndex]);
+    if (result != Esp32EncodedDcMotor::MotorResult::Ok) {
+      ESP32BASE_LOG_E("farmfeeder", "encoder_begin_failed channel=%u result=%u",
+                      static_cast<unsigned>(channelIndex), static_cast<unsigned>(result));
+      FarmAutoEventLog::recordStorageWarning("feeder_motor", "encoder_begin_failed",
+                                             static_cast<uint16_t>(result));
+      return false;
+    }
+    result = g_feederMotorDriver[channelIndex].begin(kFeederPwmPins[channelIndex],
+                                                     g_feederMotorHardware[channelIndex]);
+    if (result != Esp32EncodedDcMotor::MotorResult::Ok) {
+      ESP32BASE_LOG_E("farmfeeder", "driver_begin_failed channel=%u result=%u",
+                      static_cast<unsigned>(channelIndex), static_cast<unsigned>(result));
+      FarmAutoEventLog::recordStorageWarning("feeder_motor", "driver_begin_failed",
+                                             static_cast<uint16_t>(result));
+      return false;
+    }
+    result = g_feederMotor[channelIndex].begin(g_feederMotorDriver[channelIndex],
+                                               g_feederMotorEncoder[channelIndex],
+                                               g_feederMotorHardware[channelIndex],
+                                               g_feederEncoderBackend[channelIndex]);
+    if (result != Esp32EncodedDcMotor::MotorResult::Ok) {
+      ESP32BASE_LOG_E("farmfeeder", "motor_begin_failed channel=%u result=%u",
+                      static_cast<unsigned>(channelIndex), static_cast<unsigned>(result));
+      FarmAutoEventLog::recordStorageWarning("feeder_motor", "motor_begin_failed",
+                                             static_cast<uint16_t>(result));
+      return false;
+    }
+    g_feederMotorReadyMask |= bit;
+  }
+  if (maxRunPulses > 0) {
+    g_feederMotorProtection[channelIndex].maxRunPulses = maxRunPulses;
+  }
+  const Esp32EncodedDcMotor::MotorResult configureResult =
+      g_feederMotor[channelIndex].configure(g_feederMotorKinematics[channelIndex],
+                                            g_feederMotorProfile[channelIndex],
+                                            g_feederMotorProtection[channelIndex],
+                                            g_feederMotorStopPolicy[channelIndex]);
+  return configureResult == Esp32EncodedDcMotor::MotorResult::Ok;
+}
+
+bool startFeederMotor(uint8_t channelIndex, int32_t targetPulses) {
+  if (targetPulses <= 0) {
+    return false;
+  }
+  const int32_t maxRunPulses = targetPulses + (targetPulses / 2) + 100;
+  if (!configureFeederMotorIfEnabled(channelIndex, maxRunPulses)) {
+    return false;
+  }
+  g_feederMotorEncoder[channelIndex].resetPosition(0);
+  g_feederMotor[channelIndex].setCurrentPositionPulses(0);
+  return g_feederMotor[channelIndex].requestMovePulses(targetPulses) ==
+         Esp32EncodedDcMotor::MotorResult::Ok;
+}
+
+void requestFeederMotorStop(uint8_t channelMask) {
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((channelMask & bit) != 0 && feederMotorReady(i)) {
+      g_feederMotor[i].requestStop();
+      g_runs.updateActualPulses(i, static_cast<int32_t>(g_feederMotor[i].snapshot().positionPulses));
+    }
+  }
+}
+
+void sendFeederMotorOutputJson() {
+  Esp32BaseWeb::sendChunk("\"motorOutput\":{\"enabled\":");
+  Esp32BaseWeb::sendChunk(g_feederMotorOutputEnabled ? "true" : "false");
+  Esp32BaseWeb::sendChunk(",\"readyMask\":");
+  sendUint8(g_feederMotorReadyMask);
+  Esp32BaseWeb::sendChunk(",\"channels\":[");
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    if (i > 0) {
+      Esp32BaseWeb::sendChunk(",");
+    }
+    Esp32BaseWeb::sendChunk("{\"index\":");
+    sendUint8(i);
+    Esp32BaseWeb::sendChunk(",\"ready\":");
+    Esp32BaseWeb::sendChunk(feederMotorReady(i) ? "true" : "false");
+    if (feederMotorReady(i)) {
+      const Esp32EncodedDcMotor::MotorSnapshot motor = g_feederMotor[i].snapshot();
+      Esp32BaseWeb::sendChunk(",\"positionPulses\":");
+      sendInt32(static_cast<int32_t>(motor.positionPulses));
+      Esp32BaseWeb::sendChunk(",\"targetPulses\":");
+      sendInt32(static_cast<int32_t>(motor.targetPulses));
+      Esp32BaseWeb::sendChunk(",\"outputPercent\":");
+      sendUint8(motor.driverOutputPercent);
+      Esp32BaseWeb::sendChunk(",\"faultReason\":");
+      sendUint8(static_cast<uint8_t>(motor.faultReason));
+    }
+    Esp32BaseWeb::sendChunk("}");
+  }
+  Esp32BaseWeb::sendChunk("]}");
+}
+
 void settleStoppedRuns(uint8_t channelMask) {
   bool changed = false;
   const FeederRunSnapshot runs = g_runs.snapshot();
@@ -1197,6 +1366,37 @@ void settleStoppedRuns(uint8_t channelMask) {
   if (changed) {
     persistFeederTodayIfReady();
     persistFeederBucketsIfReady();
+  }
+}
+
+void updateFeederMotors() {
+  if (g_feederMotorReadyMask == 0) {
+    return;
+  }
+  uint8_t completedMask = 0;
+  uint8_t faultMask = 0;
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    const uint8_t bit = static_cast<uint8_t>(1U << i);
+    if ((g_feeder.snapshot().runningChannelMask & bit) == 0 || !feederMotorReady(i)) {
+      continue;
+    }
+    g_feederMotor[i].update(millis());
+    const Esp32EncodedDcMotor::MotorSnapshot motor = g_feederMotor[i].snapshot();
+    g_runs.updateActualPulses(i, static_cast<int32_t>(motor.positionPulses));
+    if (motor.state == Esp32EncodedDcMotor::MotorState::Idle) {
+      if (g_feeder.completeChannel(i) == FeederCommandResult::Ok) {
+        completedMask |= bit;
+      }
+    } else if (motor.state == Esp32EncodedDcMotor::MotorState::Fault) {
+      g_feeder.setChannelFault(i);
+      faultMask |= bit;
+    }
+  }
+  if (completedMask != 0) {
+    settleStoppedRuns(completedMask);
+  }
+  if (faultMask != 0) {
+    FarmAutoEventLog::recordStorageWarning("feeder_motor", "motor_fault", faultMask);
   }
 }
 
@@ -1250,7 +1450,9 @@ void sendStartResultJson(const FeederStartResult& result,
     Esp32BaseWeb::sendChunk(",\"targets\":");
     sendResolvedTargetArray(*targets);
   }
-  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::sendChunk(",");
+  sendFeederMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 }
 
@@ -1259,6 +1461,12 @@ FeederStartResult startResolvedTargets(uint8_t channelMask,
                                        uint32_t commandId,
                                        FeederTargetBatch& targets,
                                        const FeederTargetSnapshot* targetOverrides = nullptr) {
+  if (!g_feederMotorOutputEnabled) {
+    FeederStartResult result;
+    result.result = FeederCommandResult::InvalidArgument;
+    result.skippedMask = channelMask;
+    return result;
+  }
   const FeederTargetSnapshot storedTargets = g_targets.snapshot();
   targets = resolveFeederTargetsForMask(g_buckets.snapshot(),
                                         targetOverrides ? *targetOverrides : storedTargets,
@@ -1271,6 +1479,27 @@ FeederStartResult startResolvedTargets(uint8_t channelMask,
   }
   FeederStartResult result = g_feeder.startChannels(targets.okMask, source);
   if (result.successMask != 0) {
+    uint8_t motorStartedMask = 0;
+    uint8_t motorFailedMask = 0;
+    for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+      const uint8_t bit = static_cast<uint8_t>(1U << i);
+      if ((result.successMask & bit) == 0) {
+        continue;
+      }
+      if (startFeederMotor(i, targets.channels[i].targetPulses)) {
+        motorStartedMask |= bit;
+      } else {
+        motorFailedMask |= bit;
+        g_feeder.setChannelFault(i);
+      }
+    }
+    result.successMask = motorStartedMask;
+    result.faultMask |= motorFailedMask;
+    if (result.successMask == 0) {
+      result.result = result.faultMask != 0 ? FeederCommandResult::Fault
+                                            : FeederCommandResult::InvalidArgument;
+      return result;
+    }
     g_runs.start(result.successMask, source, targets);
     for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
       const uint8_t bit = static_cast<uint8_t>(1U << i);
@@ -1449,12 +1678,14 @@ void FarmFeederApp::begin() {
     ESP32BASE_LOG_E("farmfeeder", "Esp32Base begin failed: %s", Esp32Base::lastError());
   } else {
     initializeFeederAt24cStore();
+    g_feederMotorOutputEnabled = Esp32BaseConfig::getBool("feeder", "motorOutput", false);
     ESP32BASE_LOG_I("farmfeeder", "skeleton ready enabled_mask=%u", g_feederConfig.enabledChannelMask);
   }
 }
 
 void FarmFeederApp::handle() {
   Esp32Base::handle();
+  updateFeederMotors();
   handleScheduleTick();
 }
 
@@ -1538,6 +1769,36 @@ void FarmFeederApp::configureStaticDefaults() {
   g_feederConfig.installedChannelMask = configuredChannelMask();
   g_feederConfig.enabledChannelMask = configuredChannelMask();
 
+  for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
+    g_feederMotorHardware[i].driverType = Esp32EncodedDcMotor::DriverType::SinglePwm;
+    g_feederMotorHardware[i].pwmFrequencyHz = 20000;
+    g_feederMotorHardware[i].pwmResolutionBits = 8;
+    g_feederMotorHardware[i].ledcChannelA = i;
+
+    g_feederEncoderBackend[i].backendType = Esp32EncodedDcMotor::EncoderBackendType::Pcnt;
+    g_feederEncoderBackend[i].pinA = kFeederEncoderPinsA[i];
+    g_feederEncoderBackend[i].pinB = kFeederEncoderPinsB[i];
+    g_feederEncoderBackend[i].countMode = Esp32EncodedDcMotor::CountMode::X1;
+    g_feederEncoderBackend[i].pcntUnit = i;
+    g_feederEncoderBackend[i].glitchFilterNs = 1000;
+
+    g_feederMotorKinematics[i].motorShaftPulsesPerRev = 16;
+    g_feederMotorKinematics[i].outputPulsesPerRev = 4320;
+    g_feederMotorKinematics[i].countMode = Esp32EncodedDcMotor::CountMode::X1;
+
+    g_feederMotorProfile[i].speedPercent = 60;
+    g_feederMotorProfile[i].softStartMs = 500;
+    g_feederMotorProfile[i].softStopMs = 300;
+    g_feederMotorProfile[i].minEffectiveSpeedPercent = 15;
+
+    g_feederMotorProtection[i].startupGraceMs = 1000;
+    g_feederMotorProtection[i].stallCheckIntervalMs = 250;
+    g_feederMotorProtection[i].minPulseDelta = 1;
+    g_feederMotorProtection[i].maxRunMs = 30000;
+    g_feederMotorStopPolicy[i].emergencyOutputMode =
+        Esp32EncodedDcMotor::EmergencyOutputMode::Coast;
+  }
+
   g_schedules.beginDay(0);
   g_today.beginDay(0);
 
@@ -1564,22 +1825,24 @@ void FarmFeederApp::configureStaticDefaults() {
 void FarmFeederApp::configureAppConfigPage() {
 #if ESP32BASE_ENABLE_APP_CONFIG
   Esp32BaseAppConfig::setTitle("Esp32FarmFeeder 参数");
+  Esp32BaseAppConfig::addGroup({"motor", "电机"});
+  Esp32BaseAppConfig::addBool({"motor", "feeder", "motorOutput", "启用电机输出", false,
+                               "启用后三路喂食命令会输出 PWM。", true, nullptr});
 #endif
 }
 
 void FarmFeederApp::configureBusinessShell() {
 #if ESP32BASE_ENABLE_WEB
   Esp32BaseWeb::setDeviceName("Esp32FarmFeeder");
-  Esp32BaseWeb::setHomePath("/app");
+  Esp32BaseWeb::setHomePath("/index");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
-  Esp32BaseWeb::setHeadExtraCallback(sendFarmAutoBusinessStyle);
-  Esp32BaseWeb::addNavItem("/app", "首页");
+  Esp32BaseWeb::addNavItem("/index", "首页");
   Esp32BaseWeb::addNavItem("/schedule", "计划");
   Esp32BaseWeb::addNavItem("/records", "记录");
   Esp32BaseWeb::addNavItem("/base-info", "基础信息");
   Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
-  Esp32BaseWeb::addPage("/app", "喂食器首页", FarmFeederApp::sendHomePage);
+  Esp32BaseWeb::addPage("/index", "喂食器首页", FarmFeederApp::sendHomePage);
   Esp32BaseWeb::addPage("/schedule", "喂食计划", FarmFeederApp::sendSchedulePage);
   Esp32BaseWeb::addPage("/records", "喂食记录", FarmFeederApp::sendRecordsPage);
   Esp32BaseWeb::addPage("/base-info", "基础信息", FarmFeederApp::sendBaseInfoPage);
@@ -1922,7 +2185,9 @@ void FarmFeederApp::sendStatusJson() {
   sendTodaySummary(g_today.snapshot());
   Esp32BaseWeb::sendChunk(",\"recentCommand\":");
   sendRecentCommandJson();
-  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::sendChunk(",");
+  sendFeederMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 #endif
 }
@@ -1969,7 +2234,8 @@ void FarmFeederApp::sendDiagnosticsJson() {
   Esp32BaseWeb::sendChunk(",\"online\":");
   Esp32BaseWeb::sendChunk(i2cDeviceOnline(0x50) ? "true" : "false");
   Esp32BaseWeb::sendChunk(",\"address\":\"0x50\"},");
-  Esp32BaseWeb::sendChunk("\"motorOutput\":{\"enabled\":false}}");
+  sendFeederMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 #endif
 }
@@ -1979,23 +2245,38 @@ void FarmFeederApp::sendRecentEventsJson() {
   if (!requireApiAuth()) {
     return;
   }
-  const FeederRecordSnapshot snapshot = g_records.snapshot();
-  if (snapshot.count == 0) {
-    char json[80];
-    snprintf(json, sizeof(json),
-             "{\"source\":\"ram\",\"count\":0,\"capacity\":%u,\"records\":[]}",
-             static_cast<unsigned>(kFeederRecentRecordCapacity));
-    Esp32BaseWeb::sendJson(200, json);
+  uint32_t limitParam = 32;
+  uint32_t offsetParam = 0;
+  if (!readUint32ParamOptional("limit", limitParam) ||
+      !readUint32ParamOptional("start", offsetParam) ||
+      limitParam == 0 || limitParam > 100 || offsetParam > UINT16_MAX) {
+    beginRawJson(400);
+    Esp32BaseWeb::sendChunk("{\"ok\":false,\"error\":\"InvalidArgument\"}");
+    endRawJson();
     return;
   }
+  BusinessEventJsonState state;
   beginRawJson(200);
-  Esp32BaseWeb::sendChunk("{\"source\":\"ram\",\"count\":");
-  sendUint8(snapshot.count);
+  Esp32BaseWeb::sendChunk("{\"store\":\"app_events\",\"ready\":");
+  Esp32BaseWeb::sendChunk(FarmAutoEventLog::isReady() ? "true" : "false");
+  Esp32BaseWeb::sendChunk(",\"faulted\":");
+  Esp32BaseWeb::sendChunk(FarmAutoEventLog::faulted() ? "true" : "false");
+  Esp32BaseWeb::sendChunk(",\"count\":");
+  sendUint32(FarmAutoEventLog::count());
   Esp32BaseWeb::sendChunk(",\"capacity\":");
-  sendUint8(kFeederRecentRecordCapacity);
-  Esp32BaseWeb::sendChunk(",\"records\":");
-  sendRecordArray(snapshot);
-  Esp32BaseWeb::sendChunk("}");
+  sendUint32(FarmAutoEventLog::capacity());
+  Esp32BaseWeb::sendChunk(",\"events\":[");
+  const bool readOk = FarmAutoEventLog::readLatest(static_cast<uint16_t>(offsetParam),
+                                                   static_cast<uint16_t>(limitParam),
+                                                   sendBusinessEventJsonCallback,
+                                                   &state);
+  Esp32BaseWeb::sendChunk("],\"readOk\":");
+  Esp32BaseWeb::sendChunk(readOk ? "true" : "false");
+  Esp32BaseWeb::sendChunk(",\"returned\":");
+  sendUint32(state.emitted);
+  Esp32BaseWeb::sendChunk(",\"lastError\":\"");
+  Esp32BaseWeb::writeJsonEscaped(FarmAutoEventLog::lastError());
+  Esp32BaseWeb::sendChunk("\"}");
   endRawJson();
 #endif
 }
@@ -2254,6 +2535,7 @@ void FarmFeederApp::handleFeederStop() {
     return;
   }
   const uint32_t commandId = allocateCommandId();
+  requestFeederMotorStop(channelMask);
   const FeederCommandResult result = g_feeder.stopChannels(channelMask);
   if (result == FeederCommandResult::Ok) {
     settleStoppedRuns(channelMask);
@@ -2278,6 +2560,7 @@ void FarmFeederApp::handleFeederStopAll() {
   }
   const uint8_t runningMask = g_feeder.snapshot().runningChannelMask;
   const uint32_t commandId = allocateCommandId();
+  requestFeederMotorStop(runningMask);
   const FeederCommandResult result = g_feeder.stopAll();
   if (result == FeederCommandResult::Ok) {
     settleStoppedRuns(runningMask);
@@ -2323,6 +2606,7 @@ void FarmFeederApp::handleMaintenanceClearToday() {
   record.type = FeederRecordType::TodayCleared;
   record.result = FeederRecordResult::Ok;
   recordBusinessEvent(record);
+  FarmAutoEventLog::recordFeederTodayCleared();
 
   sendResultJson(200, "Ok", commandId);
 #endif
@@ -2378,6 +2662,9 @@ void FarmFeederApp::handleMaintenanceClearFault() {
   record.successMask = successMask;
   record.skippedMask = skippedMask;
   recordBusinessEvent(record);
+  if (successMask != 0) {
+    FarmAutoEventLog::recordFeederFaultCleared(successMask);
+  }
 
   beginRawJson(successMask != 0 ? 200 : 400);
   Esp32BaseWeb::sendChunk("{\"result\":\"");
@@ -2392,7 +2679,9 @@ void FarmFeederApp::handleMaintenanceClearFault() {
   sendUint8(successMask);
   Esp32BaseWeb::sendChunk(",\"skippedMask\":");
   sendUint8(skippedMask);
-  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::sendChunk(",");
+  sendFeederMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 #endif
 }
@@ -2493,6 +2782,7 @@ void FarmFeederApp::handleScheduleSkip() {
   const FeederScheduleResult result = g_schedules.skipOccurrence(planId, serviceDate);
   if (result == FeederScheduleResult::Ok) {
     persistFeederScheduleIfReady();
+    FarmAutoEventLog::recordScheduleSkipped(planId, serviceDate);
   }
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
 #endif
@@ -2524,6 +2814,7 @@ void FarmFeederApp::handleScheduleCancelSkip() {
   const FeederScheduleResult result = g_schedules.cancelSkipOccurrence(planId, serviceDate);
   if (result == FeederScheduleResult::Ok) {
     persistFeederScheduleIfReady();
+    FarmAutoEventLog::recordScheduleSkipCanceled(planId, serviceDate);
   }
   sendResultJson(result == FeederScheduleResult::Ok ? 200 : 404, scheduleResultName(result));
 #endif
@@ -2546,9 +2837,11 @@ void FarmFeederApp::handleBucketSetRemaining() {
   if (!requireConfirm("set-bucket", resource)) {
     return;
   }
+  const int32_t oldRemain = g_buckets.snapshot().channels[channel].remainGramsX100;
   const FeederBucketResult result = g_buckets.setRemaining(channel, remainGramsX100, 0);
   if (result == FeederBucketResult::Ok) {
     persistFeederBucketsIfReady();
+    FarmAutoEventLog::recordFeederBucketRemainingSet(channel, oldRemain, remainGramsX100);
   }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
@@ -2571,9 +2864,12 @@ void FarmFeederApp::handleBucketAddFeed() {
   if (!requireConfirm("add-feed", resource)) {
     return;
   }
+  const int32_t oldRemain = g_buckets.snapshot().channels[channel].remainGramsX100;
   const FeederBucketResult result = g_buckets.addFeed(channel, addedGramsX100, 0);
   if (result == FeederBucketResult::Ok) {
     persistFeederBucketsIfReady();
+    const int32_t newRemain = g_buckets.snapshot().channels[channel].remainGramsX100;
+    FarmAutoEventLog::recordFeederBucketRefilled(channel, oldRemain, newRemain);
   }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
@@ -2594,9 +2890,12 @@ void FarmFeederApp::handleBucketMarkFull() {
   if (!requireConfirm("mark-full", resource)) {
     return;
   }
+  const int32_t oldRemain = g_buckets.snapshot().channels[channel].remainGramsX100;
   const FeederBucketResult result = g_buckets.markFull(channel, 0);
   if (result == FeederBucketResult::Ok) {
     persistFeederBucketsIfReady();
+    const int32_t newRemain = g_buckets.snapshot().channels[channel].remainGramsX100;
+    FarmAutoEventLog::recordFeederBucketRefilled(channel, oldRemain, newRemain);
   }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif
@@ -2642,6 +2941,7 @@ void FarmFeederApp::handleBaseInfoChannel() {
     syncFeederConfigFromBaseInfo();
     persistFeederCalibrationIfReady();
     persistFeederBucketsIfReady();
+    FarmAutoEventLog::recordFeederBaseInfoChanged(channel);
   }
   sendResultJson(result == FeederBucketResult::Ok ? 200 : 400, bucketResultName(result));
 #endif

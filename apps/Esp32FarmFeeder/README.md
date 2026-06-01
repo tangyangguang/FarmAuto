@@ -21,17 +21,16 @@
 - 已为业务命令分配 `commandId`，状态接口和业务记录都可关联最近命令。
 - `GET /api/app/records` 支持从 Flash 记录分页读取，并支持 `startUnixTime`、`endUnixTime`、`eventType` 筛选；Flash 不可用时回退 RAM 最近记录。
 - 已提供只读诊断 API、最近事件 API、清空今日状态和清除通道故障维护 API。
+- 已接入 Esp32Base App Events，并通过 `FarmAutoEventLog` 统一记录补料、设置余量、计划跳过、清今日、清故障、基础信息修改和业务记录存储告警等非系统业务事件。
 - 已接入危险操作确认 token；跳过/取消跳过计划实例、删除计划、清空今日、清除故障、料桶余量维护和基础信息修改都需要二次确认。
-- 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard` 作为后续实现依赖。
+- 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard`。
 - 默认三路通道均已安装且启用；底层保留 4 路数组容量，但首版业务 API 只暴露和接受 3 路。
-- 当前不会输出 PWM，也不会驱动任何电机。
+- 已接入三路单向 LEDC PWM 输出和 PCNT 编码器适配；真实硬件输出由 Esp32Base App Config 的 `feeder/motorOutput` 控制，默认关闭。
 
 当前尚未实现：
 
 - 最终版业务页面的精细交互和视觉样式。
-- GPIO、编码器和 PWM 硬件适配。
 - 业务记录索引和跨文件查询。
-- 真实电机输出和编码器计数。
 
 ## 当前 API
 
@@ -39,28 +38,28 @@
 
 - 返回应用类型、固件版本、设备状态、通道 mask、每路通道状态。
 - 返回最近业务命令摘要 `recentCommand`，用于页面轮询和记录关联。
-- 明确返回 `motorOutput.enabled=false`，不会执行下料动作。
+- 返回 `motorOutput` 真实状态、每路编码器快照、驱动输出和电机故障摘要；默认 `enabled=false`，启用后才会输出 PWM。
 
 `/api/app/diagnostics`
 
 - 返回只读业务诊断信息：通道状态、计划状态、料桶余量、默认目标、最近记录数量、Flash 可用状态。
-- 明确返回 `motorOutput.enabled=false`。
+- 返回 `motorOutput` 真实状态；默认 `enabled=false`。
 
 `/api/app/events/recent`
 
-- 返回 RAM 最近业务记录。
+- 从 Esp32Base App Events 读取，并由 `FarmAutoEventLog` 映射成业务语言字段。
 
 `/api/app/feeders/manual-start`
 
 - 按 `channelMask` 手工下料。
 - 默认使用每路已保存目标；也可为本次请求传 `ch1Mode/ch1GramsX100/ch1RevolutionsX100`、`ch2...`、`ch3...` 覆盖本次目标，不写回默认目标。
 - 未配置、参数无效或未标定的通道会被跳过。
-- 当前只更新业务状态机，不输出 PWM。
+- `feeder/motorOutput=false` 时返回业务错误，不输出 PWM；启用后按通道启动真实 PWM 和 PCNT 闭环。
 
 `/api/app/feeders/start`
 
 - 支持 `channelMask` 或单个 `channel`。
-- 与 `manual-start` 一样，当前只更新业务状态机。
+- 与 `manual-start` 一样，启用真实输出后才会驱动电机。
 
 `/api/app/feeders/stop`
 

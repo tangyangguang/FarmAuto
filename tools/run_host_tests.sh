@@ -4,6 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 c++ -std=c++17 \
+  -I"${ROOT_DIR}/lib/FarmAutoEventLog/include" \
+  "${ROOT_DIR}/lib/FarmAutoEventLog/test/test_farmauto_event_log.cpp" \
+  "${ROOT_DIR}/lib/FarmAutoEventLog/src/FarmAutoEventLog.cpp" \
+  -o /tmp/farmauto_test_event_log
+/tmp/farmauto_test_event_log
+
+c++ -std=c++17 \
   -I"${ROOT_DIR}/lib/Esp32At24cRecordStore/include" \
   "${ROOT_DIR}/lib/Esp32At24cRecordStore/test/test_record_store.cpp" \
   "${ROOT_DIR}/lib/Esp32At24cRecordStore/src/Esp32At24cRecordStore.cpp" \

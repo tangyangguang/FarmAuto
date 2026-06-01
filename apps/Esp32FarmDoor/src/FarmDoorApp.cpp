@@ -4,6 +4,7 @@
 #include <Esp32At24cRecordStore.h>
 #include <Esp32Base.h>
 #include <Esp32EncodedDcMotor.h>
+#include <FarmAutoEventLog.h>
 #include <Esp32MotorCurrentGuard.h>
 
 #include <esp_system.h>
@@ -38,6 +39,9 @@ Esp32EncodedDcMotor::MotorKinematics g_motorKinematics;
 Esp32EncodedDcMotor::MotorMotionProfile g_motorProfile;
 Esp32EncodedDcMotor::MotorProtection g_motorProtection;
 Esp32EncodedDcMotor::MotorStopPolicy g_motorStopPolicy;
+Esp32EncodedDcMotor::At8236HBridgeDriver g_motorDriver;
+Esp32EncodedDcMotor::PcntEncoderReader g_motorEncoder;
+Esp32EncodedDcMotor::EncodedDcMotor g_motor;
 Esp32MotorCurrentGuard::Ina240A2AnalogConfig g_currentSensor;
 Esp32MotorCurrentGuard::MotorCurrentGuardConfig g_currentGuard;
 Esp32At24cRecordStore::RecordStoreConfig g_recordStoreConfig;
@@ -45,6 +49,8 @@ Esp32At24cRecordStore::ArduinoWireI2cBus g_at24cBus;
 Esp32At24cRecordStore::At24cI2cDevice g_at24cDevice(g_at24cBus, {});
 Esp32At24cRecordStore::RecordStore g_at24cStore;
 bool g_at24cStoreReady = false;
+bool g_motorOutputEnabled = false;
+bool g_motorOutputReady = false;
 
 static constexpr uint8_t kFarmDoorRouteCount = 15;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorRouteCount,
@@ -54,6 +60,8 @@ static constexpr const char* kDoorRecordDir = "/records/door";
 static constexpr const char* kDoorRecordCurrentPath = "/records/door/current.dar";
 static constexpr uint32_t kDoorRecordMaxCurrentBytes = 64UL * 1024UL;
 static constexpr uint8_t kDoorRecordMaxArchives = 16;
+
+bool persistDoorRecoveryStateIfReady();
 
 bool ina240CompileEnabled() {
 #if FARMAUTO_FARMDOOR_ENABLE_INA240A2
@@ -76,32 +84,10 @@ void endRawJson() {
 }
 
 bool requireApiAuth() {
+  if (Esp32BaseWeb::isMethod(Esp32BaseWeb::METHOD_POST)) {
+    return Esp32BaseWeb::checkPostAllowed("farmdoor");
+  }
   return Esp32BaseWeb::checkAuth();
-}
-
-void sendFarmAutoBusinessStyle() {
-  Esp32BaseWeb::sendChunk(
-      "<style>"
-      "main.page{max-width:980px;margin:0 auto}"
-      "main.page>h1{font-size:24px;margin:4px 0 14px}"
-      "main.page>section{background:#fff;border:1px solid #d8e0e6;border-radius:8px;box-shadow:0 1px 3px rgba(16,24,40,.06);padding:14px 16px;margin:14px 0}"
-      "main.page>section>h2{font-size:18px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #e5ebef}"
-      "table{width:100%;border-collapse:collapse;margin:8px 0 4px;background:#fff}"
-      "th,td{border-bottom:1px solid #e5ebef;padding:9px 8px;text-align:left;vertical-align:top}"
-      "th{color:#64707d;font-size:13px;font-weight:700;background:#f8faf9}"
-      "tr:last-child td{border-bottom:0}"
-      "select,textarea{width:100%;font-size:14px;padding:7px 9px;margin:0 0 12px;border:1px solid #ccd5dd;border-radius:5px;box-sizing:border-box;background:#fff;color:#1f2933}"
-      "fieldset{border:1px solid #d8e0e6;border-radius:7px;padding:10px 12px;margin:10px 0;background:#fbfcfc}"
-      "legend{font-weight:700;color:#25313f;padding:0 4px}"
-      "form{margin:0}"
-      "td form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px}"
-      "td form input:not([type]),td form input[type=text],td form input[type=number]{width:12ch;margin:0}"
-      "td form button{margin:0}"
-      "section>a,form>a{display:inline-block;padding:7px 10px;border:1px solid #ccd5dd;border-radius:5px;background:#fff;margin:0 6px 6px 0}"
-      ".hint{color:#64707d;font-size:13px}"
-      "@media(max-width:720px){body{padding:8px}main.page>h1{font-size:22px}main.page>section{padding:12px;margin:10px 0;overflow-x:auto}"
-      "table{font-size:13px;min-width:620px}fieldset{padding:9px}td form{display:block}td form input:not([type]),td form input[type=text],td form input[type=number]{width:100%;margin:0 0 6px}}"
-      "</style>");
 }
 
 void sendDigitalField(const char* name, uint8_t value) {
@@ -382,6 +368,7 @@ void applyRuntimeConfigFromBase() {
   const int32_t speedPercent = Esp32BaseConfig::getInt("door", "speed", 60);
   const int32_t openTurnsX100 = Esp32BaseConfig::getInt("door", "openTurns", 500);
   const int32_t maxRunMs = Esp32BaseConfig::getInt("door", "maxRunMs", 25000);
+  g_motorOutputEnabled = Esp32BaseConfig::getBool("door", "motorOutput", false);
   const bool requestedCurrentGuard =
       Esp32BaseConfig::getBool("door", "currentGuard", false);
 
@@ -401,10 +388,111 @@ void applyRuntimeConfigFromBase() {
   if (snapshot.state != DoorState::Opening && snapshot.state != DoorState::Closing) {
     g_door.configure(g_doorConfig);
   }
+  if (g_motorOutputReady) {
+    g_motor.configure(g_motorKinematics, g_motorProfile, g_motorProtection, g_motorStopPolicy);
+  }
   g_currentGuard.enabled = ina240CompileEnabled() && requestedCurrentGuard;
 #else
+  g_motorOutputEnabled = false;
   g_currentGuard.enabled = false;
 #endif
+}
+
+bool configureDoorMotorIfEnabled() {
+  if (!g_motorOutputEnabled) {
+    g_motorOutputReady = false;
+    return false;
+  }
+  if (g_motorOutputReady) {
+    return true;
+  }
+  Esp32EncodedDcMotor::MotorResult result = g_motorEncoder.begin(g_encoderBackend);
+  if (result != Esp32EncodedDcMotor::MotorResult::Ok) {
+    ESP32BASE_LOG_E("farmdoor", "motor_encoder_begin_failed result=%u",
+                    static_cast<unsigned>(result));
+    FarmAutoEventLog::recordStorageWarning("door_motor", "encoder_begin_failed",
+                                           static_cast<uint16_t>(result));
+    return false;
+  }
+  g_motorEncoder.resetPosition(g_door.snapshot().positionPulses);
+  result = g_motorDriver.begin(FarmDoorHw.pins().motorIn1, FarmDoorHw.pins().motorIn2,
+                               g_motorHardware);
+  if (result != Esp32EncodedDcMotor::MotorResult::Ok) {
+    ESP32BASE_LOG_E("farmdoor", "motor_driver_begin_failed result=%u",
+                    static_cast<unsigned>(result));
+    FarmAutoEventLog::recordStorageWarning("door_motor", "driver_begin_failed",
+                                           static_cast<uint16_t>(result));
+    return false;
+  }
+  result = g_motor.begin(g_motorDriver, g_motorEncoder, g_motorHardware, g_encoderBackend);
+  if (result == Esp32EncodedDcMotor::MotorResult::Ok) {
+    result = g_motor.configure(g_motorKinematics, g_motorProfile, g_motorProtection,
+                               g_motorStopPolicy);
+  }
+  if (result != Esp32EncodedDcMotor::MotorResult::Ok) {
+    ESP32BASE_LOG_E("farmdoor", "motor_begin_failed result=%u", static_cast<unsigned>(result));
+    FarmAutoEventLog::recordStorageWarning("door_motor", "motor_begin_failed",
+                                           static_cast<uint16_t>(result));
+    return false;
+  }
+  g_motorOutputReady = true;
+  return true;
+}
+
+DoorCommandResult startDoorMotorTo(int64_t targetPulses) {
+  if (!configureDoorMotorIfEnabled()) {
+    return DoorCommandResult::InvalidArgument;
+  }
+  const Esp32EncodedDcMotor::MotorResult result = g_motor.requestMoveToPosition(targetPulses);
+  if (result == Esp32EncodedDcMotor::MotorResult::Ok) {
+    return DoorCommandResult::Ok;
+  }
+  ESP32BASE_LOG_W("farmdoor", "motor_start_failed result=%u", static_cast<unsigned>(result));
+  g_door.enterFault(DoorFaultReason::MotorFault);
+  FarmAutoEventLog::recordDoorProtectionStopped("motor_start_failed", g_door.snapshot().positionPulses);
+  return DoorCommandResult::FaultActive;
+}
+
+void sendMotorOutputJson() {
+  Esp32BaseWeb::sendChunk("\"motorOutput\":{\"enabled\":");
+  Esp32BaseWeb::sendChunk(boolJson(g_motorOutputEnabled));
+  Esp32BaseWeb::sendChunk(",\"ready\":");
+  Esp32BaseWeb::sendChunk(boolJson(g_motorOutputReady));
+  if (g_motorOutputReady) {
+    const Esp32EncodedDcMotor::MotorSnapshot motor = g_motor.snapshot();
+    Esp32BaseWeb::sendChunk(",\"positionPulses\":");
+    sendInt64(motor.positionPulses);
+    Esp32BaseWeb::sendChunk(",\"targetPulses\":");
+    sendInt64(motor.targetPulses);
+    Esp32BaseWeb::sendChunk(",\"outputPercent\":");
+    sendUint32(motor.driverOutputPercent);
+    Esp32BaseWeb::sendChunk(",\"faultReason\":");
+    sendUint32(static_cast<uint32_t>(motor.faultReason));
+  }
+  Esp32BaseWeb::sendChunk("}");
+}
+
+void updateDoorMotorRuntime() {
+  if (!g_motorOutputReady) {
+    return;
+  }
+  g_motor.update(millis());
+  const DoorSnapshot door = g_door.snapshot();
+  if (door.state != DoorState::Opening && door.state != DoorState::Closing) {
+    return;
+  }
+  const Esp32EncodedDcMotor::MotorSnapshot motor = g_motor.snapshot();
+  if (motor.state == Esp32EncodedDcMotor::MotorState::Idle) {
+    if (g_door.onMotionTargetReached(motor.positionPulses) == DoorCommandResult::Ok) {
+      persistDoorRecoveryStateIfReady();
+    }
+    return;
+  }
+  if (motor.state == Esp32EncodedDcMotor::MotorState::Fault) {
+    g_door.enterFault(DoorFaultReason::MotorFault);
+    FarmAutoEventLog::recordDoorProtectionStopped("motor_fault", motor.positionPulses);
+    persistDoorRecoveryStateIfReady();
+  }
 }
 
 DoorRecordTime currentRecordTime() {
@@ -499,12 +587,18 @@ void recordBusinessEvent(const DoorRecord& record) {
   if (rotateResult != DoorRecordRotateResult::Ok) {
     ESP32BASE_LOG_W("farmdoor", "record_rotate_failed result=%u",
                     static_cast<unsigned>(rotateResult));
+    FarmAutoEventLog::recordStorageWarning("door_records",
+                                           "rotate_failed",
+                                           static_cast<uint16_t>(rotateResult));
   }
   const DoorRecordWriteResult result = appendDoorRecordToPath(
       stored, kDoorRecordCurrentPath, appendDoorRecordBytes, nullptr);
   if (result != DoorRecordWriteResult::Ok) {
     ESP32BASE_LOG_W("farmdoor", "record_append_failed result=%u",
                     static_cast<unsigned>(result));
+    FarmAutoEventLog::recordStorageWarning("door_records",
+                                           "append_failed",
+                                           static_cast<uint16_t>(result));
   }
 #endif
 }
@@ -557,6 +651,67 @@ void sendRecordSnapshotJson(const char* source) {
   endRawJson();
 }
 
+const char* appEventLevelName(FarmAutoEventLog::Level level) {
+  switch (level) {
+    case FarmAutoEventLog::LEVEL_INFO: return "info";
+    case FarmAutoEventLog::LEVEL_WARN: return "warn";
+    case FarmAutoEventLog::LEVEL_ERROR: return "error";
+  }
+  return "info";
+}
+
+void sendBusinessEventJson(const FarmAutoEventLog::BusinessEvent& event) {
+  Esp32BaseWeb::sendChunk("{\"id\":");
+  sendUint32(event.id);
+  Esp32BaseWeb::sendChunk(",\"epochSec\":");
+  sendUint32(event.epochSec);
+  Esp32BaseWeb::sendChunk(",\"bootId\":");
+  sendUint32(event.bootId);
+  Esp32BaseWeb::sendChunk(",\"uptimeSec\":");
+  sendUint32(event.uptimeSec);
+  Esp32BaseWeb::sendChunk(",\"timeSynced\":");
+  Esp32BaseWeb::sendChunk(boolJson(event.timeSynced));
+  Esp32BaseWeb::sendChunk(",\"level\":\"");
+  Esp32BaseWeb::sendChunk(appEventLevelName(event.level));
+  Esp32BaseWeb::sendChunk("\",\"domain\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.domain);
+  Esp32BaseWeb::sendChunk("\",\"action\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.action);
+  Esp32BaseWeb::sendChunk("\",\"target\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.target);
+  Esp32BaseWeb::sendChunk("\",\"message\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.message);
+  Esp32BaseWeb::sendChunk("\",\"detail\":\"");
+  Esp32BaseWeb::writeJsonEscaped(event.detail);
+  Esp32BaseWeb::sendChunk("\",\"code\":");
+  sendUint32(event.code);
+  Esp32BaseWeb::sendChunk(",\"valueMask\":");
+  sendUint32(event.valueMask);
+  Esp32BaseWeb::sendChunk(",\"value1\":");
+  sendInt64(event.value1);
+  Esp32BaseWeb::sendChunk(",\"value2\":");
+  sendInt64(event.value2);
+  Esp32BaseWeb::sendChunk(",\"value3\":");
+  sendInt64(event.value3);
+  Esp32BaseWeb::sendChunk("}");
+}
+
+struct BusinessEventJsonState {
+  uint16_t emitted = 0;
+};
+
+void sendBusinessEventJsonCallback(const FarmAutoEventLog::BusinessEvent& event, void* user) {
+  BusinessEventJsonState* state = static_cast<BusinessEventJsonState*>(user);
+  if (state == nullptr) {
+    return;
+  }
+  if (state->emitted > 0) {
+    Esp32BaseWeb::sendChunk(",");
+  }
+  sendBusinessEventJson(event);
+  ++state->emitted;
+}
+
 void sendRecentCommandJson() {
   const DoorRecordSnapshot records = g_records.snapshot();
   for (uint8_t i = records.count; i > 0; --i) {
@@ -598,7 +753,9 @@ void sendCommandResultJson(DoorCommandResult result, uint32_t commandId = 0) {
   sendInt64(snapshot.positionPulses);
   Esp32BaseWeb::sendChunk(",\"targetPulses\":");
   sendInt64(snapshot.targetPulses);
-  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::sendChunk(",");
+  sendMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 #endif
 }
@@ -621,7 +778,9 @@ void sendTravelResultJson(DoorCommandResult result, bool configSaved, uint32_t c
   sendInt64(g_doorConfig.maxRunPulses);
   Esp32BaseWeb::sendChunk(",\"configSaved\":");
   Esp32BaseWeb::sendChunk(configSaved ? "true" : "false");
-  Esp32BaseWeb::sendChunk(",\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::sendChunk(",");
+  sendMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 #endif
 }
@@ -742,6 +901,7 @@ void FarmDoorApp::begin() {
   } else {
     initializeDoorAt24cStore();
     applyRuntimeConfigFromBase();
+    configureDoorMotorIfEnabled();
     ESP32BASE_LOG_I("farmdoor", "skeleton ready, ina240a2_gpio=%u enabled=%s",
                     FarmDoorHw.pins().currentAdc,
                     g_currentGuard.enabled ? "yes" : "no");
@@ -750,6 +910,7 @@ void FarmDoorApp::begin() {
 
 void FarmDoorApp::handle() {
   Esp32Base::handle();
+  updateDoorMotorRuntime();
 }
 
 void FarmDoorApp::configureHardwareInputs() {
@@ -767,6 +928,8 @@ void FarmDoorApp::configureStaticDefaults() {
   g_encoderBackend.pinA = FarmDoorHw.pins().encoderA;
   g_encoderBackend.pinB = FarmDoorHw.pins().encoderB;
   g_encoderBackend.countMode = Esp32EncodedDcMotor::CountMode::X1;
+  g_encoderBackend.pcntUnit = 0;
+  g_encoderBackend.glitchFilterNs = 1000;
 
   g_motorKinematics.motorShaftPulsesPerRev = 16;
   g_motorKinematics.gearRatio = 131.0f;
@@ -823,6 +986,8 @@ void FarmDoorApp::configureAppConfigPage() {
 
   Esp32BaseAppConfig::addInt({"motor", "door", "speed", "运行速度", 60, 10, 100, 5, "%",
                               "普通开门/关门速度。", false, nullptr});
+  Esp32BaseAppConfig::addBool({"motor", "door", "motorOutput", "启用电机输出", false,
+                               "启用后开关门命令会输出 AT8236 PWM。", true, nullptr});
   Esp32BaseAppConfig::addDecimal({"motor", "door", "openTurns", "开门目标", 500, 0, 2000, 5, 2,
                                   "圈", "开门目标圈数，可由校准流程更新。", false, nullptr});
   Esp32BaseAppConfig::addInt({"protection", "door", "maxRunMs", "最大运行时长", 25000, 1000,
@@ -835,15 +1000,14 @@ void FarmDoorApp::configureAppConfigPage() {
 void FarmDoorApp::configureBusinessShell() {
 #if ESP32BASE_ENABLE_WEB
   Esp32BaseWeb::setDeviceName("Esp32FarmDoor");
-  Esp32BaseWeb::setHomePath("/app");
+  Esp32BaseWeb::setHomePath("/index");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
-  Esp32BaseWeb::setHeadExtraCallback(sendFarmAutoBusinessStyle);
-  Esp32BaseWeb::addNavItem("/app", "首页");
+  Esp32BaseWeb::addNavItem("/index", "首页");
   Esp32BaseWeb::addNavItem("/records", "记录");
   Esp32BaseWeb::addNavItem("/calibration", "校准");
   Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
-  Esp32BaseWeb::addPage("/app", "自动门首页", FarmDoorApp::sendHomePage);
+  Esp32BaseWeb::addPage("/index", "自动门首页", FarmDoorApp::sendHomePage);
   Esp32BaseWeb::addPage("/records", "自动门记录", FarmDoorApp::sendRecordsPage);
   Esp32BaseWeb::addPage("/calibration", "行程校准", FarmDoorApp::sendCalibrationPage);
   Esp32BaseWeb::addPage("/diagnostics", "自动门诊断", FarmDoorApp::sendDiagnosticsPage);
@@ -1002,7 +1166,9 @@ void FarmDoorApp::sendStatusJson() {
   Esp32BaseWeb::sendChunk(",");
   Esp32BaseWeb::sendChunk("\"currentSensor\":{\"chip\":\"INA240A2\",\"adcPin\":33,\"enabled\":");
   Esp32BaseWeb::sendChunk(g_currentGuard.enabled ? "true" : "false");
-  Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"}}");
+  Esp32BaseWeb::sendChunk("},\"motor\":{\"driver\":\"AT8236\",\"encoderMode\":\"X1\"},");
+  sendMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 #endif
 }
@@ -1057,7 +1223,9 @@ void FarmDoorApp::sendDiagnosticsJson() {
   Esp32BaseWeb::sendChunk(boolJson(diagnostics.at24cOnline));
   Esp32BaseWeb::sendChunk(",\"storeReady\":");
   Esp32BaseWeb::sendChunk(boolJson(g_at24cStoreReady));
-  Esp32BaseWeb::sendChunk("},\"motorOutput\":{\"enabled\":false}}");
+  Esp32BaseWeb::sendChunk("},");
+  sendMotorOutputJson();
+  Esp32BaseWeb::sendChunk("}");
   endRawJson();
 #endif
 }
@@ -1067,7 +1235,39 @@ void FarmDoorApp::sendRecentEventsJson() {
   if (!requireApiAuth()) {
     return;
   }
-  sendRecordSnapshotJson("ram");
+  uint32_t limitParam = 32;
+  uint32_t offsetParam = 0;
+  if (!readUint32ParamOptional("limit", limitParam) ||
+      !readUint32ParamOptional("start", offsetParam) ||
+      limitParam == 0 || limitParam > 100 || offsetParam > UINT16_MAX) {
+    beginRawJson(400);
+    Esp32BaseWeb::sendChunk("{\"ok\":false,\"error\":\"InvalidArgument\"}");
+    endRawJson();
+    return;
+  }
+  BusinessEventJsonState state;
+  beginRawJson(200);
+  Esp32BaseWeb::sendChunk("{\"store\":\"app_events\",\"ready\":");
+  Esp32BaseWeb::sendChunk(boolJson(FarmAutoEventLog::isReady()));
+  Esp32BaseWeb::sendChunk(",\"faulted\":");
+  Esp32BaseWeb::sendChunk(boolJson(FarmAutoEventLog::faulted()));
+  Esp32BaseWeb::sendChunk(",\"count\":");
+  sendUint32(FarmAutoEventLog::count());
+  Esp32BaseWeb::sendChunk(",\"capacity\":");
+  sendUint32(FarmAutoEventLog::capacity());
+  Esp32BaseWeb::sendChunk(",\"events\":[");
+  const bool readOk = FarmAutoEventLog::readLatest(static_cast<uint16_t>(offsetParam),
+                                                   static_cast<uint16_t>(limitParam),
+                                                   sendBusinessEventJsonCallback,
+                                                   &state);
+  Esp32BaseWeb::sendChunk("],\"readOk\":");
+  Esp32BaseWeb::sendChunk(boolJson(readOk));
+  Esp32BaseWeb::sendChunk(",\"returned\":");
+  sendUint32(state.emitted);
+  Esp32BaseWeb::sendChunk(",\"lastError\":\"");
+  Esp32BaseWeb::writeJsonEscaped(FarmAutoEventLog::lastError());
+  Esp32BaseWeb::sendChunk("\"}");
+  endRawJson();
 #endif
 }
 
@@ -1181,7 +1381,13 @@ void FarmDoorApp::handleDoorOpen() {
     return;
   }
   const uint32_t commandId = allocateCommandId();
-  const DoorCommandResult result = g_door.requestOpen();
+  DoorCommandResult result = DoorCommandResult::InvalidArgument;
+  if (g_motorOutputEnabled) {
+    result = g_door.requestOpen();
+    if (result == DoorCommandResult::Ok) {
+      result = startDoorMotorTo(g_door.snapshot().targetPulses);
+    }
+  }
   DoorRecord record;
   record.commandId = commandId;
   record.type = DoorRecordType::CommandRequested;
@@ -1199,7 +1405,13 @@ void FarmDoorApp::handleDoorClose() {
     return;
   }
   const uint32_t commandId = allocateCommandId();
-  const DoorCommandResult result = g_door.requestClose();
+  DoorCommandResult result = DoorCommandResult::InvalidArgument;
+  if (g_motorOutputEnabled) {
+    result = g_door.requestClose();
+    if (result == DoorCommandResult::Ok) {
+      result = startDoorMotorTo(g_door.snapshot().targetPulses);
+    }
+  }
   DoorRecord record;
   record.commandId = commandId;
   record.type = DoorRecordType::CommandRequested;
@@ -1217,14 +1429,19 @@ void FarmDoorApp::handleDoorStop() {
   }
   const uint32_t commandId = allocateCommandId();
   const DoorSnapshot snapshot = g_door.snapshot();
-  const DoorCommandResult result = g_door.requestStop(snapshot.positionPulses);
+  int64_t stoppedPosition = snapshot.positionPulses;
+  if (g_motorOutputReady) {
+    g_motor.requestStop();
+    stoppedPosition = g_motor.snapshot().positionPulses;
+  }
+  const DoorCommandResult result = g_door.requestStop(stoppedPosition);
   DoorRecord record;
   record.commandId = commandId;
   record.type = DoorRecordType::CommandRequested;
   record.result = doorRecordResultFromCommand(result);
   record.command = DoorCommand::Stop;
   record.oldPositionPulses = snapshot.positionPulses;
-  record.newPositionPulses = g_door.snapshot().positionPulses;
+  record.newPositionPulses = stoppedPosition;
   recordBusinessEvent(record);
   if (result == DoorCommandResult::Ok) {
     persistDoorRecoveryStateIfReady();
@@ -1256,6 +1473,10 @@ void FarmDoorApp::handleSetPosition() {
       record.newPositionPulses = g_door.snapshot().positionPulses;
       recordBusinessEvent(record);
       if (result == DoorCommandResult::Ok) {
+        if (g_motorOutputReady) {
+          g_motorEncoder.resetPosition(g_door.snapshot().positionPulses);
+          g_motor.setCurrentPositionPulses(g_door.snapshot().positionPulses);
+        }
         persistDoorRecoveryStateIfReady();
       }
       sendCommandResultJson(result, commandId);
@@ -1275,6 +1496,10 @@ void FarmDoorApp::handleSetPosition() {
       record.newPositionPulses = g_door.snapshot().positionPulses;
       recordBusinessEvent(record);
       if (result == DoorCommandResult::Ok) {
+        if (g_motorOutputReady) {
+          g_motorEncoder.resetPosition(g_door.snapshot().positionPulses);
+          g_motor.setCurrentPositionPulses(g_door.snapshot().positionPulses);
+        }
         persistDoorRecoveryStateIfReady();
       }
       sendCommandResultJson(result, commandId);
@@ -1294,6 +1519,10 @@ void FarmDoorApp::handleSetPosition() {
       record.newPositionPulses = g_door.snapshot().positionPulses;
       recordBusinessEvent(record);
       if (result == DoorCommandResult::Ok) {
+        if (g_motorOutputReady) {
+          g_motorEncoder.resetPosition(g_door.snapshot().positionPulses);
+          g_motor.setCurrentPositionPulses(g_door.snapshot().positionPulses);
+        }
         persistDoorRecoveryStateIfReady();
       }
       sendCommandResultJson(result, commandId);
@@ -1325,6 +1554,10 @@ void FarmDoorApp::handleSetPosition() {
   record.newPositionPulses = g_door.snapshot().positionPulses;
   recordBusinessEvent(record);
   if (result == DoorCommandResult::Ok) {
+    if (g_motorOutputReady) {
+      g_motorEncoder.resetPosition(g_door.snapshot().positionPulses);
+      g_motor.setCurrentPositionPulses(g_door.snapshot().positionPulses);
+    }
     persistDoorRecoveryStateIfReady();
   }
   sendCommandResultJson(result, commandId);
@@ -1448,12 +1681,16 @@ void FarmDoorApp::handleClearFault() {
     return;
   }
   const uint32_t commandId = allocateCommandId();
+  const DoorSnapshot before = g_door.snapshot();
   const DoorCommandResult result = g_door.clearFault();
   DoorRecord record;
   record.commandId = commandId;
   record.type = DoorRecordType::FaultCleared;
   record.result = doorRecordResultFromCommand(result);
   recordBusinessEvent(record);
+  if (result == DoorCommandResult::Ok) {
+    FarmAutoEventLog::recordDoorFaultCleared(faultReasonName(before.faultReason));
+  }
   sendCommandResultJson(result, commandId);
 #endif
 }

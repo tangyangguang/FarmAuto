@@ -32,6 +32,20 @@ public:
 };
 
 int main() {
+  assert(Esp32EncodedDcMotor::pwmMaxDuty(8) == 255);
+  assert(Esp32EncodedDcMotor::pwmMaxDuty(10) == 1023);
+  assert(Esp32EncodedDcMotor::percentToDuty(50, 8, true) == 128);
+  assert(Esp32EncodedDcMotor::percentToDuty(50, 8, false) == 127);
+  auto forwardOutput = Esp32EncodedDcMotor::at8236OutputFor(1, 60, 8, true);
+  assert(forwardOutput.dutyA == 153);
+  assert(forwardOutput.dutyB == 0);
+  auto reverseOutput = Esp32EncodedDcMotor::at8236OutputFor(-1, 60, 8, true);
+  assert(reverseOutput.dutyA == 0);
+  assert(reverseOutput.dutyB == 153);
+  auto stoppedOutput = Esp32EncodedDcMotor::at8236OutputFor(0, 60, 8, true);
+  assert(stoppedOutput.dutyA == 0);
+  assert(stoppedOutput.dutyB == 0);
+
   FakeDriver driver;
   FakeEncoder encoder;
   Esp32EncodedDcMotor::EncodedDcMotor motor;
