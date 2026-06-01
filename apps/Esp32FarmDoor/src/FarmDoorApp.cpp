@@ -8,6 +8,7 @@
 #include <Esp32MotorCurrentGuard.h>
 
 #include <esp_system.h>
+#include <cstdlib>
 #include <cstring>
 
 #include "DoorConfirm.h"
@@ -227,6 +228,31 @@ uint16_t positionPercent(const DoorSnapshot& snapshot) {
     percent = 120;
   }
   return static_cast<uint16_t>(percent);
+}
+
+void formatInt64(char* out, std::size_t outSize, int64_t value) {
+  if (out == nullptr || outSize == 0) {
+    return;
+  }
+  snprintf(out, outSize, "%lld", static_cast<long long>(value));
+}
+
+void formatInt64WithUnit(char* out, std::size_t outSize, int64_t value, const char* unit) {
+  if (out == nullptr || outSize == 0) {
+    return;
+  }
+  snprintf(out,
+           outSize,
+           "%lld %s",
+           static_cast<long long>(value),
+           unit == nullptr ? "" : unit);
+}
+
+void formatPercent(char* out, std::size_t outSize, uint16_t value) {
+  if (out == nullptr || outSize == 0) {
+    return;
+  }
+  snprintf(out, outSize, "%u%%", static_cast<unsigned>(value));
 }
 
 bool readInt64Param(const char* name, int64_t& out) {
@@ -1028,25 +1054,66 @@ void FarmDoorApp::configureBusinessShell() {
 void FarmDoorApp::sendHomePage() {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
+  char positionValue[32];
+  char targetValue[32];
+  char percentValue[16];
+  char maxRunValue[32];
+  formatInt64WithUnit(positionValue, sizeof(positionValue), snapshot.positionPulses, "脉冲");
+  formatInt64WithUnit(targetValue, sizeof(targetValue), snapshot.openTargetPulses, "脉冲");
+  formatPercent(percentValue, sizeof(percentValue), positionPercent(snapshot));
+  formatInt64WithUnit(maxRunValue, sizeof(maxRunValue), g_doorConfig.maxRunPulses, "脉冲");
+
   Esp32BaseWeb::sendHeader("自动门首页");
-  Esp32BaseWeb::sendChunk("<h1>自动门首页</h1><section><h2>门状态与操作</h2><table>");
-  Esp32BaseWeb::sendChunk("<tr><th>状态</th><td>");
-  Esp32BaseWeb::sendChunk(stateName(snapshot.state));
-  Esp32BaseWeb::sendChunk("</td></tr><tr><th>当前位置</th><td>");
-  sendInt64(snapshot.positionPulses);
-  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>开门目标</th><td>");
-  sendInt64(snapshot.openTargetPulses);
-  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>位置可信度</th><td>");
-  Esp32BaseWeb::sendChunk(trustName(snapshot.positionTrustLevel));
-  Esp32BaseWeb::sendChunk("</td></tr></table><p>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/open'><button>开门</button></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/close'><button>关门</button></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/stop'><button>停止</button></form>");
-  Esp32BaseWeb::sendChunk("</p></section><section><h2>快速入口</h2><p>");
-  Esp32BaseWeb::sendChunk("<a href='/calibration'>行程校准</a> ");
-  Esp32BaseWeb::sendChunk("<a href='/records'>业务记录</a> ");
-  Esp32BaseWeb::sendChunk("<a href='/diagnostics'>业务诊断</a>");
-  Esp32BaseWeb::sendChunk("</p></section>");
+  Esp32BaseWeb::sendPageTitle("自动门首页", "鸡舍自动门状态、操作和维护入口");
+
+  Esp32BaseWeb::beginPanel("门状态");
+  Esp32BaseWeb::beginMetricGrid();
+  Esp32BaseWeb::sendMetric("控制器状态", stateName(snapshot.state), trustName(snapshot.positionTrustLevel));
+  Esp32BaseWeb::sendMetric("当前位置", positionValue, percentValue);
+  Esp32BaseWeb::sendMetric("开门目标", targetValue, maxRunValue);
+  Esp32BaseWeb::endMetricGrid();
+  Esp32BaseWeb::sendInfoRowCompact("当前命令", "正在执行的开关门命令", commandName(snapshot.activeCommand));
+  Esp32BaseWeb::sendInfoRowCompact("停止原因", "最近一次停止来源", stopReasonName(snapshot.lastStopReason));
+  Esp32BaseWeb::sendInfoRowCompact("故障原因", "业务控制器故障", faultReasonName(snapshot.faultReason));
+  if (!g_motorOutputEnabled) {
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "电机输出未启用",
+                             "开门和关门命令会被保护拒绝；请在 Esp32Base App Config 中启用。");
+  }
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("门操作");
+  Esp32BaseWeb::sendInfoRowCompactForm("开门",
+                                       "移动到已保存的开门目标",
+                                       nullptr,
+                                       "/api/app/door/open",
+                                       "开门",
+                                       nullptr,
+                                       nullptr,
+                                       Esp32BaseWeb::UI_OK);
+  Esp32BaseWeb::sendInfoRowCompactForm("关门",
+                                       "移动到关门基准位置",
+                                       nullptr,
+                                       "/api/app/door/close",
+                                       "关门",
+                                       nullptr,
+                                       nullptr,
+                                       Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendInfoRowCompactForm("停止",
+                                       "停止当前运动并保存当前位置",
+                                       nullptr,
+                                       "/api/app/door/stop",
+                                       "停止",
+                                       nullptr,
+                                       nullptr,
+                                       Esp32BaseWeb::UI_DANGER);
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("快速入口");
+  Esp32BaseWeb::sendInfoRowCompactLink("行程校准", "标定端点和调整开门目标", nullptr, "/calibration", "进入", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendInfoRowCompactLink("业务记录", "查询自动门操作和维护记录", nullptr, "/records", "进入", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendInfoRowCompactLink("业务诊断", "查看只读硬件诊断和维护动作", nullptr, "/diagnostics", "进入", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -1054,18 +1121,23 @@ void FarmDoorApp::sendHomePage() {
 void FarmDoorApp::sendRecordsPage() {
 #if ESP32BASE_ENABLE_WEB
   Esp32BaseWeb::sendHeader("自动门记录");
-  Esp32BaseWeb::sendChunk("<h1>记录</h1><section><h2>业务记录查询</h2>");
-  Esp32BaseWeb::sendChunk("<form method='get' action='/api/app/records'>");
-  Esp32BaseWeb::sendChunk("<label>开始序号 <input name='start' value='0'></label> ");
-  Esp32BaseWeb::sendChunk("<label>每页 <input name='limit' value='16'></label> ");
-  Esp32BaseWeb::sendChunk("<label>归档 <input name='archive' value='0'></label> ");
-  Esp32BaseWeb::sendChunk("<label>开始时间戳 <input name='startUnixTime'></label> ");
-  Esp32BaseWeb::sendChunk("<label>结束时间戳 <input name='endUnixTime'></label> ");
-  Esp32BaseWeb::sendChunk("<label>事件类型 <input name='eventType' placeholder='DoorTravelSet'></label> ");
-  Esp32BaseWeb::sendChunk("<button>查询 JSON</button></form>");
-  Esp32BaseWeb::sendChunk("<p>归档 0 表示当前文件，1-16 表示轮转归档文件。</p>");
-  Esp32BaseWeb::sendChunk("</section><section><h2>最近事件</h2>");
-  Esp32BaseWeb::sendChunk("<p><a href='/api/app/events/recent'>查看最近事件 JSON</a></p></section>");
+  Esp32BaseWeb::sendPageTitle("记录", "查询自动门业务记录和最近业务事件");
+
+  Esp32BaseWeb::beginPanel("业务记录查询");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='get' action='/api/app/records'>");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-start'>开始序号</label><input id='rec-start' name='start' type='number' min='0' value='0'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-limit'>每页</label><input id='rec-limit' name='limit' type='number' min='1' max='16' value='16'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-archive'>归档</label><input id='rec-archive' name='archive' type='number' min='0' max='16' value='0'><small>0 为当前文件，1-16 为轮转归档。</small></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-start-time'>开始时间戳</label><input id='rec-start-time' name='startUnixTime' type='number' min='0'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-end-time'>结束时间戳</label><input id='rec-end-time' name='endUnixTime' type='number' min='0'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-type'>事件类型</label><input id='rec-type' name='eventType' placeholder='DoorTravelSet'></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='查询 JSON'></div></form>");
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("最近事件");
+  Esp32BaseWeb::sendInfoRowCompactLink("业务事件 JSON", "来自 Esp32Base App Events 的业务化读取", nullptr, "/api/app/events/recent", "打开", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -1073,53 +1145,96 @@ void FarmDoorApp::sendRecordsPage() {
 void FarmDoorApp::sendCalibrationPage() {
 #if ESP32BASE_ENABLE_WEB
   const DoorSnapshot snapshot = g_door.snapshot();
+  char positionValue[32];
+  char targetValue[32];
+  char pulsesPerRevValue[32];
+  char turnsValue[32];
+  const int64_t turnsX100 = turnsX100FromOpenTargetPulses(snapshot.openTargetPulses);
+  formatInt64WithUnit(positionValue, sizeof(positionValue), snapshot.positionPulses, "脉冲");
+  formatInt64WithUnit(targetValue, sizeof(targetValue), snapshot.openTargetPulses, "脉冲");
+  formatInt64(pulsesPerRevValue, sizeof(pulsesPerRevValue), g_motorKinematics.outputPulsesPerRev);
+  snprintf(turnsValue,
+           sizeof(turnsValue),
+           "%lld.%02lld 圈",
+           static_cast<long long>(turnsX100 / 100),
+           static_cast<long long>(llabs(turnsX100 % 100)));
+
   Esp32BaseWeb::sendHeader("行程校准");
-  Esp32BaseWeb::sendChunk("<h1>校准</h1><section><h2>当前位置</h2><table>");
-  Esp32BaseWeb::sendChunk("<tr><th>当前位置</th><td>");
-  sendInt64(snapshot.positionPulses);
-  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>开门目标</th><td>");
-  sendInt64(snapshot.openTargetPulses);
-  Esp32BaseWeb::sendChunk(" 脉冲</td></tr><tr><th>每圈信号数</th><td>");
-  sendInt64(g_motorKinematics.outputPulsesPerRev);
-  Esp32BaseWeb::sendChunk("</td></tr></table></section><section><h2>端点标定</h2>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-position'>");
-  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='closed'>");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>把当前位置标为关门基准</button></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-position'>");
-  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='open'>");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>把当前位置标为开门位置</button></form>");
-  Esp32BaseWeb::sendChunk("</section><section><h2>行程调整</h2>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/set-travel'>");
-  Esp32BaseWeb::sendChunk("<label>开门目标 0.01 圈 <input name='openTurnsX100' value='500'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>设置行程</button></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/adjust-travel'>");
-  Esp32BaseWeb::sendChunk("<label>微调 0.01 圈 <input name='deltaTurnsX100' value='5'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>微调行程</button></form>");
-  Esp32BaseWeb::sendChunk("<p>危险操作首次提交会返回确认 token；确认后带相同参数、confirm=true 和 token 再提交。</p></section>");
+  Esp32BaseWeb::sendPageTitle("校准", "标定当前位置、开门目标和行程微调");
+
+  Esp32BaseWeb::beginPanel("当前位置");
+  Esp32BaseWeb::beginMetricGrid();
+  Esp32BaseWeb::sendMetric("当前位置", positionValue, trustName(snapshot.positionTrustLevel));
+  Esp32BaseWeb::sendMetric("开门目标", targetValue, turnsValue);
+  Esp32BaseWeb::sendMetric("每圈信号数", pulsesPerRevValue, "output pulses/rev");
+  Esp32BaseWeb::endMetricGrid();
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("端点标定");
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                           "需要二次确认",
+                           "首次提交会返回确认 token；确认后带相同参数、confirm=true 和 token 再提交。");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-position' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='closed'><div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='closed-token'>确认 token</label><input id='closed-token' name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='closed-confirm'>确认</label><select id='closed-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='把当前位置标为关门基准'></div></form>");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-position' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='open'><div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='open-token'>确认 token</label><input id='open-token' name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='open-confirm'>确认</label><select id='open-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='把当前位置标为开门位置'></div></form>");
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("行程调整");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-travel' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='travel-turns'>开门目标</label><input id='travel-turns' name='openTurnsX100' type='number' min='1' max='2000' value='500'><small>单位为 0.01 圈。</small></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='travel-token'>确认 token</label><input id='travel-token' name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='travel-confirm'>确认</label><select id='travel-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='warn' type='submit' value='设置行程'></div></form>");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/adjust-travel' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='adjust-delta'>微调量</label><input id='adjust-delta' name='deltaTurnsX100' type='number' value='5'><small>单位为 0.01 圈，可为负数。</small></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='adjust-token'>确认 token</label><input id='adjust-token' name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='adjust-confirm'>确认</label><select id='adjust-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='warn' type='submit' value='微调行程'></div></form>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
 
 void FarmDoorApp::sendDiagnosticsPage() {
 #if ESP32BASE_ENABLE_WEB
+  char at24cValue[16];
+  char currentValue[32];
+  const FarmDoorReadOnlyDiagnostics diagnostics = FarmDoorHw.readDiagnostics();
+  snprintf(at24cValue, sizeof(at24cValue), "%s", diagnostics.at24cOnline ? "在线" : "离线");
+  snprintf(currentValue, sizeof(currentValue), "%d ADC", diagnostics.currentRawAdc);
+
   Esp32BaseWeb::sendHeader("自动门诊断");
-  Esp32BaseWeb::sendChunk("<h1>诊断</h1><section><h2>业务诊断</h2>");
-  Esp32BaseWeb::sendChunk("<p><a href='/api/app/diagnostics'>查看诊断 JSON</a></p>");
-  Esp32BaseWeb::sendChunk("<p><a href='/api/app/status'>查看状态 JSON</a></p>");
-  Esp32BaseWeb::sendChunk("</section><section><h2>故障处理</h2>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault'>");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>清除业务故障</button></form>");
-  Esp32BaseWeb::sendChunk("</section>");
+  Esp32BaseWeb::sendPageTitle("诊断", "只读硬件诊断、状态接口和故障维护");
+
+  Esp32BaseWeb::beginPanel("业务诊断");
+  Esp32BaseWeb::beginMetricGrid();
+  Esp32BaseWeb::sendMetric("AT24C128", at24cValue, g_at24cStoreReady ? "store ready" : "store not ready");
+  Esp32BaseWeb::sendMetric("电流采样", currentValue, g_currentGuard.enabled ? "保护启用" : "保护未启用");
+  Esp32BaseWeb::sendMetric("电机输出", g_motorOutputEnabled ? "已启用" : "未启用", g_motorOutputReady ? "ready" : "not ready");
+  Esp32BaseWeb::endMetricGrid();
+  Esp32BaseWeb::sendInfoRowCompactLink("诊断 JSON", "按钮、编码器、AT24C 和电流采样", nullptr, "/api/app/diagnostics", "打开", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendInfoRowCompactLink("状态 JSON", "自动门运行状态和行程摘要", nullptr, "/api/app/status", "打开", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("故障处理");
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                           "需要二次确认",
+                           "首次提交会返回确认 token；确认后带 confirm=true 和 token 再提交。");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/clear-fault' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='clear-token'>确认 token</label><input id='clear-token' name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='clear-confirm'>确认</label><select id='clear-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='清除业务故障'></div></form>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
