@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "DoorConfirm.h"
 #include "DoorController.h"
 #include "DoorRecordFileStore.h"
 #include "DoorRecordLog.h"
@@ -30,7 +29,6 @@ constexpr int64_t kDefaultMaxRunPulses = (kDefaultOpenTargetPulses * 150) / 100;
 
 DoorController g_door;
 DoorRecordLog g_records;
-DoorConfirmGuard g_confirm;
 uint32_t g_nextCommandId = 1;
 bool g_recordStorageReady = false;
 DoorControllerConfig g_doorConfig;
@@ -305,22 +303,6 @@ bool readUint32ParamOptional(const char* name, uint32_t& out) {
   return !Esp32BaseWeb::hasParam(name) || readUint32Param(name, out);
 }
 
-bool readBoolParam(const char* name, bool& out) {
-  char raw[8];
-  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
-    return false;
-  }
-  if (strcmp(raw, "true") == 0 || strcmp(raw, "1") == 0) {
-    out = true;
-    return true;
-  }
-  if (strcmp(raw, "false") == 0 || strcmp(raw, "0") == 0) {
-    out = false;
-    return true;
-  }
-  return false;
-}
-
 struct PageParams {
   uint32_t page = 1;
   uint32_t per = 15;
@@ -391,39 +373,118 @@ void sendRecordDelta(int64_t oldValue, int64_t newValue, int64_t deltaValue) {
   Esp32BaseWeb::sendChunk(")");
 }
 
-void sendConfirmRequired(const char* action, const char* resource) {
-  char token[9] = {};
-  if (!g_confirm.issue(action, resource, millis(), esp_random(), token, sizeof(token))) {
-    beginRawJson(500);
-    Esp32BaseWeb::sendChunk("{\"result\":\"InvalidArgument\"}");
-    endRawJson();
-    return;
+void sendPlainRow(const char* label, const char* value, const char* detail = nullptr) {
+  Esp32BaseWeb::sendChunk("<tr><td class='muted'>");
+  Esp32BaseWeb::writeHtmlEscaped(label ? label : "");
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(value ? value : "");
+  if (detail != nullptr && detail[0] != '\0') {
+    Esp32BaseWeb::sendChunk("<small>");
+    Esp32BaseWeb::writeHtmlEscaped(detail);
+    Esp32BaseWeb::sendChunk("</small>");
   }
-  beginRawJson(409);
-  Esp32BaseWeb::sendChunk("{\"result\":\"ConfirmRequired\",\"actionId\":\"");
-  Esp32BaseWeb::sendChunk(action);
-  Esp32BaseWeb::sendChunk("\",\"resource\":\"");
-  Esp32BaseWeb::sendChunk(resource);
-  Esp32BaseWeb::sendChunk("\",\"confirmToken\":\"");
-  Esp32BaseWeb::sendChunk(token);
-  Esp32BaseWeb::sendChunk("\",\"ttlMs\":60000}");
-  endRawJson();
+  Esp32BaseWeb::sendChunk("</td></tr>");
 }
 
-bool confirmAccepted() {
-  bool confirm = false;
-  return readBoolParam("confirm", confirm) && confirm;
+void beginPlainTable() {
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='part'>");
 }
 
-bool requireConfirm(const char* action, const char* resource) {
-  char token[16] = {};
-  if (confirmAccepted() &&
-      Esp32BaseWeb::getParam("confirmToken", token, sizeof(token)) &&
-      g_confirm.consume(action, resource, token, millis())) {
-    return true;
+void endPlainTable() {
+  Esp32BaseWeb::sendChunk("</table></div>");
+}
+
+void sendDoorStatusTable(const DoorSnapshot& snapshot,
+                         const char* positionValue,
+                         const char* targetValue,
+                         const char* percentValue,
+                         const char* maxRunValue) {
+  char stateDetail[48];
+  snprintf(stateDetail, sizeof(stateDetail), "当前命令：%s", commandName(snapshot.activeCommand));
+  char positionDetail[48];
+  snprintf(positionDetail, sizeof(positionDetail), "可信度：%s", trustName(snapshot.positionTrustLevel));
+  char targetDetail[48];
+  snprintf(targetDetail, sizeof(targetDetail), "保护边界：%s", maxRunValue);
+  char motorDetail[48];
+  snprintf(motorDetail,
+           sizeof(motorDetail),
+           "%s / %s",
+           g_motorOutputEnabled ? "输出已启用" : "输出未启用",
+           g_motorOutputReady ? "ready" : "not ready");
+
+  beginPlainTable();
+  sendPlainRow("门状态", stateName(snapshot.state), stateDetail);
+  sendPlainRow("门位判断", percentValue, positionDetail);
+  sendPlainRow("当前位置", positionValue, "编码器累计位置");
+  sendPlainRow("开门目标", targetValue, targetDetail);
+  sendPlainRow("最近停止", stopReasonName(snapshot.lastStopReason), "用于判断上次停止是否正常");
+  sendPlainRow("电机输出", g_motorOutputEnabled ? "已启用" : "未启用", motorDetail);
+  sendPlainRow("故障", faultReasonName(snapshot.faultReason),
+               snapshot.faultReason == DoorFaultReason::None ? "当前无业务故障" : "需要处理后再运行");
+  endPlainTable();
+}
+
+void sendDoorActionButtons(const DoorSnapshot& snapshot) {
+  Esp32BaseWeb::sendChunk("<div class='actions'>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/open' onsubmit='return once(this)'><input class='btnlink ok' type='submit' value='开门'></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/close' onsubmit='return once(this)'><input class='btnlink info' type='submit' value='关门'></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/stop' onsubmit='return once(this)'><input class='btnlink danger' type='submit' value='停止'></form>");
+  if (snapshot.state == DoorState::Fault || snapshot.faultReason != DoorFaultReason::None) {
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault' onsubmit=\"return confirm('清除当前故障？')&&once(this)\"><input class='btnlink danger' type='submit' value='清除故障'></form>");
   }
-  sendConfirmRequired(action, resource);
-  return false;
+  Esp32BaseWeb::sendChunk("</div>");
+}
+
+void sendCalibrationStatusTable(const DoorSnapshot& snapshot,
+                                const char* positionValue,
+                                const char* targetValue,
+                                const char* turnsValue,
+                                const char* pulsesPerRevValue) {
+  beginPlainTable();
+  sendPlainRow("当前位置", positionValue, trustName(snapshot.positionTrustLevel));
+  sendPlainRow("开门目标", targetValue, turnsValue);
+  sendPlainRow("每圈信号数", pulsesPerRevValue, "output pulses/rev");
+  sendPlainRow("最近停止", stopReasonName(snapshot.lastStopReason), "校准后建议确认停止原因");
+  endPlainTable();
+}
+
+void sendDiagnosticsStatusTable(const FarmDoorReadOnlyDiagnostics& diagnostics,
+                                const char* at24cValue,
+                                const char* currentValue) {
+  char currentDetail[80];
+  snprintf(currentDetail,
+           sizeof(currentDetail),
+           "min=%d max=%d avg=%d samples=%u",
+           diagnostics.currentRawMin,
+           diagnostics.currentRawMax,
+           diagnostics.currentRawAvg,
+           diagnostics.currentSampleCount);
+  char buttonValue[48];
+  snprintf(buttonValue,
+           sizeof(buttonValue),
+           "开:%u 关:%u 停:%u 辅:%u",
+           diagnostics.buttonOpen,
+           diagnostics.buttonClose,
+           diagnostics.buttonStop,
+           diagnostics.buttonAux);
+  char encoderValue[32];
+  snprintf(encoderValue, sizeof(encoderValue), "A:%u B:%u", diagnostics.encoderA, diagnostics.encoderB);
+  char motorValue[48];
+  snprintf(motorValue,
+           sizeof(motorValue),
+           "%s / %s",
+           g_motorOutputEnabled ? "输出已启用" : "输出未启用",
+           g_motorOutputReady ? "ready" : "not ready");
+
+  beginPlainTable();
+  sendPlainRow("AT24C128", at24cValue, g_at24cStoreReady ? "记录存储已就绪" : "记录存储未就绪");
+  sendPlainRow("电流采样", currentValue, currentDetail);
+  sendPlainRow("电流保护", g_currentGuard.enabled ? "已启用" : "未启用",
+               ina240CompileEnabled() ? "固件已包含 INA240A2 支持" : "固件未启用 INA240A2");
+  sendPlainRow("电机输出", g_motorOutputEnabled ? "已启用" : "未启用", motorValue);
+  sendPlainRow("按钮输入", buttonValue, "1 表示高电平，0 表示低电平");
+  sendPlainRow("编码器输入", encoderValue, "只读 GPIO 当前电平");
+  endPlainTable();
 }
 
 int64_t openTargetPulsesFromTurnsX100(int64_t turnsX100) {
@@ -1187,56 +1248,16 @@ void FarmDoorApp::sendHomePage() {
   formatInt64WithUnit(maxRunValue, sizeof(maxRunValue), g_doorConfig.maxRunPulses, "脉冲");
 
   Esp32BaseWeb::sendHeader("自动门首页");
-  Esp32BaseWeb::sendPageTitle("自动门首页", "鸡舍自动门状态、操作和维护入口");
+  Esp32BaseWeb::sendPageTitle("自动门首页", "鸡舍自动门状态和操作");
 
   Esp32BaseWeb::beginPanel("门状态");
-  Esp32BaseWeb::beginMetricGrid();
-  Esp32BaseWeb::sendMetric("控制器状态", stateName(snapshot.state), trustName(snapshot.positionTrustLevel));
-  Esp32BaseWeb::sendMetric("当前位置", positionValue, percentValue);
-  Esp32BaseWeb::sendMetric("开门目标", targetValue, maxRunValue);
-  Esp32BaseWeb::endMetricGrid();
-  Esp32BaseWeb::sendInfoRowCompact("当前命令", "正在执行的开关门命令", commandName(snapshot.activeCommand));
-  Esp32BaseWeb::sendInfoRowCompact("停止原因", "最近一次停止来源", stopReasonName(snapshot.lastStopReason));
-  Esp32BaseWeb::sendInfoRowCompact("故障原因", "业务控制器故障", faultReasonName(snapshot.faultReason));
+  sendDoorStatusTable(snapshot, positionValue, targetValue, percentValue, maxRunValue);
   if (!g_motorOutputEnabled) {
     Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
                              "电机输出未启用",
                              "开门和关门命令会被保护拒绝；请在 Esp32Base App Config 中启用。");
   }
-  Esp32BaseWeb::endPanel();
-
-  Esp32BaseWeb::beginPanel("门操作");
-  Esp32BaseWeb::sendInfoRowCompactForm("开门",
-                                       "移动到已保存的开门目标",
-                                       nullptr,
-                                       "/api/app/door/open",
-                                       "开门",
-                                       nullptr,
-                                       nullptr,
-                                       Esp32BaseWeb::UI_OK);
-  Esp32BaseWeb::sendInfoRowCompactForm("关门",
-                                       "移动到关门基准位置",
-                                       nullptr,
-                                       "/api/app/door/close",
-                                       "关门",
-                                       nullptr,
-                                       nullptr,
-                                       Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::sendInfoRowCompactForm("停止",
-                                       "停止当前运动并保存当前位置",
-                                       nullptr,
-                                       "/api/app/door/stop",
-                                       "停止",
-                                       nullptr,
-                                       nullptr,
-                                       Esp32BaseWeb::UI_DANGER);
-  Esp32BaseWeb::endPanel();
-
-  Esp32BaseWeb::beginPanel("快速入口");
-  Esp32BaseWeb::sendInfoRowCompactLink("行程校准", "标定端点和调整开门目标", nullptr, "/calibration", "进入", Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::sendInfoRowCompactLink("开关门记录", "查询自动门操作和维护记录", nullptr, "/records", "进入", Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::sendInfoRowCompactLink("业务事件", "查看维护、保护和存储告警事件", nullptr, "/events", "进入", Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::sendInfoRowCompactLink("业务诊断", "查看只读硬件诊断和维护动作", nullptr, "/diagnostics", "进入", Esp32BaseWeb::UI_INFO);
+  sendDoorActionButtons(snapshot);
   Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
@@ -1456,41 +1477,26 @@ void FarmDoorApp::sendCalibrationPage() {
   Esp32BaseWeb::sendPageTitle("校准", "标定当前位置、开门目标和行程微调");
 
   Esp32BaseWeb::beginPanel("当前位置");
-  Esp32BaseWeb::beginMetricGrid();
-  Esp32BaseWeb::sendMetric("当前位置", positionValue, trustName(snapshot.positionTrustLevel));
-  Esp32BaseWeb::sendMetric("开门目标", targetValue, turnsValue);
-  Esp32BaseWeb::sendMetric("每圈信号数", pulsesPerRevValue, "output pulses/rev");
-  Esp32BaseWeb::endMetricGrid();
+  sendCalibrationStatusTable(snapshot, positionValue, targetValue, turnsValue, pulsesPerRevValue);
   Esp32BaseWeb::endPanel();
 
   Esp32BaseWeb::beginPanel("端点标定");
-  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
-                           "需要二次确认",
-                           "首次提交会返回确认 token；确认后带相同参数、confirm=true 和 token 再提交。");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-position' onsubmit='return once(this)'>");
-  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='closed'><div class='fieldgrid'>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='closed-token'>确认 token</label><input id='closed-token' name='confirmToken'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='closed-confirm'>确认</label><select id='closed-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
-  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='把当前位置标为关门基准'></div></form>");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-position' onsubmit='return once(this)'>");
-  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='open'><div class='fieldgrid'>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='open-token'>确认 token</label><input id='open-token' name='confirmToken'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='open-confirm'>确认</label><select id='open-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
-  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='把当前位置标为开门位置'></div></form>");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-position' onsubmit=\"return confirm('把当前位置标为关门基准？')&&once(this)\">");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='closed'>");
+  Esp32BaseWeb::sendChunk("<div class='actions'><input class='danger' type='submit' value='把当前位置标为关门基准'></div></form>");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-position' onsubmit=\"return confirm('把当前位置标为开门位置？')&&once(this)\">");
+  Esp32BaseWeb::sendChunk("<input type='hidden' name='position' value='open'>");
+  Esp32BaseWeb::sendChunk("<div class='actions'><input class='danger' type='submit' value='把当前位置标为开门位置'></div></form>");
   Esp32BaseWeb::endPanel();
 
   Esp32BaseWeb::beginPanel("行程调整");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-travel' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-travel' onsubmit=\"return confirm('设置新的开门目标？')&&once(this)\">");
   Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
   Esp32BaseWeb::sendChunk("<div class='field med'><label for='travel-turns'>开门目标</label><input id='travel-turns' name='openTurnsX100' type='number' min='1' max='2000' value='500'><small>单位为 0.01 圈。</small></div>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='travel-token'>确认 token</label><input id='travel-token' name='confirmToken'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='travel-confirm'>确认</label><select id='travel-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
   Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='warn' type='submit' value='设置行程'></div></form>");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/adjust-travel' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/adjust-travel' onsubmit=\"return confirm('微调开门目标？')&&once(this)\">");
   Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
   Esp32BaseWeb::sendChunk("<div class='field med'><label for='adjust-delta'>微调量</label><input id='adjust-delta' name='deltaTurnsX100' type='number' value='5'><small>单位为 0.01 圈，可为负数。</small></div>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='adjust-token'>确认 token</label><input id='adjust-token' name='confirmToken'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='adjust-confirm'>确认</label><select id='adjust-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
   Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='warn' type='submit' value='微调行程'></div></form>");
   Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
@@ -1506,27 +1512,10 @@ void FarmDoorApp::sendDiagnosticsPage() {
   snprintf(currentValue, sizeof(currentValue), "%d ADC", diagnostics.currentRawAdc);
 
   Esp32BaseWeb::sendHeader("自动门诊断");
-  Esp32BaseWeb::sendPageTitle("诊断", "只读硬件诊断、状态接口和故障维护");
+  Esp32BaseWeb::sendPageTitle("诊断", "只读硬件状态");
 
-  Esp32BaseWeb::beginPanel("业务诊断");
-  Esp32BaseWeb::beginMetricGrid();
-  Esp32BaseWeb::sendMetric("AT24C128", at24cValue, g_at24cStoreReady ? "store ready" : "store not ready");
-  Esp32BaseWeb::sendMetric("电流采样", currentValue, g_currentGuard.enabled ? "保护启用" : "保护未启用");
-  Esp32BaseWeb::sendMetric("电机输出", g_motorOutputEnabled ? "已启用" : "未启用", g_motorOutputReady ? "ready" : "not ready");
-  Esp32BaseWeb::endMetricGrid();
-  Esp32BaseWeb::sendInfoRowCompactLink("诊断 JSON", "按钮、编码器、AT24C 和电流采样", nullptr, "/api/app/diagnostics", "打开", Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::sendInfoRowCompactLink("状态 JSON", "自动门运行状态和行程摘要", nullptr, "/api/app/status", "打开", Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::endPanel();
-
-  Esp32BaseWeb::beginPanel("故障处理");
-  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
-                           "需要二次确认",
-                           "首次提交会返回确认 token；确认后带 confirm=true 和 token 再提交。");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/clear-fault' onsubmit='return once(this)'>");
-  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='clear-token'>确认 token</label><input id='clear-token' name='confirmToken'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='clear-confirm'>确认</label><select id='clear-confirm' name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
-  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='清除业务故障'></div></form>");
+  Esp32BaseWeb::beginPanel("硬件状态");
+  sendDiagnosticsStatusTable(diagnostics, at24cValue, currentValue);
   Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
@@ -1868,9 +1857,6 @@ void FarmDoorApp::handleSetPosition() {
   char position[16];
   if (Esp32BaseWeb::getParam("position", position, sizeof(position))) {
     if (strcmp(position, "closed") == 0 || strcmp(position, "Closed") == 0) {
-      if (!requireConfirm("set-position", "position:closed")) {
-        return;
-      }
       const uint32_t commandId = allocateCommandId();
       result = g_door.markPositionClosed();
       DoorRecord record;
@@ -1891,9 +1877,6 @@ void FarmDoorApp::handleSetPosition() {
       return;
     }
     if (strcmp(position, "open") == 0 || strcmp(position, "Open") == 0) {
-      if (!requireConfirm("set-position", "position:open")) {
-        return;
-      }
       const uint32_t commandId = allocateCommandId();
       result = g_door.markPositionOpen();
       DoorRecord record;
@@ -1914,9 +1897,6 @@ void FarmDoorApp::handleSetPosition() {
       return;
     }
     if (strcmp(position, "unknown") == 0 || strcmp(position, "Unknown") == 0) {
-      if (!requireConfirm("set-position", "position:unknown")) {
-        return;
-      }
       const uint32_t commandId = allocateCommandId();
       result = g_door.setTrustedPosition(0, PositionTrustLevel::Untrusted);
       DoorRecord record;
@@ -1944,12 +1924,6 @@ void FarmDoorApp::handleSetPosition() {
   PositionTrustLevel trustLevel = PositionTrustLevel::Trusted;
   if (!readInt64Param("positionPulses", positionPulses) || !readTrustLevelParam(trustLevel)) {
     sendCommandResultJson(DoorCommandResult::InvalidArgument);
-    return;
-  }
-  char resource[40];
-  snprintf(resource, sizeof(resource), "positionPulses:%lld",
-           static_cast<long long>(positionPulses));
-  if (!requireConfirm("set-position", resource)) {
     return;
   }
   const uint32_t commandId = allocateCommandId();
@@ -2002,13 +1976,6 @@ void FarmDoorApp::handleSetTravel() {
     sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
     return;
   }
-  char resource[40];
-  snprintf(resource, sizeof(resource), "travel:%lld",
-           static_cast<long long>(openTargetPulses));
-  if (!requireConfirm("set-travel", resource)) {
-    return;
-  }
-
   const uint32_t commandId = allocateCommandId();
   bool configSaved = false;
   const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
@@ -2055,12 +2022,6 @@ void FarmDoorApp::handleAdjustTravel() {
 
   const int64_t openTargetPulses = g_door.snapshot().openTargetPulses + deltaPulses;
   const int64_t maxRunPulses = defaultMaxRunPulsesForTarget(openTargetPulses);
-  char resource[40];
-  snprintf(resource, sizeof(resource), "adjust:%lld",
-           static_cast<long long>(deltaPulses));
-  if (!requireConfirm("adjust-travel", resource)) {
-    return;
-  }
   const uint32_t commandId = allocateCommandId();
   bool configSaved = false;
   const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
@@ -2083,9 +2044,6 @@ void FarmDoorApp::handleAdjustTravel() {
 void FarmDoorApp::handleClearFault() {
 #if ESP32BASE_ENABLE_WEB
   if (!requireApiAuth()) {
-    return;
-  }
-  if (!requireConfirm("clear-fault", "door")) {
     return;
   }
   const uint32_t commandId = allocateCommandId();
