@@ -10,6 +10,7 @@
 #include <esp_system.h>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 #include "DoorController.h"
 #include "DoorRecordFileStore.h"
@@ -50,9 +51,9 @@ Esp32At24cRecordStore::RecordStore g_at24cStore;
 bool g_at24cStoreReady = false;
 bool g_motorOutputReady = false;
 
-static constexpr uint8_t kFarmDoorRouteCount = 16;
+static constexpr uint8_t kFarmDoorRouteCount = 17;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorRouteCount,
-              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 16");
+              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 17");
 static constexpr const char* kDoorRecordRootDir = "/records";
 static constexpr const char* kDoorRecordDir = "/records/door";
 static constexpr const char* kDoorRecordCurrentPath = "/records/door/current.dar";
@@ -202,6 +203,126 @@ const char* recordResultName(DoorRecordResult result) {
   return "InvalidArgument";
 }
 
+const char* stateDisplayName(DoorState state) {
+  switch (state) {
+    case DoorState::PositionUnknown: return "位置未标定";
+    case DoorState::IdleClosed: return "已关门";
+    case DoorState::IdleOpen: return "已开门";
+    case DoorState::IdlePartial: return "中间位置";
+    case DoorState::Opening: return "正在开门";
+    case DoorState::Closing: return "正在关门";
+    case DoorState::Fault: return "故障";
+  }
+  return "未知状态";
+}
+
+const char* commandDisplayName(DoorCommand command) {
+  switch (command) {
+    case DoorCommand::None: return "无";
+    case DoorCommand::Open: return "开门";
+    case DoorCommand::Close: return "关门";
+    case DoorCommand::Stop: return "停止";
+  }
+  return "未知命令";
+}
+
+const char* trustDisplayName(PositionTrustLevel trustLevel) {
+  switch (trustLevel) {
+    case PositionTrustLevel::Trusted: return "可信";
+    case PositionTrustLevel::Limited: return "仅供参考";
+    case PositionTrustLevel::Untrusted: return "未标定";
+  }
+  return "未标定";
+}
+
+const char* stopReasonDisplayName(DoorStopReason reason) {
+  switch (reason) {
+    case DoorStopReason::None: return "无";
+    case DoorStopReason::TargetReached: return "到达目标";
+    case DoorStopReason::UserStop: return "用户停止";
+    case DoorStopReason::ProtectiveStop: return "保护停止";
+    case DoorStopReason::FaultStop: return "故障停止";
+  }
+  return "未知原因";
+}
+
+const char* faultReasonDisplayName(DoorFaultReason reason) {
+  switch (reason) {
+    case DoorFaultReason::None: return "无故障";
+    case DoorFaultReason::InvalidConfig: return "参数不正确";
+    case DoorFaultReason::MotorFault: return "电机异常";
+    case DoorFaultReason::PositionLost: return "位置丢失";
+  }
+  return "未知故障";
+}
+
+const char* commandResultDisplayName(DoorCommandResult result) {
+  switch (result) {
+    case DoorCommandResult::Ok: return "已执行";
+    case DoorCommandResult::Busy: return "设备正在运行";
+    case DoorCommandResult::InvalidArgument: return "参数不正确";
+    case DoorCommandResult::PositionUntrusted: return "位置未标定";
+    case DoorCommandResult::FaultActive: return "故障未清除";
+  }
+  return "参数不正确";
+}
+
+const char* recordTypeDisplayName(DoorRecordType type) {
+  switch (type) {
+    case DoorRecordType::CommandRequested: return "操作命令";
+    case DoorRecordType::PositionSet: return "位置标定";
+    case DoorRecordType::TravelSet: return "开门目标设置";
+    case DoorRecordType::TravelAdjusted: return "开门目标微调";
+    case DoorRecordType::FaultCleared: return "故障处理";
+  }
+  return "业务记录";
+}
+
+const char* recordResultDisplayName(DoorRecordResult result) {
+  switch (result) {
+    case DoorRecordResult::Ok: return "成功";
+    case DoorRecordResult::Busy: return "设备忙";
+    case DoorRecordResult::InvalidArgument: return "参数错误";
+    case DoorRecordResult::PositionUntrusted: return "位置未标定";
+    case DoorRecordResult::FaultActive: return "故障未清除";
+  }
+  return "参数错误";
+}
+
+const char* eventLevelDisplayName(FarmAutoEventLog::Level level) {
+  switch (level) {
+    case FarmAutoEventLog::LEVEL_INFO: return "提示";
+    case FarmAutoEventLog::LEVEL_WARN: return "注意";
+    case FarmAutoEventLog::LEVEL_ERROR: return "故障";
+  }
+  return "提示";
+}
+
+const char* eventDomainDisplayName(const char* domain) {
+  if (domain == nullptr || domain[0] == '\0') return "-";
+  if (strcmp(domain, "farmdoor") == 0) return "自动门";
+  if (strcmp(domain, "doorMotor") == 0) return "自动门电机";
+  if (strcmp(domain, "recordLog") == 0) return "业务记录";
+  return domain;
+}
+
+const char* eventActionDisplayName(const char* action) {
+  if (action == nullptr || action[0] == '\0') return "-";
+  if (strcmp(action, "doorFaultCleared") == 0) return "清除故障";
+  if (strcmp(action, "doorProtectionStopped") == 0) return "保护停机";
+  if (strcmp(action, "storageWarning") == 0) return "记录存储告警";
+  return action;
+}
+
+const char* eventTargetDisplayName(const char* target) {
+  if (target == nullptr || target[0] == '\0') return "-";
+  if (strcmp(target, "door") == 0) return "自动门";
+  if (strcmp(target, "door_records") == 0) return "开关门记录";
+  if (strcmp(target, "app_events") == 0) return "业务事件";
+  if (strcmp(target, "door_motor") == 0) return "自动门电机";
+  return target;
+}
+
 int httpCodeFor(DoorCommandResult result) {
   switch (result) {
     case DoorCommandResult::Ok: return 200;
@@ -284,6 +405,20 @@ bool readInt64ParamOptional(const char* name, int64_t& out) {
   return true;
 }
 
+bool readTurnsX100Param(const char* name, int64_t& out) {
+  char raw[24];
+  if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
+    return false;
+  }
+  char* end = nullptr;
+  const double turns = strtod(raw, &end);
+  if (!end || *end != '\0' || !(turns >= 0.1 && turns <= 99.0)) {
+    return false;
+  }
+  out = static_cast<int64_t>(turns * 100.0 + 0.5);
+  return out >= 10 && out <= 9900;
+}
+
 bool readUint32Param(const char* name, uint32_t& out) {
   char raw[16];
   if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw))) {
@@ -333,6 +468,90 @@ bool pageStartIndex(const PageParams& params, uint32_t& out) {
   return true;
 }
 
+bool safeReturnPath(const char* value) {
+  return value != nullptr &&
+         (strcmp(value, "/index") == 0 || strcmp(value, "/calibration") == 0 ||
+          strcmp(value, "/records") == 0 || strcmp(value, "/events") == 0);
+}
+
+const char* safeOpName(const char* op) {
+  if (op == nullptr) return "action";
+  if (strcmp(op, "open") == 0) return "open";
+  if (strcmp(op, "close") == 0) return "close";
+  if (strcmp(op, "stop") == 0) return "stop";
+  if (strcmp(op, "clearFault") == 0) return "clearFault";
+  if (strcmp(op, "calibrate") == 0) return "calibrate";
+  if (strcmp(op, "setTravel") == 0) return "setTravel";
+  if (strcmp(op, "jog") == 0) return "jog";
+  return "action";
+}
+
+bool redirectAfterAction(DoorCommandResult result, uint32_t commandId = 0) {
+  char returnTo[32];
+  if (!Esp32BaseWeb::getParam("returnTo", returnTo, sizeof(returnTo)) ||
+      !safeReturnPath(returnTo)) {
+    return false;
+  }
+  char op[24];
+  if (!Esp32BaseWeb::getParam("op", op, sizeof(op))) {
+    op[0] = '\0';
+  }
+  char location[96];
+  snprintf(location,
+           sizeof(location),
+           "%s?op=%s&result=%s&commandId=%lu",
+           returnTo,
+           safeOpName(op),
+           commandResultName(result),
+           static_cast<unsigned long>(commandId));
+  Esp32BaseWeb::redirectSeeOther(location);
+  return true;
+}
+
+DoorCommandResult resultFromQuery(const char* raw) {
+  if (raw == nullptr) {
+    return DoorCommandResult::InvalidArgument;
+  }
+  if (strcmp(raw, "Ok") == 0) return DoorCommandResult::Ok;
+  if (strcmp(raw, "Busy") == 0) return DoorCommandResult::Busy;
+  if (strcmp(raw, "PositionUntrusted") == 0) return DoorCommandResult::PositionUntrusted;
+  if (strcmp(raw, "FaultActive") == 0) return DoorCommandResult::FaultActive;
+  return DoorCommandResult::InvalidArgument;
+}
+
+const char* opDisplayName(const char* op) {
+  if (strcmp(op, "open") == 0) return "开门";
+  if (strcmp(op, "close") == 0) return "关门";
+  if (strcmp(op, "stop") == 0) return "停止";
+  if (strcmp(op, "clearFault") == 0) return "清除故障";
+  if (strcmp(op, "calibrate") == 0) return "端点标定";
+  if (strcmp(op, "setTravel") == 0) return "保存开门目标";
+  if (strcmp(op, "jog") == 0) return "手动微调";
+  return "操作";
+}
+
+void sendActionNoticeFromQuery() {
+  char result[24];
+  if (!Esp32BaseWeb::getParam("result", result, sizeof(result))) {
+    return;
+  }
+  char op[24];
+  if (!Esp32BaseWeb::getParam("op", op, sizeof(op))) {
+    op[0] = '\0';
+  }
+  const DoorCommandResult commandResult = resultFromQuery(result);
+  char title[48];
+  snprintf(title,
+           sizeof(title),
+           "%s%s",
+           opDisplayName(op),
+           commandResult == DoorCommandResult::Ok ? "已提交" : "未执行");
+  Esp32BaseWeb::sendNotice(commandResult == DoorCommandResult::Ok ? Esp32BaseWeb::UI_OK
+                                                                   : Esp32BaseWeb::UI_WARN,
+                           title,
+                           commandResultDisplayName(commandResult));
+}
+
 void sendUint32Text(uint32_t value) {
   char text[16];
   snprintf(text, sizeof(text), "%lu", static_cast<unsigned long>(value));
@@ -345,15 +564,44 @@ void sendInt64Text(int64_t value) {
   Esp32BaseWeb::sendChunk(text);
 }
 
-void sendTimeText(uint32_t unixTime, uint32_t uptimeSec) {
+bool formatEpochDisplayTime(uint32_t epochSec, char* out, std::size_t outSize) {
+  if (out == nullptr || outSize == 0 || epochSec == 0) {
+    return false;
+  }
+  const time_t raw = static_cast<time_t>(epochSec);
+  struct tm tmValue;
+  localtime_r(&raw, &tmValue);
+  return strftime(out, outSize, "%m-%d %H:%M:%S", &tmValue) > 0;
+}
+
+uint32_t resolvedRecordEpoch(uint32_t unixTime, uint32_t bootId, uint32_t uptimeSec) {
   if (unixTime > 0) {
-    Esp32BaseWeb::sendChunk("Unix ");
-    sendUint32Text(unixTime);
+    return unixTime;
+  }
+#if ESP32BASE_ENABLE_NTP
+  uint32_t resolved = 0;
+  if (Esp32BaseNtp::resolveCurrentBootEvent(bootId, uptimeSec, &resolved)) {
+    return resolved;
+  }
+#else
+  (void)bootId;
+#endif
+  return 0;
+}
+
+void sendTimeText(uint32_t unixTime, uint32_t uptimeSec) {
+  char text[24];
+  if (formatEpochDisplayTime(unixTime, text, sizeof(text))) {
+    Esp32BaseWeb::sendChunk(text);
     return;
   }
-  Esp32BaseWeb::sendChunk("启动 +");
+  Esp32BaseWeb::sendChunk("时间未同步，启动后 ");
   sendUint32Text(uptimeSec);
   Esp32BaseWeb::sendChunk(" 秒");
+}
+
+void sendRecordTimeText(uint32_t unixTime, uint32_t bootId, uint32_t uptimeSec) {
+  sendTimeText(resolvedRecordEpoch(unixTime, bootId, uptimeSec), uptimeSec);
 }
 
 void sendRecordPulseRange(int64_t oldValue, int64_t newValue) {
@@ -421,32 +669,32 @@ void sendDoorStatusTable(const DoorSnapshot& snapshot,
                          const char* percentValue,
                          const char* maxRunValue) {
   char stateDetail[48];
-  snprintf(stateDetail, sizeof(stateDetail), "当前命令：%s", commandName(snapshot.activeCommand));
+  snprintf(stateDetail, sizeof(stateDetail), "当前命令：%s", commandDisplayName(snapshot.activeCommand));
   char positionDetail[48];
-  snprintf(positionDetail, sizeof(positionDetail), "可信度：%s", trustName(snapshot.positionTrustLevel));
+  snprintf(positionDetail, sizeof(positionDetail), "可信度：%s", trustDisplayName(snapshot.positionTrustLevel));
   char targetDetail[48];
   snprintf(targetDetail, sizeof(targetDetail), "保护边界：%s", maxRunValue);
 
   beginStatusMetrics();
-  sendStatusMetric("门状态", stateName(snapshot.state), stateDetail);
+  sendStatusMetric("门状态", stateDisplayName(snapshot.state), stateDetail);
   sendStatusMetric("门位判断", percentValue, positionDetail);
   sendStatusMetric("当前位置", positionValue, "编码器累计位置");
   sendStatusMetric("开门目标", targetValue, targetDetail);
-  sendStatusMetric("最近停止", stopReasonName(snapshot.lastStopReason), "用于判断上次停止是否正常");
+  sendStatusMetric("最近停止", stopReasonDisplayName(snapshot.lastStopReason), "用于判断上次停止是否正常");
   sendStatusMetric("电机", g_motorOutputReady ? "已就绪" : "未就绪",
                    g_motorOutputReady ? "命令将直接输出" : "初始化失败时会拒绝动作");
-  sendStatusMetric("故障", faultReasonName(snapshot.faultReason),
+  sendStatusMetric("故障", faultReasonDisplayName(snapshot.faultReason),
                    snapshot.faultReason == DoorFaultReason::None ? "当前无业务故障" : "需要处理后再运行");
   endStatusMetrics();
 }
 
 void sendDoorActionButtons(const DoorSnapshot& snapshot) {
   Esp32BaseWeb::sendChunk("<div class='actions'>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/open' onsubmit='return once(this)'><input class='btnlink ok' type='submit' value='开门'></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/close' onsubmit='return once(this)'><input class='btnlink info' type='submit' value='关门'></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/stop' onsubmit='return once(this)'><input class='btnlink danger' type='submit' value='停止'></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/open' onsubmit=\"return confirm('开门会让自动门实际运行，确认执行？')&&once(this)\"><input type='hidden' name='returnTo' value='/index'><input type='hidden' name='op' value='open'><input class='btnlink ok' type='submit' value='开门'></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/close' onsubmit=\"return confirm('关门会让自动门实际运行，确认执行？')&&once(this)\"><input type='hidden' name='returnTo' value='/index'><input type='hidden' name='op' value='close'><input class='btnlink info' type='submit' value='关门'></form>");
+  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/door/stop' onsubmit=\"return confirm('停止会立即中断自动门运行，确认执行？')&&once(this)\"><input type='hidden' name='returnTo' value='/index'><input type='hidden' name='op' value='stop'><input class='btnlink danger' type='submit' value='停止'></form>");
   if (snapshot.state == DoorState::Fault || snapshot.faultReason != DoorFaultReason::None) {
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault' onsubmit=\"return confirm('清除当前故障？')&&once(this)\"><input class='btnlink danger' type='submit' value='清除故障'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault' onsubmit=\"return confirm('清除当前故障？')&&once(this)\"><input type='hidden' name='returnTo' value='/index'><input type='hidden' name='op' value='clearFault'><input class='btnlink danger' type='submit' value='清除故障'></form>");
   }
   Esp32BaseWeb::sendChunk("</div>");
 }
@@ -457,10 +705,10 @@ void sendCalibrationStatusTable(const DoorSnapshot& snapshot,
                                 const char* turnsValue,
                                 const char* pulsesPerRevValue) {
   beginStatusMetrics();
-  sendStatusMetric("当前位置", positionValue, trustName(snapshot.positionTrustLevel));
+  sendStatusMetric("当前位置", positionValue, trustDisplayName(snapshot.positionTrustLevel));
   sendStatusMetric("开门目标", targetValue, turnsValue);
-  sendStatusMetric("每圈信号数", pulsesPerRevValue, "output pulses/rev");
-  sendStatusMetric("最近停止", stopReasonName(snapshot.lastStopReason), "校准后建议确认停止原因");
+  sendStatusMetric("每圈信号数", pulsesPerRevValue, "编码器每转一圈累计的信号数");
+  sendStatusMetric("最近停止", stopReasonDisplayName(snapshot.lastStopReason), "校准后建议确认停止原因");
   endStatusMetrics();
 }
 
@@ -488,7 +736,7 @@ void sendCalibrationActionForm(const char* title,
   Esp32BaseWeb::writeHtmlEscaped(hiddenName ? hiddenName : "");
   Esp32BaseWeb::sendChunk("' value='");
   Esp32BaseWeb::writeHtmlEscaped(hiddenValue ? hiddenValue : "");
-  Esp32BaseWeb::sendChunk("'><input class='btnlink ");
+  Esp32BaseWeb::sendChunk("'><input type='hidden' name='returnTo' value='/calibration'><input type='hidden' name='op' value='calibrate'><input class='btnlink ");
   Esp32BaseWeb::writeHtmlEscaped(toneClass ? toneClass : "warn");
   Esp32BaseWeb::sendChunk("' type='submit' value='");
   Esp32BaseWeb::writeHtmlEscaped(submitValue ? submitValue : "");
@@ -570,6 +818,8 @@ void applyRuntimeConfigFromBase() {
   const int32_t maxRunSec = Esp32BaseConfig::getInt("door", "maxRunSec", defaultMaxRunSec);
   const bool requestedCurrentGuard =
       Esp32BaseConfig::getBool("door", "currentGuard", false);
+  const bool openDirectionReversed =
+      Esp32BaseConfig::getBool("door", "openDirectionReversed", false);
 
   if (speedPercent >= 10 && speedPercent <= 100) {
     g_motorProfile.speedPercent = static_cast<uint8_t>(speedPercent);
@@ -583,6 +833,7 @@ void applyRuntimeConfigFromBase() {
     g_doorConfig.maxRunMs = static_cast<uint32_t>(maxRunSec) * 1000UL;
     g_motorProtection.maxRunMs = g_doorConfig.maxRunMs;
   }
+  g_motorKinematics.motorDirectionInverted = openDirectionReversed;
   const DoorSnapshot snapshot = g_door.snapshot();
   if (snapshot.state != DoorState::Opening && snapshot.state != DoorState::Closing) {
     g_door.configure(g_doorConfig);
@@ -829,13 +1080,13 @@ void sendRecordHtmlRow(const DoorRecord& record) {
   Esp32BaseWeb::sendChunk("<tr><td>");
   sendUint32Text(record.sequence);
   Esp32BaseWeb::sendChunk("</td><td>");
-  sendTimeText(record.unixTime, record.uptimeSec);
+  sendRecordTimeText(record.unixTime, record.bootId, record.uptimeSec);
   Esp32BaseWeb::sendChunk("</td><td>");
-  Esp32BaseWeb::writeHtmlEscaped(recordTypeName(record.type));
+  Esp32BaseWeb::writeHtmlEscaped(recordTypeDisplayName(record.type));
   Esp32BaseWeb::sendChunk("</td><td>");
-  Esp32BaseWeb::writeHtmlEscaped(commandName(record.command));
+  Esp32BaseWeb::writeHtmlEscaped(commandDisplayName(record.command));
   Esp32BaseWeb::sendChunk("</td><td>");
-  Esp32BaseWeb::writeHtmlEscaped(recordResultName(record.result));
+  Esp32BaseWeb::writeHtmlEscaped(recordResultDisplayName(record.result));
   Esp32BaseWeb::sendChunk("</td><td>");
   sendRecordPulseRange(record.oldPositionPulses, record.newPositionPulses);
   Esp32BaseWeb::sendChunk("</td><td>");
@@ -930,15 +1181,15 @@ void sendBusinessEventHtmlRow(const FarmAutoEventLog::BusinessEvent& event) {
   Esp32BaseWeb::sendChunk("<tr><td>");
   sendUint32Text(event.id);
   Esp32BaseWeb::sendChunk("</td><td>");
-  sendTimeText(event.timeSynced ? event.epochSec : 0, event.uptimeSec);
+  sendRecordTimeText(event.timeSynced ? event.epochSec : 0, event.bootId, event.uptimeSec);
   Esp32BaseWeb::sendChunk("</td><td>");
-  Esp32BaseWeb::writeHtmlEscaped(appEventLevelName(event.level));
+  Esp32BaseWeb::writeHtmlEscaped(eventLevelDisplayName(event.level));
   Esp32BaseWeb::sendChunk("</td><td>");
-  Esp32BaseWeb::writeHtmlEscaped(event.domain);
+  Esp32BaseWeb::writeHtmlEscaped(eventDomainDisplayName(event.domain));
   Esp32BaseWeb::sendChunk("</td><td>");
-  Esp32BaseWeb::writeHtmlEscaped(event.action);
+  Esp32BaseWeb::writeHtmlEscaped(eventActionDisplayName(event.action));
   Esp32BaseWeb::sendChunk("</td><td>");
-  Esp32BaseWeb::writeHtmlEscaped(event.target);
+  Esp32BaseWeb::writeHtmlEscaped(eventTargetDisplayName(event.target));
   Esp32BaseWeb::sendChunk("</td><td>");
   Esp32BaseWeb::writeHtmlEscaped(event.message);
   Esp32BaseWeb::sendChunk("</td><td>");
@@ -982,6 +1233,9 @@ void sendRecentCommandJson() {
 
 void sendCommandResultJson(DoorCommandResult result, uint32_t commandId = 0) {
 #if ESP32BASE_ENABLE_WEB
+  if (redirectAfterAction(result, commandId)) {
+    return;
+  }
   const DoorSnapshot snapshot = g_door.snapshot();
   beginRawJson(httpCodeFor(result));
   Esp32BaseWeb::sendChunk("{\"result\":\"");
@@ -1005,6 +1259,9 @@ void sendCommandResultJson(DoorCommandResult result, uint32_t commandId = 0) {
 
 void sendTravelResultJson(DoorCommandResult result, bool configSaved, uint32_t commandId = 0) {
 #if ESP32BASE_ENABLE_WEB
+  if (redirectAfterAction(result, commandId)) {
+    return;
+  }
   const DoorSnapshot snapshot = g_door.snapshot();
   beginRawJson(httpCodeFor(result));
   Esp32BaseWeb::sendChunk("{\"result\":\"");
@@ -1051,11 +1308,24 @@ DoorCommandResult applyTravelUpdate(int64_t openTargetPulses,
 
 #if ESP32BASE_ENABLE_APP_CONFIG
   const int64_t turnsX100 = turnsX100FromOpenTargetPulses(openTargetPulses);
-  if (turnsX100 > 0 && turnsX100 <= 2000) {
+  if (turnsX100 >= 10 && turnsX100 <= 9900) {
     configSaved = Esp32BaseConfig::setInt("door", "openTurns", static_cast<int32_t>(turnsX100));
   }
 #endif
   return result;
+}
+
+bool applyOpenDirectionConfig(bool reversed) {
+  g_motorKinematics.motorDirectionInverted = reversed;
+#if ESP32BASE_ENABLE_APP_CONFIG
+  const bool saved = Esp32BaseConfig::setBool("door", "openDirectionReversed", reversed);
+#else
+  const bool saved = false;
+#endif
+  if (g_motorOutputReady) {
+    g_motor.configure(g_motorKinematics, g_motorProfile, g_motorProtection, g_motorStopPolicy);
+  }
+  return saved;
 }
 
 #if ESP32BASE_ENABLE_APP_CONFIG
@@ -1232,8 +1502,10 @@ void FarmDoorApp::configureAppConfigPage() {
 
   Esp32BaseAppConfig::addInt({"motor", "door", "speed", "运行速度", 60, 10, 100, 5, "%",
                               "普通开门/关门速度。", false, nullptr});
-  Esp32BaseAppConfig::addDecimal({"motor", "door", "openTurns", "开门目标", 500, 0, 2000, 5, 2,
+  Esp32BaseAppConfig::addDecimal({"motor", "door", "openTurns", "开门目标", 500, 10, 9900, 10, 2,
                                   "圈", "开门目标圈数，可由校准流程更新。", false, nullptr});
+  Esp32BaseAppConfig::addBool({"motor", "door", "openDirectionReversed", "开门方向反转", false,
+                               "开启后，开门使用反向电机输出，关门自动相反。", false, nullptr});
   Esp32BaseAppConfig::addInt({"protection", "door", "maxRunSec", "最大保护运行时长", 25, 1,
                               120, 1, "秒", "保底停止边界。", false, nullptr});
   Esp32BaseAppConfig::addBool({"current", "door", "currentGuard", "启用 INA240A2", false,
@@ -1267,6 +1539,7 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::addApi("/api/app/maintenance/set-position", FarmDoorApp::handleSetPosition);
   Esp32BaseWeb::addApi("/api/app/maintenance/set-travel", FarmDoorApp::handleSetTravel);
   Esp32BaseWeb::addApi("/api/app/maintenance/adjust-travel", FarmDoorApp::handleAdjustTravel);
+  Esp32BaseWeb::addApi("/api/app/maintenance/jog", FarmDoorApp::handleJog);
   Esp32BaseWeb::addApi("/api/app/maintenance/clear-fault", FarmDoorApp::handleClearFault);
 #endif
 }
@@ -1285,6 +1558,7 @@ void FarmDoorApp::sendHomePage() {
 
   Esp32BaseWeb::sendHeader("自动门首页");
   Esp32BaseWeb::sendPageTitle("自动门首页", "鸡舍自动门状态和操作");
+  sendActionNoticeFromQuery();
 
   Esp32BaseWeb::beginPanel("门状态");
   sendDoorStatusTable(snapshot, positionValue, targetValue, percentValue, maxRunValue);
@@ -1423,6 +1697,7 @@ void FarmDoorApp::sendCalibrationPage() {
   char pulsesPerRevValue[32];
   char turnsValue[32];
   const int64_t turnsX100 = turnsX100FromOpenTargetPulses(snapshot.openTargetPulses);
+  const bool openDirectionReversed = g_motorKinematics.motorDirectionInverted;
   formatInt64WithUnit(positionValue, sizeof(positionValue), snapshot.positionPulses, "脉冲");
   formatInt64WithUnit(targetValue, sizeof(targetValue), snapshot.openTargetPulses, "脉冲");
   formatInt64(pulsesPerRevValue, sizeof(pulsesPerRevValue), g_motorKinematics.outputPulsesPerRev);
@@ -1434,6 +1709,7 @@ void FarmDoorApp::sendCalibrationPage() {
 
   Esp32BaseWeb::sendHeader("行程校准");
   Esp32BaseWeb::sendPageTitle("校准", "标定当前位置、开门目标和行程微调");
+  sendActionNoticeFromQuery();
 
   Esp32BaseWeb::beginPanel("当前位置");
   sendCalibrationStatusTable(snapshot, positionValue, targetValue, turnsValue, pulsesPerRevValue);
@@ -1458,19 +1734,36 @@ void FarmDoorApp::sendCalibrationPage() {
                             "danger");
   Esp32BaseWeb::endPanel();
 
-  Esp32BaseWeb::beginPanel("行程校准");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-travel' onsubmit=\"return confirm('设置新的开门目标？')&&once(this)\">");
+  Esp32BaseWeb::beginPanel("开门目标");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/set-travel' onsubmit=\"return confirm('保存开门目标和转动方向？')&&once(this)\">");
   Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='travel-turns'>开门目标</label><input id='travel-turns' name='openTurnsX100' type='number' min='1' max='2000' value='");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='travel-turns'>开门目标</label><input id='travel-turns' name='openTurns' type='number' min='0.1' max='99.0' step='0.1' value='");
   char turnsInput[16];
-  snprintf(turnsInput, sizeof(turnsInput), "%lld", static_cast<long long>(turnsX100));
+  const int64_t turnsTenths = (turnsX100 + 5) / 10;
+  snprintf(turnsInput, sizeof(turnsInput), "%lld.%01lld",
+           static_cast<long long>(turnsTenths / 10),
+           static_cast<long long>(llabs(turnsTenths % 10)));
   Esp32BaseWeb::sendChunk(turnsInput);
-  Esp32BaseWeb::sendChunk("'><small>单位为 0.01 圈，例如 500 表示 5 圈。</small></div>");
-  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='btnlink warn' type='submit' value='保存开门目标'></div></form>");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/adjust-travel' onsubmit=\"return confirm('微调开门目标？')&&once(this)\">");
+  Esp32BaseWeb::sendChunk("'><small>以关门位置为 0，开门时运行的圈数，最小按 0.1 圈调整。</small></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='open-direction'>开门转动方向</label><select id='open-direction' name='openDirection'>");
+  Esp32BaseWeb::sendChunk("<option value='normal'");
+  if (!openDirectionReversed) {
+    Esp32BaseWeb::sendChunk(" selected");
+  }
+  Esp32BaseWeb::sendChunk(">正转开门</option><option value='reversed'");
+  if (openDirectionReversed) {
+    Esp32BaseWeb::sendChunk(" selected");
+  }
+  Esp32BaseWeb::sendChunk(">反转开门</option></select><small>正转/反转只定义开门方向，关门会自动反向运行。</small></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='hidden' name='returnTo' value='/calibration'><input type='hidden' name='op' value='setTravel'><input class='btnlink warn' type='submit' value='保存开门目标'></div></form>");
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("手动微调");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/jog' onsubmit=\"return confirm('自动门会按微调量实际转动，确认执行？')&&once(this)\">");
   Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='adjust-delta'>微调量</label><input id='adjust-delta' name='deltaTurnsX100' type='number' value='5'><small>单位为 0.01 圈，可为负数。</small></div>");
-  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='btnlink warn' type='submit' value='应用微调'></div></form>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='jog-turns'>微调量</label><input id='jog-turns' name='jogTurns' type='number' min='0.1' max='10.0' step='0.1' value='0.1'><small>点一次就按这个圈数移动一次。</small></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='jog-direction'>微调方向</label><select id='jog-direction' name='jogDirection'><option value='open'>向开门方向转</option><option value='close'>向关门方向转</option></select><small>这里的方向会跟随上面的开门转动方向设置。</small></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='hidden' name='returnTo' value='/calibration'><input type='hidden' name='op' value='jog'><input class='btnlink warn' type='submit' value='应用微调'></div></form>");
   Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
@@ -1793,12 +2086,19 @@ void FarmDoorApp::handleDoorStop() {
   }
   const uint32_t commandId = allocateCommandId();
   const DoorSnapshot snapshot = g_door.snapshot();
+  const bool doorWasRunning = snapshot.state == DoorState::Opening || snapshot.state == DoorState::Closing;
+  bool motorWasRunning = false;
   int64_t stoppedPosition = snapshot.positionPulses;
   if (g_motorOutputReady) {
+    const Esp32EncodedDcMotor::MotorSnapshot motorBefore = g_motor.snapshot();
+    motorWasRunning = motorBefore.state != Esp32EncodedDcMotor::MotorState::Idle;
     g_motor.requestStop();
     stoppedPosition = g_motor.snapshot().positionPulses;
   }
-  const DoorCommandResult result = g_door.requestStop(stoppedPosition);
+  DoorCommandResult result = g_door.requestStop(stoppedPosition);
+  if (result == DoorCommandResult::InvalidArgument && motorWasRunning && !doorWasRunning) {
+    result = DoorCommandResult::Ok;
+  }
   DoorRecord record;
   record.commandId = commandId;
   record.type = DoorRecordType::CommandRequested;
@@ -1922,11 +2222,18 @@ void FarmDoorApp::handleSetTravel() {
   int64_t openTurnsX100 = 0;
   const bool hasPulses = hasParam("openTargetPulses");
   const bool hasTurns = hasParam("openTurnsX100");
+  const bool hasDisplayTurns = hasParam("openTurns");
   if (hasPulses) {
     if (!readInt64Param("openTargetPulses", openTargetPulses)) {
       sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
       return;
     }
+  } else if (hasDisplayTurns) {
+    if (!readTurnsX100Param("openTurns", openTurnsX100)) {
+      sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+      return;
+    }
+    openTargetPulses = openTargetPulsesFromTurnsX100(openTurnsX100);
   } else if (hasTurns) {
     if (!readInt64Param("openTurnsX100", openTurnsX100)) {
       sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
@@ -1943,10 +2250,26 @@ void FarmDoorApp::handleSetTravel() {
     sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
     return;
   }
+  char openDirection[16];
+  bool hasOpenDirection = Esp32BaseWeb::getParam("openDirection", openDirection, sizeof(openDirection));
+  bool directionReversed = g_motorKinematics.motorDirectionInverted;
+  if (hasOpenDirection) {
+    if (strcmp(openDirection, "normal") == 0) {
+      directionReversed = false;
+    } else if (strcmp(openDirection, "reversed") == 0) {
+      directionReversed = true;
+    } else {
+      sendTravelResultJson(DoorCommandResult::InvalidArgument, false);
+      return;
+    }
+  }
   const uint32_t commandId = allocateCommandId();
   bool configSaved = false;
   const int64_t oldTravelPulses = g_door.snapshot().openTargetPulses;
   const DoorCommandResult result = applyTravelUpdate(openTargetPulses, maxRunPulses, configSaved);
+  if (result == DoorCommandResult::Ok && hasOpenDirection) {
+    configSaved = applyOpenDirectionConfig(directionReversed) || configSaved;
+  }
   DoorRecord record;
   record.commandId = commandId;
   record.type = DoorRecordType::TravelSet;
@@ -2005,6 +2328,73 @@ void FarmDoorApp::handleAdjustTravel() {
     persistDoorRecoveryStateIfReady();
   }
   sendTravelResultJson(result, configSaved, commandId);
+#endif
+}
+
+void FarmDoorApp::handleJog() {
+#if ESP32BASE_ENABLE_WEB
+  if (!requireApiAuth()) {
+    return;
+  }
+  int64_t jogTurnsX100 = 0;
+  if (!readTurnsX100Param("jogTurns", jogTurnsX100)) {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+  char direction[16];
+  if (!Esp32BaseWeb::getParam("jogDirection", direction, sizeof(direction))) {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+  DoorCommand command = DoorCommand::None;
+  int64_t signedTurnsX100 = 0;
+  if (strcmp(direction, "open") == 0) {
+    command = DoorCommand::Open;
+    signedTurnsX100 = jogTurnsX100;
+  } else if (strcmp(direction, "close") == 0) {
+    command = DoorCommand::Close;
+    signedTurnsX100 = -jogTurnsX100;
+  } else {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+
+  const DoorSnapshot before = g_door.snapshot();
+  if (before.state == DoorState::Opening || before.state == DoorState::Closing) {
+    sendCommandResultJson(DoorCommandResult::Busy);
+    return;
+  }
+  if (before.state == DoorState::Fault || before.faultReason != DoorFaultReason::None) {
+    sendCommandResultJson(DoorCommandResult::FaultActive);
+    return;
+  }
+  if (!configureDoorMotor()) {
+    sendCommandResultJson(DoorCommandResult::InvalidArgument);
+    return;
+  }
+  const Esp32EncodedDcMotor::MotorSnapshot motorBefore = g_motor.snapshot();
+  if (motorBefore.state != Esp32EncodedDcMotor::MotorState::Idle) {
+    sendCommandResultJson(DoorCommandResult::Busy);
+    return;
+  }
+  const int64_t deltaPulses = openTargetPulsesFromTurnsX100(signedTurnsX100);
+  const Esp32EncodedDcMotor::MotorResult motorResult = g_motor.requestMovePulses(deltaPulses);
+  DoorCommandResult result = DoorCommandResult::Ok;
+  if (motorResult != Esp32EncodedDcMotor::MotorResult::Ok) {
+    result = DoorCommandResult::InvalidArgument;
+  }
+
+  const uint32_t commandId = allocateCommandId();
+  DoorRecord record;
+  record.commandId = commandId;
+  record.type = DoorRecordType::CommandRequested;
+  record.result = doorRecordResultFromCommand(result);
+  record.command = command;
+  record.oldPositionPulses = motorBefore.positionPulses;
+  record.newPositionPulses = motorBefore.positionPulses + deltaPulses;
+  record.deltaPulses = deltaPulses;
+  recordBusinessEvent(record);
+  sendCommandResultJson(result, commandId);
 #endif
 }
 

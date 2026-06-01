@@ -25,6 +25,7 @@ class FarmDoorApp {
   static void handleSetPosition();
   static void handleSetTravel();
   static void handleAdjustTravel();
+  static void handleJog();
   static void handleClearFault();
 };
 

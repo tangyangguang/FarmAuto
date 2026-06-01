@@ -369,7 +369,10 @@ void EncodedDcMotor::update(uint32_t nowMs) {
 
   if (snapshot_.state == MotorState::SoftStarting || snapshot_.state == MotorState::Running) {
     const uint8_t output = outputForElapsed(snapshot_.elapsedMs);
-    const int8_t direction = static_cast<int8_t>(snapshot_.direction);
+    int8_t direction = static_cast<int8_t>(snapshot_.direction);
+    if (kinematics_.motorDirectionInverted) {
+      direction = static_cast<int8_t>(-direction);
+    }
     const MotorResult result = driver_->setOutput(direction, output);
     snapshot_.lastCommandResult = result;
     if (result != MotorResult::Ok) {

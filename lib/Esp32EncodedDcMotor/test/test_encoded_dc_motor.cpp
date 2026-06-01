@@ -175,5 +175,18 @@ int main() {
   assert(snapshot.rpm == 2);
   assert(speedMotor.latestTracePoint().pulsesPerSecond == 100);
 
+  FakeDriver invertedDriver;
+  FakeEncoder invertedEncoder;
+  Esp32EncodedDcMotor::EncodedDcMotor invertedMotor;
+  kinematics.motorDirectionInverted = true;
+  assert(invertedMotor.begin(invertedDriver, invertedEncoder, hardware, encoderConfig) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(invertedMotor.configure(kinematics, profile, protection, stopPolicy) ==
+         Esp32EncodedDcMotor::MotorResult::Ok);
+  assert(invertedMotor.requestMovePulses(1000) == Esp32EncodedDcMotor::MotorResult::Ok);
+  invertedMotor.update(10);
+  assert(invertedMotor.snapshot().direction == Esp32EncodedDcMotor::MotorDirection::Forward);
+  assert(invertedDriver.lastDirection == -1);
+
   return 0;
 }

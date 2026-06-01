@@ -59,6 +59,18 @@ require("sendCalibrationActionForm(", "calibration forms must use shared action 
 require("把当前位置标为关门基准？",
         "closed calibration must use browser confirm")
 require("return confirm('清除当前故障？')", "clear fault must use browser confirm")
+require("开门会让自动门实际运行，确认执行？",
+        "home open action must use browser confirmation")
+require("关门会让自动门实际运行，确认执行？",
+        "home close action must use browser confirmation")
+require("停止会立即中断自动门运行，确认执行？",
+        "home stop action must use browser confirmation")
+require("redirectAfterAction(",
+        "HTML form actions must redirect back to business pages instead of showing JSON")
+require("name='returnTo' value='/index'",
+        "home action forms must return to the home page after POST")
+require("name='returnTo' value='/calibration'",
+        "calibration forms must return to the calibration page after POST")
 
 forbid_in(cpp, '"motorOutput"', "motor output enable config must be removed")
 forbid_in(cpp, 'addBool({"motor", "door", "motorOutput"', "motor output config field must be removed")
@@ -72,6 +84,9 @@ forbid_in(home, "sendInfoRowCompact", "home page must not use info row helper")
 forbid_in(calibration, "confirmToken", "calibration page must not expose confirmToken")
 forbid_in(calibration, "只申请 token", "calibration page must not expose token application flow")
 forbid_in(calibration, "sendMetric(", "calibration page must not use metric helper")
+forbid_in(calibration, "单位为 0.01 圈", "calibration page must not expose internal x100 turn units")
+forbid_in(calibration, "openTurnsX100", "calibration page must not use x100 turn input in HTML")
+forbid_in(calibration, "deltaTurnsX100", "calibration page must not use signed x100 adjustment input in HTML")
 forbid_in(diagnostics, "故障处理", "diagnostics page must not contain fault handling")
 forbid_in(diagnostics, "诊断 JSON", "diagnostics page must not link diagnostic JSON")
 forbid_in(diagnostics, "状态 JSON", "diagnostics page must not link status JSON")

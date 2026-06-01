@@ -36,6 +36,13 @@ require(cpp,
 require(cpp,
         "Esp32BaseWeb::sendPagination(eventPagination);",
         "events page must use Esp32Base pagination")
+require(cpp,
+        'strftime(out, outSize, "%m-%d %H:%M:%S"',
+        "record and event time must display as MM-DD HH:MM:SS when real time is available")
+require(cpp, "recordTypeDisplayName(", "records page must translate record types to business language")
+require(cpp, "commandDisplayName(", "records page must translate commands to business language")
+require(cpp, "recordResultDisplayName(", "records page must translate results to business language")
+require(cpp, "eventLevelDisplayName(", "events page must translate event levels to business language")
 
 records_start = cpp.find("void FarmDoorApp::sendRecordsPage()")
 events_start = cpp.find("void FarmDoorApp::sendEventsPage()")
@@ -57,6 +64,15 @@ else:
         errors.append("HTML list pages must not present JSON query buttons")
     if "<table" not in records_body or "<table" not in events_body:
         errors.append("both pages must render HTML tables")
+    for technical_text in ("Unix ", "DoorCommandRequested", "DoorTravelSet", "DoorTravelAdjusted"):
+        if technical_text in records_body:
+            errors.append(f"records page must not display technical text: {technical_text}")
+    for technical_text in ("appEventLevelName(event.level)",
+                           "writeHtmlEscaped(event.domain)",
+                           "writeHtmlEscaped(event.action)",
+                           "writeHtmlEscaped(event.target)"):
+        if technical_text in events_body:
+            errors.append(f"events page must not display raw event field directly: {technical_text}")
 
 if errors:
     for error in errors:
