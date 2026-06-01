@@ -7,8 +7,8 @@
 - 已接入 Esp32Base FULL profile。
 - 已接入 `Esp32At24cRecordStore`、`Esp32EncodedDcMotor`、`Esp32MotorCurrentGuard`。
 - 已接入自动门业务状态机 `DoorController`。
-- 已提供状态、诊断、最近事件、Flash/RAM 记录、开门、关门、停止、位置标定、行程设置、行程微调和清除故障 API。
-- 危险维护操作通过浏览器确认二次确认；位置标定、行程设置、行程微调和清除故障都会记录。
+- 已提供状态、诊断、最近事件、Flash/RAM 记录、开门、关门、停止、位置标定、行程设置、行程目标微调、手动微调运行和清除故障 API。
+- Web 页面中的开门、关门、停止、位置标定、行程设置、手动微调和清除故障都会二次确认，提交后回到业务页面并显示中文结果提示。
 - 已接入自动门恢复状态二进制编解码，后续可作为 AT24C128 payload。
 - 已固化自动门 AT24C128 记录区布局，并用 host 测试校验容量、连续性和页对齐。
 - 已接入自动门恢复状态到 `Esp32At24cRecordStore` 的读写 glue，并用 fake AT24C host 测试验证。
@@ -76,9 +76,11 @@
 
 `/api/app/maintenance/set-travel`
 
-- `openTurnsX100=<value>`：按 0.01 圈设置开门目标。
+- `openTurns=<value>`：按用户可读圈数设置开门目标，例如 `5.0`。
+- `openTurnsX100=<value>`：兼容按 0.01 圈设置开门目标。
 - `openTargetPulses=<value>`：按编码器脉冲设置开门目标。
 - 可选 `maxRunPulses=<value>`；未提供时按开门目标的 150% 生成保底上限。
+- 可选 `openDirection=normal|reversed`；用于设置开门时的电机输出方向，关门会自动反向。
 - 成功时同步写入 Esp32Base App Config 的 `door/openTurns`。
 - 属于危险操作，页面会使用浏览器确认二次确认。
 
@@ -86,6 +88,12 @@
 
 - `deltaTurnsX100=<value>` 或 `deltaPulses=<value>`：对当前开门目标做微调。
 - 成功时同步写入 Esp32Base App Config 的 `door/openTurns`。
+- 保留为技术 API；Web 校准页的“应用微调”会调用手动微调运行 API，让电机实际转动一次。
+
+`/api/app/maintenance/jog`
+
+- `jogTurns=<value>`：按用户可读圈数设置单次微调量，例如 `0.1`。
+- `jogDirection=open|close`：向开门方向或关门方向实际转动一次。
 - 属于危险操作，页面会使用浏览器确认二次确认。
 
 `/api/app/maintenance/clear-fault`
