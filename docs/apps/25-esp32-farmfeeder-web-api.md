@@ -75,6 +75,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 - 计划状态：planCount、nextPlanId、nextPlanTimeMinutes、timeValid，以及每个计划的 enabled、timeMinutes、skipToday、skipServiceDate、scheduleAttemptedToday、todayExecuted、scheduleMissedToday。
 - 通道汇总：channelCount、installedChannelMask、enabledChannelMask、requestedChannelMask、runningChannelMask、faultChannelMask、runningCount。
 - 通道状态：channel、enabled、installed、motorState、targetMode、targetPulses、targetGramsX100、todayPulses、todayGramsX100、faultReason。
+- 电机输出：`motorOutput.enabled`、readyMask、每路 motor snapshot、encoder、driver output 和 fault；`feeder/motorOutput` 默认关闭，启用后才输出 PWM。
 - 料桶摘要：`bucketSummary.channelCount`、`bucketSummary.enabledMask`、`bucketSummary.underflowMask`。完整每路料桶数据由 `GET /api/app/buckets` 返回，避免高频状态接口过大。
 - 存储：AT24C 在线状态、flash 剩余空间、最近写入错误、记录范围。
 - 最近命令：commandId、source、channelMask、startedAt、result。
@@ -206,7 +207,7 @@ Esp32FarmFeeder 首版使用扁平 API 风格，不使用 `/path/{id}` 路径参
 
 - `capacityGramsX100` 属于基础信息页的业务基础信息，不放 Esp32Base App Config；当前估算余量属于业务运行状态，只通过补料、标记满桶或修正余量入口更新。
 - 修改容量时默认不改变当前余量；如需要同步填满，使用 `mark-full`。
-- 每次补料、设置余量、投喂扣减和低余量告警都写入长期业务记录。
+- 投喂执行和扣减结果写入长期业务记录；补料、设置余量和低余量告警写入 App Events。
 - 余量不得扣成负数；扣减后小于 0 时显示 0，并记录 underflow。
 
 ## 基础信息字段
@@ -308,7 +309,7 @@ HTTP 层建议：
 - 标定每圈下料量。
 - 清除故障后恢复运行。
 
-所有危险操作写入喂食器长期业务记录。
+投喂执行类危险操作写入喂食器长期业务记录；清今日、清故障、计划跳过/取消、料桶维护和基础信息修改写入 App Events。
 
 ## 首版无电流检测
 

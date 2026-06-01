@@ -1,6 +1,207 @@
 #include "Esp32EncodedDcMotor.h"
 
+#if defined(ARDUINO)
+#include <Arduino.h>
+#include <driver/pcnt.h>
+#endif
+
 namespace Esp32EncodedDcMotor {
+
+uint32_t pwmMaxDuty(uint8_t resolutionBits) {
+  if (resolutionBits == 0 || resolutionBits >= 31) {
+    return 0;
+  }
+  return (1UL << resolutionBits) - 1UL;
+}
+
+uint32_t percentToDuty(uint8_t percent, uint8_t resolutionBits, bool polarity) {
+  const uint32_t maxDuty = pwmMaxDuty(resolutionBits);
+  if (maxDuty == 0) {
+    return 0;
+  }
+  if (percent > 100) {
+    percent = 100;
+  }
+  const uint32_t duty = (maxDuty * static_cast<uint32_t>(percent) + 50UL) / 100UL;
+  return polarity ? duty : maxDuty - duty;
+}
+
+DualPwmOutput at8236OutputFor(int8_t direction,
+                              uint8_t percent,
+                              uint8_t resolutionBits,
+                              bool polarity) {
+  DualPwmOutput output;
+  if (direction == 0 || percent == 0) {
+    return output;
+  }
+  const uint32_t duty = percentToDuty(percent, resolutionBits, polarity);
+  if (direction > 0) {
+    output.dutyA = duty;
+  } else {
+    output.dutyB = duty;
+  }
+  return output;
+}
+
+#if defined(ARDUINO)
+namespace {
+
+bool validLedcChannel(int8_t channel) {
+  return channel >= 0 && channel < 16;
+}
+
+MotorResult setupLedc(uint8_t pin, int8_t channel, const MotorHardwareConfig& config) {
+  if (!validLedcChannel(channel) || config.pwmFrequencyHz == 0 ||
+      config.pwmResolutionBits == 0 || config.pwmResolutionBits > 14) {
+    return MotorResult::InvalidArgument;
+  }
+  ledcSetup(static_cast<uint8_t>(channel), config.pwmFrequencyHz, config.pwmResolutionBits);
+  ledcAttachPin(pin, static_cast<uint8_t>(channel));
+  ledcWrite(static_cast<uint8_t>(channel), config.pwmPolarity ? 0 : pwmMaxDuty(config.pwmResolutionBits));
+  return MotorResult::Ok;
+}
+
+}  // namespace
+
+MotorResult At8236HBridgeDriver::begin(uint8_t pinA,
+                                       uint8_t pinB,
+                                       const MotorHardwareConfig& config) {
+  if (config.driverType != DriverType::At8236HBridge ||
+      config.ledcChannelA == config.ledcChannelB) {
+    return MotorResult::InvalidArgument;
+  }
+  MotorResult result = setupLedc(pinA, config.ledcChannelA, config);
+  if (result != MotorResult::Ok) {
+    return result;
+  }
+  result = setupLedc(pinB, config.ledcChannelB, config);
+  if (result != MotorResult::Ok) {
+    return result;
+  }
+  pinA_ = pinA;
+  pinB_ = pinB;
+  config_ = config;
+  initialized_ = true;
+  return stop(EmergencyOutputMode::Coast);
+}
+
+MotorResult At8236HBridgeDriver::setOutput(int8_t direction, uint8_t percent) {
+  if (!initialized_) {
+    return MotorResult::NotInitialized;
+  }
+  const DualPwmOutput output =
+      at8236OutputFor(direction, percent, config_.pwmResolutionBits, config_.pwmPolarity);
+  ledcWrite(static_cast<uint8_t>(config_.ledcChannelA), output.dutyA);
+  ledcWrite(static_cast<uint8_t>(config_.ledcChannelB), output.dutyB);
+  return MotorResult::Ok;
+}
+
+MotorResult At8236HBridgeDriver::stop(EmergencyOutputMode mode) {
+  if (!initialized_) {
+    return MotorResult::NotInitialized;
+  }
+  const uint32_t brakeDuty = pwmMaxDuty(config_.pwmResolutionBits);
+  const uint32_t idleDuty = config_.pwmPolarity ? 0 : brakeDuty;
+  const uint32_t duty = mode == EmergencyOutputMode::Brake ? brakeDuty : idleDuty;
+  ledcWrite(static_cast<uint8_t>(config_.ledcChannelA), duty);
+  ledcWrite(static_cast<uint8_t>(config_.ledcChannelB), duty);
+  return MotorResult::Ok;
+}
+
+MotorResult SinglePwmMotorDriver::begin(uint8_t pwmPin, const MotorHardwareConfig& config) {
+  if (config.driverType != DriverType::SinglePwm) {
+    return MotorResult::InvalidArgument;
+  }
+  const MotorResult result = setupLedc(pwmPin, config.ledcChannelA, config);
+  if (result != MotorResult::Ok) {
+    return result;
+  }
+  pwmPin_ = pwmPin;
+  config_ = config;
+  initialized_ = true;
+  return stop(EmergencyOutputMode::Coast);
+}
+
+MotorResult SinglePwmMotorDriver::setOutput(int8_t direction, uint8_t percent) {
+  if (!initialized_) {
+    return MotorResult::NotInitialized;
+  }
+  if (direction == 0) {
+    return stop(EmergencyOutputMode::Coast);
+  }
+  ledcWrite(static_cast<uint8_t>(config_.ledcChannelA),
+            percentToDuty(percent, config_.pwmResolutionBits, config_.pwmPolarity));
+  return MotorResult::Ok;
+}
+
+MotorResult SinglePwmMotorDriver::stop(EmergencyOutputMode) {
+  if (!initialized_) {
+    return MotorResult::NotInitialized;
+  }
+  ledcWrite(static_cast<uint8_t>(config_.ledcChannelA),
+            config_.pwmPolarity ? 0 : pwmMaxDuty(config_.pwmResolutionBits));
+  return MotorResult::Ok;
+}
+
+MotorResult PcntEncoderReader::begin(const EncoderBackendConfig& config) {
+  if (config.backendType != EncoderBackendType::Pcnt || config.countMode != CountMode::X1 ||
+      config.pinA < 0 || config.pinB < 0 || config.pcntUnit < 0 || config.pcntUnit >= PCNT_UNIT_MAX) {
+    return MotorResult::InvalidArgument;
+  }
+  pcnt_config_t pcntConfig = {};
+  pcntConfig.pulse_gpio_num = config.pinA;
+  pcntConfig.ctrl_gpio_num = config.pinB;
+  pcntConfig.channel = PCNT_CHANNEL_0;
+  pcntConfig.unit = static_cast<pcnt_unit_t>(config.pcntUnit);
+  pcntConfig.pos_mode = PCNT_COUNT_INC;
+  pcntConfig.neg_mode = PCNT_COUNT_DIS;
+  pcntConfig.lctrl_mode = PCNT_MODE_REVERSE;
+  pcntConfig.hctrl_mode = PCNT_MODE_KEEP;
+  pcntConfig.counter_h_lim = 30000;
+  pcntConfig.counter_l_lim = -30000;
+  if (pcnt_unit_config(&pcntConfig) != ESP_OK) {
+    return MotorResult::DriverRejected;
+  }
+  if (config.glitchFilterNs > 0) {
+    const uint16_t filterValue = static_cast<uint16_t>(config.glitchFilterNs / 1000U);
+    pcnt_set_filter_value(static_cast<pcnt_unit_t>(config.pcntUnit), filterValue);
+    pcnt_filter_enable(static_cast<pcnt_unit_t>(config.pcntUnit));
+  } else {
+    pcnt_filter_disable(static_cast<pcnt_unit_t>(config.pcntUnit));
+  }
+  pcnt_counter_pause(static_cast<pcnt_unit_t>(config.pcntUnit));
+  pcnt_counter_clear(static_cast<pcnt_unit_t>(config.pcntUnit));
+  pcnt_counter_resume(static_cast<pcnt_unit_t>(config.pcntUnit));
+  config_ = config;
+  positionPulses_ = 0;
+  initialized_ = true;
+  return MotorResult::Ok;
+}
+
+int64_t PcntEncoderReader::positionPulses() const {
+  if (!initialized_) {
+    return positionPulses_;
+  }
+  int16_t count = 0;
+  if (pcnt_get_counter_value(static_cast<pcnt_unit_t>(config_.pcntUnit), &count) == ESP_OK &&
+      count != 0) {
+    positionPulses_ += count;
+    pcnt_counter_clear(static_cast<pcnt_unit_t>(config_.pcntUnit));
+  }
+  return positionPulses_;
+}
+
+void PcntEncoderReader::resetPosition(int64_t positionPulses) {
+  positionPulses_ = positionPulses;
+  if (initialized_) {
+    pcnt_counter_clear(static_cast<pcnt_unit_t>(config_.pcntUnit));
+  }
+}
+
+bool PcntEncoderReader::initialized() const {
+  return initialized_;
+}
+#endif
 
 MotorResult EncodedDcMotor::begin(IMotorDriver& driver,
                                   IEncoderReader& encoder,

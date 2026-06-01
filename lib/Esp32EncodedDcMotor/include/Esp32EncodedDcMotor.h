@@ -166,6 +166,18 @@ struct MotorTracePoint {
   FaultReason faultReason = FaultReason::None;
 };
 
+struct DualPwmOutput {
+  uint32_t dutyA = 0;
+  uint32_t dutyB = 0;
+};
+
+uint32_t pwmMaxDuty(uint8_t resolutionBits);
+uint32_t percentToDuty(uint8_t percent, uint8_t resolutionBits, bool polarity);
+DualPwmOutput at8236OutputFor(int8_t direction,
+                              uint8_t percent,
+                              uint8_t resolutionBits,
+                              bool polarity);
+
 class IMotorDriver {
 public:
   virtual ~IMotorDriver() = default;
@@ -178,6 +190,46 @@ public:
   virtual ~IEncoderReader() = default;
   virtual int64_t positionPulses() const = 0;
 };
+
+#if defined(ARDUINO)
+class At8236HBridgeDriver : public IMotorDriver {
+public:
+  MotorResult begin(uint8_t pinA, uint8_t pinB, const MotorHardwareConfig& config);
+  MotorResult setOutput(int8_t direction, uint8_t percent) override;
+  MotorResult stop(EmergencyOutputMode mode) override;
+
+private:
+  uint8_t pinA_ = 0;
+  uint8_t pinB_ = 0;
+  MotorHardwareConfig config_{};
+  bool initialized_ = false;
+};
+
+class SinglePwmMotorDriver : public IMotorDriver {
+public:
+  MotorResult begin(uint8_t pwmPin, const MotorHardwareConfig& config);
+  MotorResult setOutput(int8_t direction, uint8_t percent) override;
+  MotorResult stop(EmergencyOutputMode mode) override;
+
+private:
+  uint8_t pwmPin_ = 0;
+  MotorHardwareConfig config_{};
+  bool initialized_ = false;
+};
+
+class PcntEncoderReader : public IEncoderReader {
+public:
+  MotorResult begin(const EncoderBackendConfig& config);
+  int64_t positionPulses() const override;
+  void resetPosition(int64_t positionPulses);
+  bool initialized() const;
+
+private:
+  EncoderBackendConfig config_{};
+  mutable int64_t positionPulses_ = 0;
+  bool initialized_ = false;
+};
+#endif
 
 class EncodedDcMotor {
 public:

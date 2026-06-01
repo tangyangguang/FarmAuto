@@ -1,0 +1,11 @@
+{
+  "name": "FarmAutoEventLog",
+  "version": "0.1.0",
+  "description": "FarmAuto business event facade over Esp32Base App Events",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  }
+}

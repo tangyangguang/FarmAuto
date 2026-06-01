@@ -25,20 +25,25 @@ fi
 
 case "${APP}" in
   door)
-    PAGES=(/app /records /calibration /diagnostics)
+    PAGES=(/index /records /calibration /diagnostics)
     APIS=(/api/app/status /api/app/diagnostics /api/app/events/recent /api/app/records)
     UNAUTH_API=/api/app/status
+    MOTOR_EXPR='(.motorOutput.enabled | type) == "boolean" and (.motorOutput.ready | type) == "boolean"'
     ;;
   feeder)
-    PAGES=(/app /schedule /schedule/edit /records /base-info /diagnostics)
+    PAGES=(/index /schedule /schedule/edit /records /base-info /diagnostics)
     APIS=(/api/app/status /api/app/diagnostics /api/app/events/recent /api/app/schedules /api/app/buckets /api/app/base-info /api/app/feeders/targets /api/app/records)
     UNAUTH_API=/api/app/feeders/targets
+    MOTOR_EXPR='(.motorOutput.enabled | type) == "boolean" and (.motorOutput.readyMask | type) == "number" and (.motorOutput.channels | type) == "array"'
     ;;
   *)
     echo "Unknown app '${APP}'. Expected door or feeder." >&2
     exit 2
     ;;
 esac
+
+SYSTEM_PAGES=(/esp32base/logs /esp32base/app-config /esp32base/tools /esp32base/app-events)
+SYSTEM_APIS=(/esp32base/api/status)
 
 tmp="$(mktemp)"
 cleanup() {
@@ -102,6 +107,25 @@ check_api() {
   echo "OK api ${path}"
 }
 
+check_json_expr() {
+  local path="$1"
+  local expr="$2"
+  local label="$3"
+  local code
+  code="$(request "${path}" auth || true)"
+  if [[ "${code}" != "200" ]]; then
+    echo "FAIL ${label} ${path}: HTTP ${code}" >&2
+    cat "${tmp}" >&2 || true
+    return 1
+  fi
+  if ! jq -e "${expr}" "${tmp}" >/dev/null; then
+    echo "FAIL ${label} ${path}: jq expression failed: ${expr}" >&2
+    cat "${tmp}" >&2 || true
+    return 1
+  fi
+  echo "OK ${label} ${path}"
+}
+
 check_unauth() {
   local path="$1"
   local code
@@ -114,6 +138,16 @@ check_unauth() {
   echo "OK unauth ${path}"
 }
 
+for page in "${SYSTEM_PAGES[@]}"; do
+  check_page "${page}"
+  sleep 0.3
+done
+
+for api in "${SYSTEM_APIS[@]}"; do
+  check_api "${api}"
+  sleep 0.3
+done
+
 for page in "${PAGES[@]}"; do
   check_page "${page}"
   sleep 0.3
@@ -123,6 +157,16 @@ for api in "${APIS[@]}"; do
   check_api "${api}"
   sleep 0.3
 done
+
+check_json_expr /api/app/status \
+  "${MOTOR_EXPR}" \
+  "motorOutput-status"
+check_json_expr /api/app/diagnostics \
+  "${MOTOR_EXPR}" \
+  "motorOutput-diagnostics"
+check_json_expr /api/app/events/recent \
+  '.store == "app_events" and .capacity == 1024 and (.events | type) == "array"' \
+  "app-events"
 
 check_unauth "${UNAUTH_API}"
 

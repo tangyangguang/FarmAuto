@@ -18,7 +18,8 @@
 | 能力 | Esp32Base API / 页面 | FarmAuto 使用策略 |
 | --- | --- | --- |
 | 固件信息与生命周期 | `Esp32Base::setFirmwareInfo()`、`begin()`、`handle()` | 两个应用统一调用，不另做启动框架 |
-| 日志 | `ESP32BASE_LOG_*`、`Esp32BaseLog`、`Esp32BaseFileLog`、`/esp32base/logs` | 系统日志走基础库；业务记录另建结构化记录，不写入系统日志文件 |
+| 日志 | `ESP32BASE_LOG_*`、`Esp32BaseLog`、`Esp32BaseFileLog`、`/esp32base/logs` | 系统诊断走基础库 FileLog；业务记录和业务事件不写入系统日志文件 |
+| App Events | `Esp32BaseAppEventLog`、`/esp32base/app-events`、`/esp32base/api/app-events` | 只通过 `FarmAutoEventLog` 封装写入和业务化读取；容量使用 Esp32Base 默认 1024 |
 | NVS 小配置 | `Esp32BaseConfig`、`Esp32BaseAppConfig`、`/esp32base/app-config` | 系统/低频参数注册到 App Config；业务运行状态不放这里 |
 | WiFi / 配网 | `Esp32BaseWiFi`、`/esp32base/wifi` | 只复用，不做业务 WiFi 页面 |
 | NTP / 可信时间 | `Esp32BaseNtp::snapshot()`、`timestamp()`、`onTimeSynced()`、`bootId`、`uptimeSec` | 自动投喂只用基础库时间快照，不自己对时 |
@@ -62,7 +63,8 @@
 - 自动门业务状态机、行程校准、端点可信度、卷绳保护策略。
 - 喂食器通道状态机、计划执行、手工下料、料桶余量、单路目标换算。
 - 业务 API `/api/app/*` 的字段定义和业务校验。
-- 业务记录 schema、AT24C 关键状态布局、长期业务记录 segment。
+- 业务长期记录 schema、AT24C 关键状态布局、长期业务记录 segment。
+- `FarmAutoEventLog` 业务语义封装和事件映射；应用代码不得直接调用 `Esp32BaseAppEventLog::append()`。
 - AT24C 记录存储、电机控制、电流保护等 FarmAuto 公共硬件库。
 
 ## 发现的注意点
@@ -70,5 +72,6 @@
 - FarmFeeder API 路由数已超过 Esp32Base 默认 16，但 Esp32Base 明确支持 `ESP32BASE_WEB_MAX_ROUTES` 编译期配置；当前应用设置为 32，属于正确复用基础库能力，不需要改基础库。
 - FarmFeeder 计划执行已改为读取 `Esp32BaseNtp::snapshot()`，不再需要任何应用级 NTP 设计。
 - 喂食器长期记录已使用 `Esp32BaseFs::appendBytes()`、`fileSize()`、`readBytesAt()`、`mkdir()` 和 `exists()`，没有直接操作 LittleFS。
+- App Events 的 `source` 字段长度为 12 字节，因此 FarmAuto 存储告警使用 `record_log`，不使用超长的 `storage_record`。
 - 长期记录分页读取必须继续避免在 HTTP handler 中全量扫描或长时间阻塞；当前喂食器记录查询按 `start` / `limit` / `nextIndex` 分批读取。
 - 危险操作二次确认当前文档仍规划为应用内最小 token；如果两个应用大量重复后再评估是否沉淀到 Esp32Base。

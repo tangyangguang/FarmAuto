@@ -12,6 +12,7 @@ class FarmDoorApp {
   void configureBusinessShell();
   static void sendHomePage();
   static void sendRecordsPage();
+  static void sendEventsPage();
   static void sendCalibrationPage();
   static void sendDiagnosticsPage();
   static void sendStatusJson();
