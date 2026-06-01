@@ -40,6 +40,8 @@ case "${APP}" in
     ;;
 esac
 
+SYSTEM_PAGES=(/esp32base /esp32base/logs /esp32base/app-config /esp32base/tools /esp32base/app-events)
+
 tmp="$(mktemp)"
 cleanup() {
   rm -f "${tmp}"
@@ -102,6 +104,25 @@ check_api() {
   echo "OK api ${path}"
 }
 
+check_json_expr() {
+  local path="$1"
+  local expr="$2"
+  local label="$3"
+  local code
+  code="$(request "${path}" auth || true)"
+  if [[ "${code}" != "200" ]]; then
+    echo "FAIL ${label} ${path}: HTTP ${code}" >&2
+    cat "${tmp}" >&2 || true
+    return 1
+  fi
+  if ! jq -e "${expr}" "${tmp}" >/dev/null; then
+    echo "FAIL ${label} ${path}: jq expression failed: ${expr}" >&2
+    cat "${tmp}" >&2 || true
+    return 1
+  fi
+  echo "OK ${label} ${path}"
+}
+
 check_unauth() {
   local path="$1"
   local code
@@ -114,6 +135,11 @@ check_unauth() {
   echo "OK unauth ${path}"
 }
 
+for page in "${SYSTEM_PAGES[@]}"; do
+  check_page "${page}"
+  sleep 0.3
+done
+
 for page in "${PAGES[@]}"; do
   check_page "${page}"
   sleep 0.3
@@ -123,6 +149,16 @@ for api in "${APIS[@]}"; do
   check_api "${api}"
   sleep 0.3
 done
+
+check_json_expr /api/app/status \
+  '(.motorOutput.enabled | type) == "boolean" and (.motorOutput.ready | type) == "boolean"' \
+  "motorOutput-status"
+check_json_expr /api/app/diagnostics \
+  '(.motorOutput.enabled | type) == "boolean" and (.motorOutput.ready | type) == "boolean"' \
+  "motorOutput-diagnostics"
+check_json_expr /api/app/events/recent \
+  '.store == "app_events" and .capacity == 1024 and (.events | type) == "array"' \
+  "app-events"
 
 check_unauth "${UNAUTH_API}"
 

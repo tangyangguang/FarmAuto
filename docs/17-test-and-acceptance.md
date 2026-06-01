@@ -96,13 +96,14 @@ Esp32FarmFeeder：
 - 自动门端点维护全过程有长期记录。
 - 自动门故障停止记录包含 faultReason、positionPulses、durationMs 和电流摘要。
 - 喂食器每次投喂完成记录 actualPulses、durationMs 和 gramsX100。
-- 喂食器补料、设置余量、低余量告警写入长期记录。
+- 喂食器投喂执行和扣减结果写入长期记录；补料、设置余量、低余量告警写入 App Events。
 - 长期记录必须支持网页分页查看和筛选。
 - JSON Lines / CSV 导出不是首版必须项；若后续实现，应保留结构化字段和常用分析列。
 
 Web 与 Esp32Base 集成：
 
 - Esp32Base 系统页面 `/esp32base`、`/esp32base/logs`、`/esp32base/app-config`、`/esp32base/tools` 可正常访问。
+- 启用 App Events 后，`/esp32base/app-events` 可正常访问，`/api/app/events/recent` 返回业务映射后的事件列表，容量为默认 `1024`。
 - 应用业务 API 使用 `/api/app/*`，不占用 `/esp32base/api/*`。
 - Esp32FarmDoor 和 Esp32FarmFeeder 的 Web/API 在源码目录、payload 字段和业务处理上完全分开。
 - 自动门 status 不包含喂食器通道、饲料桶、每日计划字段。
