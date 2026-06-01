@@ -45,6 +45,12 @@ if records_start == -1 or events_start == -1 or calibration_start == -1:
 else:
     records_body = cpp[records_start:events_start]
     events_body = cpp[events_start:calibration_start]
+    if "beginPanel(\"筛选\")" in records_body or "eventType" in records_body:
+        errors.append("records page must not expose filters")
+    if "startUnixTime" in records_body or "endUnixTime" in records_body:
+        errors.append("records page must not expose time filters")
+    if "archive" in records_body:
+        errors.append("records page must not expose archive selector")
     if "/api/app/events/recent" in records_body:
         errors.append("records page must not link users to business event JSON")
     if "查询 JSON" in records_body or "查询 JSON" in events_body:

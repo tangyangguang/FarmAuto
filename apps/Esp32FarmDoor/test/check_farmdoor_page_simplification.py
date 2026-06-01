@@ -46,10 +46,25 @@ clear_fault = body_between("void FarmDoorApp::handleClearFault()")
 
 require("void sendDoorStatusTable(", "home page must use plain status table helper")
 require("void sendDiagnosticsStatusTable(", "diagnostics page must use direct diagnostics table helper")
-require("return confirm('把当前位置标为关门基准？')",
+require('Esp32BaseWeb::setDeviceName("自动门");', "top-left device name must be 自动门")
+require('Esp32BaseAppConfig::addInt({"protection", "door", "maxRunSec"', "max runtime config must use seconds")
+require('"最大保护运行时长"', "max runtime label must mention protection")
+require('"秒"', "max runtime unit must be seconds")
+require("g_doorConfig.maxRunMs = static_cast<uint32_t>(maxRunSec) * 1000UL;",
+        "runtime config must convert seconds to milliseconds internally")
+require("sendStatusMetric(\"门状态\"", "home status must use split status metrics")
+require("sendStatusMetric(\"当前位置\"", "home status must show position as a separate metric")
+require("sendStatusMetric(\"AT24C128\"", "diagnostics must use split status metrics")
+require("sendCalibrationActionForm(", "calibration forms must use shared action form layout")
+require("把当前位置标为关门基准？",
         "closed calibration must use browser confirm")
 require("return confirm('清除当前故障？')", "clear fault must use browser confirm")
 
+forbid_in(cpp, '"motorOutput"', "motor output enable config must be removed")
+forbid_in(cpp, 'addBool({"motor", "door", "motorOutput"', "motor output config field must be removed")
+forbid_in(cpp, "g_motorOutputEnabled", "motor output should not be gated by a runtime enable flag")
+forbid_in(cpp, "电机输出未启用", "home page must not warn about disabled motor output")
+forbid_in(cpp, 'addInt({"protection", "door", "maxRunMs"', "App Config must not expose maxRunMs")
 forbid_in(home, "beginPanel(\"快速入口\")", "home page must not show quick links")
 forbid_in(home, "beginPanel(\"门操作\")", "door actions must be merged into status panel")
 forbid_in(home, "sendMetric(", "home page must not use metric helper")

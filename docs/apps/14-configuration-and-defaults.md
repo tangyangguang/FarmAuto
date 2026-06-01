@@ -70,13 +70,13 @@ outputPulsesPerRev = gearRatio * motorShaftPulsesPerRev
 | currentGuardEnabled | bool | false | true/false | 否 | PCB 已装 INA240A2，但未实测前默认关闭；测试稳定后可启用 |
 | currentFaultThresholdMa | mA | 2500 | >0 | 否 | 待实机确认 |
 | rsenseMilliOhm | mΩ | 5 | >0 | 否 | 待实物确认 |
-| maxRunMs | ms | 目标运行估算 * 150% | >0 | 否 | 安全兜底，源码按行程校准结果生成初始值 |
+| maxRunSec | 秒 | 目标运行估算 * 150% | >0 | 否 | App Config 使用秒；运行时内部转换为毫秒安全兜底 |
 | maxRunPulses | pulses | openTargetPulses * 150% | >0 | 否 | 第一版无限位默认更保守；下一阶段有上限位后可实测缩紧 |
 | openLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 第一版默认禁用，下一阶段优先启用开门/上限位 |
 | closeLimitSwitchMode | enum | Disabled | Disabled/NormallyClosed/NormallyOpen | 否 | 关门/下限位，可选 |
 | limitDebounceMs | ms | 50 | 5-500 | 否 | 限位稳定时间 |
 | openLimitCalibrateSpeedPercent | % | 30 | 1-100 | 否 | 远程端点校准低速运行 |
-| openLimitCalibrateMaxMs | ms | maxRunMs | >0 | 否 | 下一阶段限位端点校准最大时长 |
+| openLimitCalibrateMaxMs | ms | maxRunSec * 1000 | >0 | 否 | 下一阶段限位端点校准最大时长 |
 | openLimitCalibrateMaxPulses | pulses | maxRunPulses | >0 | 否 | 下一阶段限位端点校准最大脉冲 |
 | maxCloseUnwindPulses | pulses | openTargetPulses * 150% | >0 | 否 | 关门最大放绳脉冲，防止过放反卷；第一版无限位默认更保守 |
 | faultEmergencyOutputMode | enum | Coast | Coast/Brake | 否 | 故障停机默认倾向滑行，需实测确认 |
