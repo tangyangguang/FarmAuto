@@ -28,11 +28,13 @@ case "${APP}" in
     PAGES=(/index /records /calibration /diagnostics)
     APIS=(/api/app/status /api/app/diagnostics /api/app/events/recent /api/app/records)
     UNAUTH_API=/api/app/status
+    MOTOR_EXPR='(.motorOutput.enabled | type) == "boolean" and (.motorOutput.ready | type) == "boolean"'
     ;;
   feeder)
     PAGES=(/index /schedule /schedule/edit /records /base-info /diagnostics)
     APIS=(/api/app/status /api/app/diagnostics /api/app/events/recent /api/app/schedules /api/app/buckets /api/app/base-info /api/app/feeders/targets /api/app/records)
     UNAUTH_API=/api/app/feeders/targets
+    MOTOR_EXPR='(.motorOutput.enabled | type) == "boolean" and (.motorOutput.readyMask | type) == "number" and (.motorOutput.channels | type) == "array"'
     ;;
   *)
     echo "Unknown app '${APP}'. Expected door or feeder." >&2
@@ -40,7 +42,8 @@ case "${APP}" in
     ;;
 esac
 
-SYSTEM_PAGES=(/esp32base /esp32base/logs /esp32base/app-config /esp32base/tools /esp32base/app-events)
+SYSTEM_PAGES=(/esp32base/logs /esp32base/app-config /esp32base/tools /esp32base/app-events)
+SYSTEM_APIS=(/esp32base/api/status)
 
 tmp="$(mktemp)"
 cleanup() {
@@ -140,6 +143,11 @@ for page in "${SYSTEM_PAGES[@]}"; do
   sleep 0.3
 done
 
+for api in "${SYSTEM_APIS[@]}"; do
+  check_api "${api}"
+  sleep 0.3
+done
+
 for page in "${PAGES[@]}"; do
   check_page "${page}"
   sleep 0.3
@@ -151,10 +159,10 @@ for api in "${APIS[@]}"; do
 done
 
 check_json_expr /api/app/status \
-  '(.motorOutput.enabled | type) == "boolean" and (.motorOutput.ready | type) == "boolean"' \
+  "${MOTOR_EXPR}" \
   "motorOutput-status"
 check_json_expr /api/app/diagnostics \
-  '(.motorOutput.enabled | type) == "boolean" and (.motorOutput.ready | type) == "boolean"' \
+  "${MOTOR_EXPR}" \
   "motorOutput-diagnostics"
 check_json_expr /api/app/events/recent \
   '.store == "app_events" and .capacity == 1024 and (.events | type) == "array"' \
