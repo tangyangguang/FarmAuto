@@ -53,9 +53,9 @@ bool g_at24cStoreReady = false;
 bool g_motorOutputEnabled = false;
 bool g_motorOutputReady = false;
 
-static constexpr uint8_t kFarmDoorRouteCount = 15;
+static constexpr uint8_t kFarmDoorRouteCount = 16;
 static_assert(ESP32BASE_WEB_MAX_ROUTES >= kFarmDoorRouteCount,
-              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 15");
+              "Esp32FarmDoor requires ESP32BASE_WEB_MAX_ROUTES >= 16");
 static constexpr const char* kDoorRecordRootDir = "/records";
 static constexpr const char* kDoorRecordDir = "/records/door";
 static constexpr const char* kDoorRecordCurrentPath = "/records/door/current.dar";
@@ -319,6 +319,76 @@ bool readBoolParam(const char* name, bool& out) {
     return true;
   }
   return false;
+}
+
+struct PageParams {
+  uint32_t page = 1;
+  uint32_t per = 15;
+};
+
+bool readPageParams(uint32_t defaultPer, uint32_t maxPer, PageParams& out) {
+  PageParams params;
+  params.per = defaultPer;
+  if (!readUint32ParamOptional("page", params.page) ||
+      !readUint32ParamOptional("per", params.per) || params.page == 0 || params.per == 0) {
+    return false;
+  }
+  if (params.per > maxPer) {
+    params.per = maxPer;
+  }
+  out = params;
+  return true;
+}
+
+bool pageStartIndex(const PageParams& params, uint32_t& out) {
+  if (params.page == 0 || params.per == 0) {
+    return false;
+  }
+  const uint32_t pageOffset = params.page - 1;
+  if (pageOffset > UINT32_MAX / params.per) {
+    return false;
+  }
+  out = pageOffset * params.per;
+  return true;
+}
+
+void sendUint32Text(uint32_t value) {
+  char text[16];
+  snprintf(text, sizeof(text), "%lu", static_cast<unsigned long>(value));
+  Esp32BaseWeb::sendChunk(text);
+}
+
+void sendInt64Text(int64_t value) {
+  char text[24];
+  snprintf(text, sizeof(text), "%lld", static_cast<long long>(value));
+  Esp32BaseWeb::sendChunk(text);
+}
+
+void sendTimeText(uint32_t unixTime, uint32_t uptimeSec) {
+  if (unixTime > 0) {
+    Esp32BaseWeb::sendChunk("Unix ");
+    sendUint32Text(unixTime);
+    return;
+  }
+  Esp32BaseWeb::sendChunk("启动 +");
+  sendUint32Text(uptimeSec);
+  Esp32BaseWeb::sendChunk(" 秒");
+}
+
+void sendRecordPulseRange(int64_t oldValue, int64_t newValue) {
+  sendInt64Text(oldValue);
+  Esp32BaseWeb::sendChunk(" -> ");
+  sendInt64Text(newValue);
+}
+
+void sendRecordDelta(int64_t oldValue, int64_t newValue, int64_t deltaValue) {
+  sendRecordPulseRange(oldValue, newValue);
+  Esp32BaseWeb::sendChunk(" (");
+  if (deltaValue > 0) {
+    Esp32BaseWeb::sendChunk("+");
+  }
+  sendInt64Text(deltaValue);
+  Esp32BaseWeb::sendChunk(")");
 }
 
 void sendConfirmRequired(const char* action, const char* resource) {
@@ -659,6 +729,24 @@ void sendRecordJson(const DoorRecord& record) {
   Esp32BaseWeb::sendChunk("}");
 }
 
+void sendRecordHtmlRow(const DoorRecord& record) {
+  Esp32BaseWeb::sendChunk("<tr><td>");
+  sendUint32Text(record.sequence);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  sendTimeText(record.unixTime, record.uptimeSec);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(recordTypeName(record.type));
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(commandName(record.command));
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(recordResultName(record.result));
+  Esp32BaseWeb::sendChunk("</td><td>");
+  sendRecordPulseRange(record.oldPositionPulses, record.newPositionPulses);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  sendRecordDelta(record.oldTravelPulses, record.newTravelPulses, record.deltaPulses);
+  Esp32BaseWeb::sendChunk("</td></tr>");
+}
+
 void sendRecordSnapshotJson(const char* source) {
   const DoorRecordSnapshot snapshot = g_records.snapshot();
   beginRawJson(200);
@@ -735,6 +823,39 @@ void sendBusinessEventJsonCallback(const FarmAutoEventLog::BusinessEvent& event,
     Esp32BaseWeb::sendChunk(",");
   }
   sendBusinessEventJson(event);
+  ++state->emitted;
+}
+
+struct BusinessEventTableState {
+  uint16_t emitted = 0;
+};
+
+void sendBusinessEventHtmlRow(const FarmAutoEventLog::BusinessEvent& event) {
+  Esp32BaseWeb::sendChunk("<tr><td>");
+  sendUint32Text(event.id);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  sendTimeText(event.timeSynced ? event.epochSec : 0, event.uptimeSec);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(appEventLevelName(event.level));
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(event.domain);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(event.action);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(event.target);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(event.message);
+  Esp32BaseWeb::sendChunk("</td><td>");
+  Esp32BaseWeb::writeHtmlEscaped(event.detail);
+  Esp32BaseWeb::sendChunk("</td></tr>");
+}
+
+void sendBusinessEventHtmlCallback(const FarmAutoEventLog::BusinessEvent& event, void* user) {
+  BusinessEventTableState* state = static_cast<BusinessEventTableState*>(user);
+  if (state == nullptr) {
+    return;
+  }
+  sendBusinessEventHtmlRow(event);
   ++state->emitted;
 }
 
@@ -1030,11 +1151,13 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
   Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_SECTION);
   Esp32BaseWeb::addNavItem("/index", "首页");
-  Esp32BaseWeb::addNavItem("/records", "记录");
+  Esp32BaseWeb::addNavItem("/records", "开关门记录");
+  Esp32BaseWeb::addNavItem("/events", "业务事件");
   Esp32BaseWeb::addNavItem("/calibration", "校准");
   Esp32BaseWeb::addNavItem("/diagnostics", "诊断");
   Esp32BaseWeb::addPage("/index", "自动门首页", FarmDoorApp::sendHomePage);
   Esp32BaseWeb::addPage("/records", "自动门记录", FarmDoorApp::sendRecordsPage);
+  Esp32BaseWeb::addPage("/events", "业务事件", FarmDoorApp::sendEventsPage);
   Esp32BaseWeb::addPage("/calibration", "行程校准", FarmDoorApp::sendCalibrationPage);
   Esp32BaseWeb::addPage("/diagnostics", "自动门诊断", FarmDoorApp::sendDiagnosticsPage);
   Esp32BaseWeb::addApi("/api/app/status", FarmDoorApp::sendStatusJson);
@@ -1111,7 +1234,8 @@ void FarmDoorApp::sendHomePage() {
 
   Esp32BaseWeb::beginPanel("快速入口");
   Esp32BaseWeb::sendInfoRowCompactLink("行程校准", "标定端点和调整开门目标", nullptr, "/calibration", "进入", Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::sendInfoRowCompactLink("业务记录", "查询自动门操作和维护记录", nullptr, "/records", "进入", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendInfoRowCompactLink("开关门记录", "查询自动门操作和维护记录", nullptr, "/records", "进入", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendInfoRowCompactLink("业务事件", "查看维护、保护和存储告警事件", nullptr, "/events", "进入", Esp32BaseWeb::UI_INFO);
   Esp32BaseWeb::sendInfoRowCompactLink("业务诊断", "查看只读硬件诊断和维护动作", nullptr, "/diagnostics", "进入", Esp32BaseWeb::UI_INFO);
   Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
@@ -1120,23 +1244,192 @@ void FarmDoorApp::sendHomePage() {
 
 void FarmDoorApp::sendRecordsPage() {
 #if ESP32BASE_ENABLE_WEB
-  Esp32BaseWeb::sendHeader("自动门记录");
-  Esp32BaseWeb::sendPageTitle("记录", "查询自动门业务记录和最近业务事件");
+  PageParams params;
+  bool valid = readPageParams(15, 15, params);
+  uint32_t startIndex = 0;
+  valid = valid && pageStartIndex(params, startIndex);
 
-  Esp32BaseWeb::beginPanel("业务记录查询");
-  Esp32BaseWeb::sendChunk("<form class='editform' method='get' action='/api/app/records'>");
+  DoorRecordQuery query;
+  query.startIndex = startIndex;
+  query.limit = static_cast<uint8_t>(params.per);
+  char eventType[32] = {};
+  if (valid) {
+    valid = readUint32ParamOptional("startUnixTime", query.startUnixTime) &&
+            readUint32ParamOptional("endUnixTime", query.endUnixTime);
+  }
+  if (Esp32BaseWeb::getParam("eventType", eventType, sizeof(eventType)) &&
+      eventType[0] != '\0') {
+    valid = valid && doorRecordTypeFromName(eventType, query.type);
+    query.typeFilterEnabled = valid;
+  }
+  uint32_t archiveIndex = 0;
+  if (valid) {
+    valid = readUint32ParamOptional("archive", archiveIndex) &&
+            archiveIndex <= kDoorRecordMaxArchives;
+  }
+
+  char recordQuery[192];
+  if (query.typeFilterEnabled) {
+    snprintf(recordQuery,
+             sizeof(recordQuery),
+             "archive=%lu&startUnixTime=%lu&endUnixTime=%lu&eventType=%s",
+             static_cast<unsigned long>(archiveIndex),
+             static_cast<unsigned long>(query.startUnixTime),
+             static_cast<unsigned long>(query.endUnixTime),
+             eventType);
+  } else {
+    snprintf(recordQuery,
+             sizeof(recordQuery),
+             "archive=%lu&startUnixTime=%lu&endUnixTime=%lu",
+             static_cast<unsigned long>(archiveIndex),
+             static_cast<unsigned long>(query.startUnixTime),
+             static_cast<unsigned long>(query.endUnixTime));
+  }
+
+  Esp32BaseWeb::sendHeader("开关门记录");
+  Esp32BaseWeb::sendPageTitle("开关门记录", "分页查看自动门操作、校准和维护记录");
+
+  Esp32BaseWeb::beginPanel("筛选");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='get' action='/records'>");
   Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-start'>开始序号</label><input id='rec-start' name='start' type='number' min='0' value='0'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-limit'>每页</label><input id='rec-limit' name='limit' type='number' min='1' max='16' value='16'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-archive'>归档</label><input id='rec-archive' name='archive' type='number' min='0' max='16' value='0'><small>0 为当前文件，1-16 为轮转归档。</small></div>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-start-time'>开始时间戳</label><input id='rec-start-time' name='startUnixTime' type='number' min='0'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-end-time'>结束时间戳</label><input id='rec-end-time' name='endUnixTime' type='number' min='0'></div>");
-  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-type'>事件类型</label><input id='rec-type' name='eventType' placeholder='DoorTravelSet'></div>");
-  Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='查询 JSON'></div></form>");
+  char value[16];
+  snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(params.per));
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-per'>每页</label><input id='rec-per' name='per' type='number' min='1' max='15' value='");
+  Esp32BaseWeb::sendChunk(value);
+  Esp32BaseWeb::sendChunk("'></div>");
+  snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(archiveIndex));
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-archive'>归档</label><input id='rec-archive' name='archive' type='number' min='0' max='16' value='");
+  Esp32BaseWeb::sendChunk(value);
+  Esp32BaseWeb::sendChunk("'><small>0 为当前文件，1-16 为轮转归档。</small></div>");
+  snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(query.startUnixTime));
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-start-time'>开始时间戳</label><input id='rec-start-time' name='startUnixTime' type='number' min='0' value='");
+  Esp32BaseWeb::sendChunk(value);
+  Esp32BaseWeb::sendChunk("'></div>");
+  snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(query.endUnixTime));
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-end-time'>结束时间戳</label><input id='rec-end-time' name='endUnixTime' type='number' min='0' value='");
+  Esp32BaseWeb::sendChunk(value);
+  Esp32BaseWeb::sendChunk("'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-type'>事件类型</label><input id='rec-type' name='eventType' placeholder='DoorTravelSet' value='");
+  Esp32BaseWeb::writeHtmlEscaped(eventType);
+  Esp32BaseWeb::sendChunk("'></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='筛选'></div></form>");
   Esp32BaseWeb::endPanel();
 
-  Esp32BaseWeb::beginPanel("最近事件");
-  Esp32BaseWeb::sendInfoRowCompactLink("业务事件 JSON", "来自 Esp32Base App Events 的业务化读取", nullptr, "/api/app/events/recent", "打开", Esp32BaseWeb::UI_INFO);
+  if (!valid) {
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "参数无效",
+                             "请检查页码、每页数量、归档编号、时间戳或事件类型。");
+  }
+
+  Esp32BaseWeb::beginPanel("记录列表");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='part'>");
+  Esp32BaseWeb::sendChunk("<tr><th>序号</th><th>时间</th><th>事件类型</th><th>命令</th><th>结果</th><th>位置变化</th><th>行程变化</th></tr>");
+
+  uint32_t totalRecords = 0;
+  uint8_t emitted = 0;
+  if (valid) {
+#if ESP32BASE_ENABLE_FS
+    char recordPath[96];
+    DoorRecordPage page;
+    const bool hasPath = doorRecordPathForArchive(archiveIndex, recordPath, sizeof(recordPath));
+    const DoorRecordReadResult readResult =
+        hasPath ? readDoorRecordPage(recordPath,
+                                     query,
+                                     doorRecordFileSize,
+                                     readDoorRecordBytesAt,
+                                     nullptr,
+                                     page)
+                : DoorRecordReadResult::InvalidArgument;
+    if (readResult == DoorRecordReadResult::Ok) {
+      totalRecords = page.totalRecords;
+      for (uint8_t i = 0; i < page.count; ++i) {
+        sendRecordHtmlRow(page.records[i]);
+        ++emitted;
+      }
+    } else if (archiveIndex > 0) {
+      Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                               "归档读取失败",
+                               "指定归档暂时不可读或记录文件损坏。");
+    }
+    if (readResult != DoorRecordReadResult::Ok && archiveIndex == 0)
+#endif
+    {
+      const DoorRecordSnapshot snapshot = g_records.snapshot();
+      totalRecords = snapshot.count;
+      for (uint8_t i = 0; i < snapshot.count; ++i) {
+        if (i < startIndex || emitted >= params.per) {
+          continue;
+        }
+        const DoorRecord& record = snapshot.records[i];
+        if (query.startUnixTime > 0 && record.unixTime < query.startUnixTime) {
+          continue;
+        }
+        if (query.endUnixTime > 0 && record.unixTime > query.endUnixTime) {
+          continue;
+        }
+        if (query.typeFilterEnabled && record.type != query.type) {
+          continue;
+        }
+        sendRecordHtmlRow(record);
+        ++emitted;
+      }
+    }
+  }
+  if (emitted == 0) {
+    Esp32BaseWeb::sendChunk("<tr><td colspan='7'>暂无记录</td></tr>");
+  }
+  Esp32BaseWeb::sendChunk("</table></div>");
+  Esp32BaseWeb::Pagination recordPagination = {"/records", recordQuery, params.page, params.per, totalRecords};
+  Esp32BaseWeb::sendPagination(recordPagination);
+  Esp32BaseWeb::endPanel();
+  Esp32BaseWeb::sendFooter();
+#endif
+}
+
+void FarmDoorApp::sendEventsPage() {
+#if ESP32BASE_ENABLE_WEB
+  PageParams params;
+  bool valid = readPageParams(20, 50, params);
+  uint32_t startIndex = 0;
+  valid = valid && pageStartIndex(params, startIndex) && startIndex <= UINT16_MAX;
+
+  Esp32BaseWeb::sendHeader("业务事件");
+  Esp32BaseWeb::sendPageTitle("业务事件", "分页查看维护、保护和存储告警事件");
+
+  if (!FarmAutoEventLog::isReady()) {
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "业务事件存储未就绪",
+                             FarmAutoEventLog::lastError());
+  }
+  if (!valid) {
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "参数无效",
+                             "请检查页码或每页数量。");
+  }
+
+  Esp32BaseWeb::beginPanel("事件列表");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='part'>");
+  Esp32BaseWeb::sendChunk("<tr><th>ID</th><th>时间</th><th>级别</th><th>领域</th><th>动作</th><th>目标</th><th>消息</th><th>详情</th></tr>");
+
+  BusinessEventTableState state;
+  bool readOk = false;
+  if (valid) {
+    readOk = FarmAutoEventLog::readLatest(static_cast<uint16_t>(startIndex),
+                                          static_cast<uint16_t>(params.per),
+                                          sendBusinessEventHtmlCallback,
+                                          &state);
+  }
+  if (state.emitted == 0) {
+    Esp32BaseWeb::sendChunk("<tr><td colspan='8'>暂无事件</td></tr>");
+  }
+  Esp32BaseWeb::sendChunk("</table></div>");
+  if (valid && !readOk) {
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "业务事件读取失败",
+                             FarmAutoEventLog::lastError());
+  }
+  Esp32BaseWeb::Pagination eventPagination = {"/events", nullptr, params.page, params.per, FarmAutoEventLog::count()};
+  Esp32BaseWeb::sendPagination(eventPagination);
   Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
