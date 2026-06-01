@@ -369,6 +369,13 @@ void sendFixedX100(int32_t value) {
   Esp32BaseWeb::sendChunk(number);
 }
 
+void formatUint8(char* out, std::size_t outSize, uint8_t value) {
+  if (out == nullptr || outSize == 0) {
+    return;
+  }
+  snprintf(out, outSize, "%u", static_cast<unsigned>(value));
+}
+
 void sendUint32(uint32_t value) {
   char number[16];
   snprintf(number, sizeof(number), "%lu", static_cast<unsigned long>(value));
@@ -679,7 +686,9 @@ void sendOccurrenceAction(const FeederPlanState& plan, uint32_t serviceDate) {
   sendUint8(plan.config.planId);
   Esp32BaseWeb::sendChunk("'><input type='hidden' name='date' value='");
   sendUint32(serviceDate);
-  Esp32BaseWeb::sendChunk("'><button>");
+  Esp32BaseWeb::sendChunk("'><button class='btnlink compact");
+  Esp32BaseWeb::sendChunk(skipped ? " info" : " warn");
+  Esp32BaseWeb::sendChunk("'>");
   Esp32BaseWeb::sendChunk(skipped ? "取消跳过" : "跳过本次");
   Esp32BaseWeb::sendChunk("</button></form>");
 }
@@ -688,16 +697,19 @@ void sendOccurrenceTable(const FeederScheduleSnapshot& schedules,
                          const FeederBucketSnapshot& buckets,
                          uint32_t serviceDate,
                          const char* title) {
-  Esp32BaseWeb::sendChunk("<section><h2>");
-  Esp32BaseWeb::sendChunk(title);
-  Esp32BaseWeb::sendChunk("</h2>");
+  Esp32BaseWeb::beginPanel(title);
   if (serviceDate == 0) {
-    Esp32BaseWeb::sendChunk("<p>时间未同步，暂不能展示具体执行日期。</p></section>");
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "时间未同步",
+                             "暂不能展示具体执行日期。");
+    Esp32BaseWeb::endPanel();
     return;
   }
-  Esp32BaseWeb::sendChunk("<p>服务日期 ");
+  Esp32BaseWeb::sendInfoRowCompact("服务日期", "本地业务日期", nullptr);
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table><tr><th>时间</th><th>计划</th><th>状态</th><th>目标</th><th>操作</th></tr>");
+  Esp32BaseWeb::sendChunk("<tr><td colspan='5'><span class='muted'>服务日期 ");
   sendUint32(serviceDate);
-  Esp32BaseWeb::sendChunk("</p><table><tr><th>时间</th><th>计划</th><th>状态</th><th>目标</th><th>操作</th></tr>");
+  Esp32BaseWeb::sendChunk("</span></td></tr>");
   for (uint8_t i = 0; i < schedules.planCount; ++i) {
     const FeederPlanState& plan = schedules.plans[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
@@ -712,7 +724,8 @@ void sendOccurrenceTable(const FeederScheduleSnapshot& schedules,
     sendOccurrenceAction(plan, serviceDate);
     Esp32BaseWeb::sendChunk("</td></tr>");
   }
-  Esp32BaseWeb::sendChunk("</table></section>");
+  Esp32BaseWeb::sendChunk("</table></div>");
+  Esp32BaseWeb::endPanel();
 }
 
 void sendBucketSummary(const FeederBucketSnapshot& snapshot) {
@@ -1884,15 +1897,34 @@ void FarmFeederApp::sendHomePage() {
 #if ESP32BASE_ENABLE_WEB
   const FeederSnapshot snapshot = g_feeder.snapshot();
   const FeederBucketSnapshot buckets = g_buckets.snapshot();
+  char runningMaskValue[16];
+  char enabledMaskValue[16];
+  char faultMaskValue[16];
+  formatUint8(runningMaskValue, sizeof(runningMaskValue), snapshot.runningChannelMask);
+  formatUint8(enabledMaskValue, sizeof(enabledMaskValue), snapshot.enabledChannelMask);
+  formatUint8(faultMaskValue, sizeof(faultMaskValue), snapshot.faultChannelMask);
+
   Esp32BaseWeb::sendHeader("喂食器首页");
-  Esp32BaseWeb::sendChunk("<h1>喂食器首页</h1><section><h2>喂食状态</h2><table>");
-  Esp32BaseWeb::sendChunk("<tr><th>设备状态</th><td>");
-  Esp32BaseWeb::sendChunk(deviceStateName(snapshot.state));
-  Esp32BaseWeb::sendChunk("</td></tr><tr><th>运行通道</th><td>");
-  sendUint8(snapshot.runningChannelMask);
-  Esp32BaseWeb::sendChunk("</td></tr></table></section><section><h2>手工喂食</h2>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/feeders/manual-start'>");
-  Esp32BaseWeb::sendChunk("<p>勾选要手工喂食的通道；目标留空时使用已保存默认目标。</p>");
+  Esp32BaseWeb::sendPageTitle("喂食器首页", "三路喂食状态、手工喂食和料桶维护");
+
+  Esp32BaseWeb::beginPanel("喂食状态");
+  Esp32BaseWeb::beginMetricGrid();
+  Esp32BaseWeb::sendMetric("设备状态", deviceStateName(snapshot.state), g_feederMotorOutputEnabled ? "电机输出已启用" : "电机输出未启用");
+  Esp32BaseWeb::sendMetric("运行通道掩码", runningMaskValue, "bit mask");
+  Esp32BaseWeb::sendMetric("启用通道掩码", enabledMaskValue, faultMaskValue);
+  Esp32BaseWeb::endMetricGrid();
+  if (!g_feederMotorOutputEnabled) {
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "电机输出未启用",
+                             "喂食命令会被保护拒绝；请在 Esp32Base App Config 中启用。");
+  }
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("手工喂食");
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_INFO,
+                           "目标可留空",
+                           "勾选要手工喂食的通道；目标留空时使用已保存默认目标。");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/feeders/manual-start' onsubmit='return once(this)'>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     const uint8_t channelNumber = static_cast<uint8_t>(i + 1);
     const FeederChannelBaseInfo& info = buckets.channels[i].baseInfo;
@@ -1912,9 +1944,19 @@ void FarmFeederApp::sendHomePage() {
     sendUint8(channelNumber);
     Esp32BaseWeb::sendChunk("Revolutions' placeholder='例如 1.5'></label></fieldset>");
   }
-  Esp32BaseWeb::sendChunk("<button>开始手工喂食</button></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/feeders/stop-all'><button>停止全部</button></form>");
-  Esp32BaseWeb::sendChunk("</section><section><h2>料桶余量</h2><table><tr><th>通道</th><th>当前估算</th><th>满桶容量</th><th>维护</th></tr>");
+  Esp32BaseWeb::sendChunk("<div class='actions'><input type='submit' value='开始手工喂食'></div></form>");
+  Esp32BaseWeb::sendInfoRowCompactForm("停止全部",
+                                       "停止所有正在运行的喂食通道",
+                                       nullptr,
+                                       "/api/app/feeders/stop-all",
+                                       "停止全部",
+                                       nullptr,
+                                       nullptr,
+                                       Esp32BaseWeb::UI_DANGER);
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("料桶余量");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table><tr><th>通道</th><th>当前估算</th><th>满桶容量</th><th>维护</th></tr>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     const FeederBucketState& channel = buckets.channels[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
@@ -1933,7 +1975,8 @@ void FarmFeederApp::sendHomePage() {
     sendUint8(i);
     Esp32BaseWeb::sendChunk("'><button>标记已满</button></form></td></tr>");
   }
-  Esp32BaseWeb::sendChunk("</table></section>");
+  Esp32BaseWeb::sendChunk("</table></div>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -1945,12 +1988,16 @@ void FarmFeederApp::sendSchedulePage() {
   uint32_t tomorrowDate = 0;
   feederNextServiceDate(schedules.serviceDate, tomorrowDate);
   Esp32BaseWeb::sendHeader("计划");
-  Esp32BaseWeb::sendChunk("<h1>计划</h1>");
+  Esp32BaseWeb::sendPageTitle("计划", "今日、明日执行实例和长期计划蓝本");
   sendOccurrenceTable(schedules, buckets, schedules.serviceDate, "今日计划");
   sendOccurrenceTable(schedules, buckets, tomorrowDate, "明日计划");
-  Esp32BaseWeb::sendChunk("<section><h2>计划管理</h2><p>计划管理只维护长期蓝本；跳过只在今日或明日执行实例上操作。</p>");
-  Esp32BaseWeb::sendChunk("<p><a href='/schedule/edit'>新增计划</a> · <a href='/api/app/schedules'>查看计划 JSON</a></p>");
-  Esp32BaseWeb::sendChunk("<table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th><th>操作</th></tr>");
+  Esp32BaseWeb::beginPanel("计划管理");
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_INFO,
+                           "长期蓝本",
+                           "计划管理只维护每天固定执行规则；跳过只在今日或明日执行实例上操作。");
+  Esp32BaseWeb::sendInfoRowCompactLink("新增计划", "创建新的长期喂食计划", nullptr, "/schedule/edit", "新增", Esp32BaseWeb::UI_OK);
+  Esp32BaseWeb::sendInfoRowCompactLink("计划 JSON", "查看当前计划 API 输出", nullptr, "/api/app/schedules", "打开", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th><th>操作</th></tr>");
   for (uint8_t i = 0; i < schedules.planCount; ++i) {
     const FeederPlanState& plan = schedules.plans[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
@@ -1967,7 +2014,8 @@ void FarmFeederApp::sendSchedulePage() {
     sendUint8(plan.config.planId);
     Esp32BaseWeb::sendChunk("'>编辑</a></td></tr>");
   }
-  Esp32BaseWeb::sendChunk("</table></section>");
+  Esp32BaseWeb::sendChunk("</table></div>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -1981,7 +2029,13 @@ void FarmFeederApp::sendScheduleEditPage() {
     editing = readUint8Param("planId", planId) && findPlanConfig(planId, config);
     if (!editing) {
       Esp32BaseWeb::sendHeader("编辑计划");
-      Esp32BaseWeb::sendChunk("<h1>编辑计划</h1><section><h2>计划不存在</h2><p>指定计划不存在或参数无效。</p><p><a href='/schedule'>返回计划</a></p></section>");
+      Esp32BaseWeb::sendPageTitle("编辑计划", "修改长期喂食计划");
+      Esp32BaseWeb::beginPanel("计划不存在");
+      Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                               "参数无效",
+                               "指定计划不存在或参数无效。");
+      Esp32BaseWeb::sendInfoRowCompactLink("返回计划", "回到计划列表", nullptr, "/schedule", "返回", Esp32BaseWeb::UI_INFO);
+      Esp32BaseWeb::endPanel();
       Esp32BaseWeb::sendFooter();
       return;
     }
@@ -1992,9 +2046,13 @@ void FarmFeederApp::sendScheduleEditPage() {
   }
 
   Esp32BaseWeb::sendHeader(editing ? "编辑计划" : "新增计划");
-  Esp32BaseWeb::sendChunk(editing ? "<h1>编辑计划</h1>" : "<h1>新增计划</h1>");
-  Esp32BaseWeb::sendChunk("<section><p>计划蓝本只保存每天固定执行规则；跳过某次执行请回到计划页操作今日或明日实例。</p>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='");
+  Esp32BaseWeb::sendPageTitle(editing ? "编辑计划" : "新增计划",
+                              "维护每天固定执行的计划蓝本");
+  Esp32BaseWeb::beginPanel(editing ? "计划参数" : "新增计划参数");
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_INFO,
+                           "执行实例单独维护",
+                           "跳过某次执行请回到计划页操作今日或明日实例。");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='");
   Esp32BaseWeb::sendChunk(editing ? "/api/app/schedules/update" : "/api/app/schedules/create");
   Esp32BaseWeb::sendChunk("'>");
   if (editing) {
@@ -2002,11 +2060,11 @@ void FarmFeederApp::sendScheduleEditPage() {
     sendUint8(planId);
     Esp32BaseWeb::sendChunk("'>");
   }
-  Esp32BaseWeb::sendChunk("<label>计划名称 <input name='name' maxlength='");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'><div class='field med'><label>计划名称</label><input name='name' maxlength='");
   sendUint8(kFeederPlanNameMaxBytes);
   Esp32BaseWeb::sendChunk("' value='");
   Esp32BaseWeb::writeHtmlEscaped(config.name);
-  Esp32BaseWeb::sendChunk("'></label><label>启用 <select name='enabled'><option value='1'");
+  Esp32BaseWeb::sendChunk("'></div><div class='field short'><label>启用</label><select name='enabled'><option value='1'");
   if (config.enabled) {
     Esp32BaseWeb::sendChunk(" selected");
   }
@@ -2014,19 +2072,20 @@ void FarmFeederApp::sendScheduleEditPage() {
   if (!config.enabled) {
     Esp32BaseWeb::sendChunk(" selected");
   }
-  Esp32BaseWeb::sendChunk(">停用</option></select></label><label>执行时间（当天分钟 0-1439） <input name='timeMinutes' value='");
+  Esp32BaseWeb::sendChunk(">停用</option></select></div><div class='field med'><label>执行时间（当天分钟 0-1439）</label><input name='timeMinutes' value='");
   if (config.timeConfigured) {
     sendUint32(config.timeMinutes);
   }
-  Esp32BaseWeb::sendChunk("'></label><label>参与通道掩码 <input name='channelMask' value='");
+  Esp32BaseWeb::sendChunk("'></div><div class='field med'><label>参与通道掩码</label><input name='channelMask' value='");
   sendUint8(config.channelMask);
-  Esp32BaseWeb::sendChunk("'></label>");
+  Esp32BaseWeb::sendChunk("'></div></div>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     sendPlanTargetInputs(config, i);
   }
-  Esp32BaseWeb::sendChunk("<button>");
+  Esp32BaseWeb::sendChunk("<div class='actions'><input type='submit' value='");
   Esp32BaseWeb::sendChunk(editing ? "保存计划" : "创建计划");
-  Esp32BaseWeb::sendChunk("</button> <a href='/schedule'>返回计划</a></form></section>");
+  Esp32BaseWeb::sendChunk("'> <a class='btnlink secondary' href='/schedule'>返回计划</a></div></form>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -2034,16 +2093,19 @@ void FarmFeederApp::sendScheduleEditPage() {
 void FarmFeederApp::sendRecordsPage() {
 #if ESP32BASE_ENABLE_WEB
   Esp32BaseWeb::sendHeader("喂食记录");
-  Esp32BaseWeb::sendChunk("<h1>记录</h1><section><h2>业务记录查询</h2>");
-  Esp32BaseWeb::sendChunk("<form method='get' action='/api/app/records'>");
-  Esp32BaseWeb::sendChunk("<label>开始序号 <input name='start' value='0'></label> ");
-  Esp32BaseWeb::sendChunk("<label>每页 <input name='limit' value='16'></label> ");
-  Esp32BaseWeb::sendChunk("<label>归档 <input name='archive' value='0'></label> ");
-  Esp32BaseWeb::sendChunk("<label>开始时间戳 <input name='startUnixTime'></label> ");
-  Esp32BaseWeb::sendChunk("<label>结束时间戳 <input name='endUnixTime'></label> ");
-  Esp32BaseWeb::sendChunk("<label>事件类型 <input name='eventType' placeholder='FeederManualRequested'></label> ");
-  Esp32BaseWeb::sendChunk("<button>查询 JSON</button></form>");
-  Esp32BaseWeb::sendChunk("<p>归档 0 表示当前文件，1-16 表示轮转归档文件。</p></section>");
+  Esp32BaseWeb::sendPageTitle("记录", "查询喂食业务记录");
+
+  Esp32BaseWeb::beginPanel("业务记录查询");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='get' action='/api/app/records'>");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-start'>开始序号</label><input id='rec-start' name='start' type='number' min='0' value='0'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-limit'>每页</label><input id='rec-limit' name='limit' type='number' min='1' max='16' value='16'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label for='rec-archive'>归档</label><input id='rec-archive' name='archive' type='number' min='0' max='16' value='0'><small>0 为当前文件，1-16 为轮转归档。</small></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-start-time'>开始时间戳</label><input id='rec-start-time' name='startUnixTime' type='number' min='0'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-end-time'>结束时间戳</label><input id='rec-end-time' name='endUnixTime' type='number' min='0'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label for='rec-type'>事件类型</label><input id='rec-type' name='eventType' placeholder='FeederManualRequested'></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='查询 JSON'></div></form>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -2052,7 +2114,10 @@ void FarmFeederApp::sendBaseInfoPage() {
 #if ESP32BASE_ENABLE_WEB
   const FeederBucketSnapshot buckets = g_buckets.snapshot();
   Esp32BaseWeb::sendHeader("基础信息");
-  Esp32BaseWeb::sendChunk("<h1>基础信息</h1><section><h2>通道基础信息</h2><table>");
+  Esp32BaseWeb::sendPageTitle("基础信息", "三路喂食通道名称、校准参数和容量");
+
+  Esp32BaseWeb::beginPanel("通道基础信息");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table>");
   Esp32BaseWeb::sendChunk("<tr><th>通道</th><th>名称</th><th>启用</th><th>每圈信号数</th><th>每圈克数</th><th>满桶容量</th><th>操作</th></tr>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     const FeederBucketState& channel = buckets.channels[i];
@@ -2072,7 +2137,11 @@ void FarmFeederApp::sendBaseInfoPage() {
     sendUint8(i);
     Esp32BaseWeb::sendChunk("'>编辑</a></td></tr>");
   }
-  Esp32BaseWeb::sendChunk("</table><p>当前余量属于运行维护数据，在首页“料桶余量”中维护；本页只管理通道基础信息。</p></section>");
+  Esp32BaseWeb::sendChunk("</table></div>");
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_INFO,
+                           "运行数据不在本页维护",
+                           "当前余量属于运行维护数据，在首页“料桶余量”中维护；本页只管理通道基础信息。");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
@@ -2082,7 +2151,13 @@ void FarmFeederApp::sendBaseInfoEditPage() {
   uint8_t channel = 0;
   if (!readUint8Param("channel", channel) || !validAppChannel(channel)) {
     Esp32BaseWeb::sendHeader("编辑通道");
-    Esp32BaseWeb::sendChunk("<h1>编辑通道</h1><section><h2>通道不存在</h2><p>指定通道不存在或参数无效。</p><p><a href='/base-info'>返回基础信息</a></p></section>");
+    Esp32BaseWeb::sendPageTitle("编辑通道", "维护通道基础信息");
+    Esp32BaseWeb::beginPanel("通道不存在");
+    Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                             "参数无效",
+                             "指定通道不存在或参数无效。");
+    Esp32BaseWeb::sendInfoRowCompactLink("返回基础信息", "回到通道列表", nullptr, "/base-info", "返回", Esp32BaseWeb::UI_INFO);
+    Esp32BaseWeb::endPanel();
     Esp32BaseWeb::sendFooter();
     return;
   }
@@ -2090,19 +2165,21 @@ void FarmFeederApp::sendBaseInfoEditPage() {
   const FeederBucketSnapshot buckets = g_buckets.snapshot();
   const FeederBucketState& info = buckets.channels[channel];
   Esp32BaseWeb::sendHeader("编辑通道");
-  Esp32BaseWeb::sendChunk("<h1>编辑通道</h1><section><h2>");
-  Esp32BaseWeb::writeHtmlEscaped(info.baseInfo.name);
-  Esp32BaseWeb::sendChunk("</h2><p>修改会影响后续手工喂食、计划投喂和料桶余量估算。运行中不能保存。</p>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/base-info/channel'>");
+  Esp32BaseWeb::sendPageTitle("编辑通道", "维护通道基础信息");
+  Esp32BaseWeb::beginPanel(info.baseInfo.name);
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                           "会影响后续估算",
+                           "修改会影响后续手工喂食、计划投喂和料桶余量估算。运行中不能保存。");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/base-info/channel' onsubmit='return once(this)'>");
   Esp32BaseWeb::sendChunk("<input type='hidden' name='channel' value='");
   sendUint8(channel);
   Esp32BaseWeb::sendChunk("'>");
-  Esp32BaseWeb::sendChunk("<label>名称 <input name='name' maxlength='");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'><div class='field med'><label>名称</label><input name='name' maxlength='");
   sendUint8(kFeederChannelNameMaxBytes);
   Esp32BaseWeb::sendChunk("' value='");
   Esp32BaseWeb::writeHtmlEscaped(info.baseInfo.name);
-  Esp32BaseWeb::sendChunk("'></label> ");
-  Esp32BaseWeb::sendChunk("<label>启用 <select name='enabled'><option value='1'");
+  Esp32BaseWeb::sendChunk("'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label>启用</label><select name='enabled'><option value='1'");
   if (info.baseInfo.enabled) {
     Esp32BaseWeb::sendChunk(" selected");
   }
@@ -2110,40 +2187,65 @@ void FarmFeederApp::sendBaseInfoEditPage() {
   if (!info.baseInfo.enabled) {
     Esp32BaseWeb::sendChunk(" selected");
   }
-  Esp32BaseWeb::sendChunk(">停用</option></select></label> ");
-  Esp32BaseWeb::sendChunk("<label>每圈信号数 <input name='outputPulsesPerRev' value='");
+  Esp32BaseWeb::sendChunk(">停用</option></select></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label>每圈信号数</label><input name='outputPulsesPerRev' value='");
   sendInt32(info.baseInfo.outputPulsesPerRev);
-  Esp32BaseWeb::sendChunk("'></label> ");
-  Esp32BaseWeb::sendChunk("<label>每圈克数 <input name='gramsPerRev' value='");
+  Esp32BaseWeb::sendChunk("'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label>每圈克数</label><input name='gramsPerRev' value='");
   sendFixedX100(info.baseInfo.gramsPerRevX100);
-  Esp32BaseWeb::sendChunk("'></label> ");
-  Esp32BaseWeb::sendChunk("<label>满桶容量（克） <input name='capacityGrams' value='");
+  Esp32BaseWeb::sendChunk("'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label>满桶容量（克）</label><input name='capacityGrams' value='");
   sendFixedX100(info.baseInfo.capacityGramsX100);
-  Esp32BaseWeb::sendChunk("'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>保存通道</button> <a href='/base-info'>返回基础信息</a></form></section>");
+  Esp32BaseWeb::sendChunk("'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label>确认 token</label><input name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label>确认</label><select name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div></div>");
+  Esp32BaseWeb::sendChunk("<div class='actions'><input class='warn' type='submit' value='保存通道'> <a class='btnlink secondary' href='/base-info'>返回基础信息</a></div></form>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
 
 void FarmFeederApp::sendDiagnosticsPage() {
 #if ESP32BASE_ENABLE_WEB
+  const FeederSnapshot snapshot = g_feeder.snapshot();
+  char installedMaskValue[16];
+  char runningMaskValue[16];
+  char faultMaskValue[16];
+  char motorReadyValue[16];
+  formatUint8(installedMaskValue, sizeof(installedMaskValue), snapshot.installedChannelMask);
+  formatUint8(runningMaskValue, sizeof(runningMaskValue), snapshot.runningChannelMask);
+  formatUint8(faultMaskValue, sizeof(faultMaskValue), snapshot.faultChannelMask);
+  formatUint8(motorReadyValue, sizeof(motorReadyValue), g_feederMotorReadyMask);
+
   Esp32BaseWeb::sendHeader("喂食器诊断");
-  Esp32BaseWeb::sendChunk("<h1>诊断</h1><section><h2>业务诊断</h2>");
-  Esp32BaseWeb::sendChunk("<p><a href='/api/app/diagnostics'>查看诊断 JSON</a></p>");
-  Esp32BaseWeb::sendChunk("<p><a href='/api/app/status'>查看状态 JSON</a></p>");
-  Esp32BaseWeb::sendChunk("</section><section><h2>维护动作</h2>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-today'>");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>清空今日执行状态</button></form>");
-  Esp32BaseWeb::sendChunk("<form method='post' action='/api/app/maintenance/clear-fault'>");
-  Esp32BaseWeb::sendChunk("<label>通道掩码 <input name='channelMask' value='7'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 token <input name='confirmToken'></label> ");
-  Esp32BaseWeb::sendChunk("<label>确认 <input name='confirm' value='true'></label> ");
-  Esp32BaseWeb::sendChunk("<button>清除通道故障</button></form>");
-  Esp32BaseWeb::sendChunk("</section>");
+  Esp32BaseWeb::sendPageTitle("诊断", "只读状态接口和维护动作");
+
+  Esp32BaseWeb::beginPanel("业务诊断");
+  Esp32BaseWeb::beginMetricGrid();
+  Esp32BaseWeb::sendMetric("安装通道掩码", installedMaskValue, "bit mask");
+  Esp32BaseWeb::sendMetric("运行通道掩码", runningMaskValue, "bit mask");
+  Esp32BaseWeb::sendMetric("故障通道掩码", faultMaskValue, motorReadyValue);
+  Esp32BaseWeb::endMetricGrid();
+  Esp32BaseWeb::sendInfoRowCompactLink("诊断 JSON", "控制器、计划、料桶和电机状态", nullptr, "/api/app/diagnostics", "打开", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::sendInfoRowCompactLink("状态 JSON", "喂食器运行状态摘要", nullptr, "/api/app/status", "打开", Esp32BaseWeb::UI_INFO);
+  Esp32BaseWeb::endPanel();
+
+  Esp32BaseWeb::beginPanel("维护动作");
+  Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN,
+                           "需要二次确认",
+                           "首次提交会返回确认 token；确认后带 confirm=true 和 token 再提交。");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/clear-today' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label>确认 token</label><input name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label>确认</label><select name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='清空今日执行状态'></div></form>");
+  Esp32BaseWeb::sendChunk("<form class='editform' method='post' action='/api/app/maintenance/clear-fault' onsubmit='return once(this)'>");
+  Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label>通道掩码</label><input name='channelMask' value='7'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field med'><label>确认 token</label><input name='confirmToken'></div>");
+  Esp32BaseWeb::sendChunk("<div class='field short'><label>确认</label><select name='confirm'><option value='true'>确认</option><option value='false'>只申请 token</option></select></div>");
+  Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='danger' type='submit' value='清除通道故障'></div></form>");
+  Esp32BaseWeb::endPanel();
   Esp32BaseWeb::sendFooter();
 #endif
 }
