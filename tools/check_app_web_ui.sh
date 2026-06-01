@@ -79,6 +79,11 @@ for app in apps:
                 )
         if "<p><form" in body or "</form></p>" in body:
             failures.append(f"{app['name']} {method}: form nested in paragraph creates invalid HTML layout")
+        if "class='tablewrap'><table>" in body or 'class="tablewrap"><table>' in body:
+            failures.append(f"{app['name']} {method}: tablewrap table must use an Esp32Base table class")
+
+    if "SYSTEM_NAV_BOTTOM" in source:
+        failures.append(f"{app['name']}: must use Esp32Base default footerbar navigation layout")
 
     for helper in app["helpers"]:
         body = function_body(source, f"void {helper}(")
@@ -93,6 +98,8 @@ for app in apps:
                 failures.append(
                     f"{app['name']} {helper}: raw page structure {raw} bypasses Esp32Base UI helpers"
                 )
+        if "class='tablewrap'><table>" in body or 'class="tablewrap"><table>' in body:
+            failures.append(f"{app['name']} {helper}: tablewrap table must use an Esp32Base table class")
 
 if failures:
     print("FarmAuto Web UI check failed:")

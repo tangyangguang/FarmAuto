@@ -706,7 +706,7 @@ void sendOccurrenceTable(const FeederScheduleSnapshot& schedules,
     return;
   }
   Esp32BaseWeb::sendInfoRowCompact("服务日期", "本地业务日期", nullptr);
-  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table><tr><th>时间</th><th>计划</th><th>状态</th><th>目标</th><th>操作</th></tr>");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='part'><tr><th>时间</th><th>计划</th><th>状态</th><th>目标</th><th>操作</th></tr>");
   Esp32BaseWeb::sendChunk("<tr><td colspan='5'><span class='muted'>服务日期 ");
   sendUint32(serviceDate);
   Esp32BaseWeb::sendChunk("</span></td></tr>");
@@ -1849,7 +1849,7 @@ void FarmFeederApp::configureBusinessShell() {
   Esp32BaseWeb::setDeviceName("Esp32FarmFeeder");
   Esp32BaseWeb::setHomePath("/index");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
-  Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
+  Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_SECTION);
   Esp32BaseWeb::addNavItem("/index", "首页");
   Esp32BaseWeb::addNavItem("/schedule", "计划");
   Esp32BaseWeb::addNavItem("/records", "记录");
@@ -1956,7 +1956,7 @@ void FarmFeederApp::sendHomePage() {
   Esp32BaseWeb::endPanel();
 
   Esp32BaseWeb::beginPanel("料桶余量");
-  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table><tr><th>通道</th><th>当前估算</th><th>满桶容量</th><th>维护</th></tr>");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='part'><tr><th>通道</th><th>当前估算</th><th>满桶容量</th><th>维护</th></tr>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     const FeederBucketState& channel = buckets.channels[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
@@ -1997,7 +1997,7 @@ void FarmFeederApp::sendSchedulePage() {
                            "计划管理只维护每天固定执行规则；跳过只在今日或明日执行实例上操作。");
   Esp32BaseWeb::sendInfoRowCompactLink("新增计划", "创建新的长期喂食计划", nullptr, "/schedule/edit", "新增", Esp32BaseWeb::UI_OK);
   Esp32BaseWeb::sendInfoRowCompactLink("计划 JSON", "查看当前计划 API 输出", nullptr, "/api/app/schedules", "打开", Esp32BaseWeb::UI_INFO);
-  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th><th>操作</th></tr>");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='part'><tr><th>ID</th><th>名称</th><th>时间</th><th>启用</th><th>目标</th><th>操作</th></tr>");
   for (uint8_t i = 0; i < schedules.planCount; ++i) {
     const FeederPlanState& plan = schedules.plans[i];
     Esp32BaseWeb::sendChunk("<tr><td>");
@@ -2010,7 +2010,7 @@ void FarmFeederApp::sendSchedulePage() {
     Esp32BaseWeb::sendChunk(plan.config.enabled ? "是" : "否");
     Esp32BaseWeb::sendChunk("</td><td>");
     sendPlanTargetSummary(plan.config, buckets);
-    Esp32BaseWeb::sendChunk("</td><td><a href='/schedule/edit?planId=");
+    Esp32BaseWeb::sendChunk("</td><td><a class='btnlink compact info' href='/schedule/edit?planId=");
     sendUint8(plan.config.planId);
     Esp32BaseWeb::sendChunk("'>编辑</a></td></tr>");
   }
@@ -2117,7 +2117,7 @@ void FarmFeederApp::sendBaseInfoPage() {
   Esp32BaseWeb::sendPageTitle("基础信息", "三路喂食通道名称、校准参数和容量");
 
   Esp32BaseWeb::beginPanel("通道基础信息");
-  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table>");
+  Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='part'>");
   Esp32BaseWeb::sendChunk("<tr><th>通道</th><th>名称</th><th>启用</th><th>每圈信号数</th><th>每圈克数</th><th>满桶容量</th><th>操作</th></tr>");
   for (uint8_t i = 0; i < kFeederConfiguredChannels; ++i) {
     const FeederBucketState& channel = buckets.channels[i];
@@ -2133,7 +2133,7 @@ void FarmFeederApp::sendBaseInfoPage() {
     sendFixedX100(channel.baseInfo.gramsPerRevX100);
     Esp32BaseWeb::sendChunk(" g</td><td>");
     sendFixedX100(channel.baseInfo.capacityGramsX100);
-    Esp32BaseWeb::sendChunk(" g</td><td><a href='/base-info/edit?channel=");
+    Esp32BaseWeb::sendChunk(" g</td><td><a class='btnlink compact info' href='/base-info/edit?channel=");
     sendUint8(i);
     Esp32BaseWeb::sendChunk("'>编辑</a></td></tr>");
   }

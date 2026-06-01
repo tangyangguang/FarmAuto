@@ -1028,7 +1028,7 @@ void FarmDoorApp::configureBusinessShell() {
   Esp32BaseWeb::setDeviceName("Esp32FarmDoor");
   Esp32BaseWeb::setHomePath("/index");
   Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_APP);
-  Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_BOTTOM);
+  Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_SECTION);
   Esp32BaseWeb::addNavItem("/index", "首页");
   Esp32BaseWeb::addNavItem("/records", "记录");
   Esp32BaseWeb::addNavItem("/calibration", "校准");
