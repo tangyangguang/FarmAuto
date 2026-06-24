@@ -1,0 +1,2713 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FarmAuto V1 手机 Web 原型</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface-2: #eef3f7;
+      --line: #dbe4ec;
+      --line-strong: #c5d2dc;
+      --text: #17212b;
+      --muted: #667789;
+      --soft: #8a98a8;
+      --green: #0f766e;
+      --green-2: #e7f7f4;
+      --blue: #1d5f7a;
+      --blue-2: #e8f3f7;
+      --amber: #9b5d12;
+      --amber-2: #fff6e5;
+      --red: #b42318;
+      --red-2: #fff0ee;
+      --shadow: 0 10px 26px rgba(23, 33, 43, 0.07);
+      --radius: 8px;
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(15, 118, 110, 0.05), transparent 230px),
+        linear-gradient(90deg, rgba(29, 95, 122, 0.035) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(29, 95, 122, 0.025) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, 28px 28px, 28px 28px, auto;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-shell {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 0 12px 92px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 -12px;
+      padding: 10px 12px;
+      background: rgba(245, 247, 250, 0.94);
+      border-bottom: 1px solid rgba(219, 228, 236, 0.92);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      border-radius: var(--radius);
+      background: var(--green);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.1;
+      font-weight: 600;
+    }
+
+    .brand-subtitle {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .status-pill,
+    .mini-pill,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 560;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    .mini-pill,
+    .tag {
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
+    .ok {
+      color: var(--green);
+      background: var(--green-2);
+      border-color: rgba(36, 107, 69, 0.18);
+    }
+
+    .warn {
+      color: var(--amber);
+      background: var(--amber-2);
+      border-color: rgba(154, 92, 19, 0.20);
+    }
+
+    .bad {
+      color: var(--red);
+      background: var(--red-2);
+      border-color: rgba(167, 53, 47, 0.20);
+    }
+
+    .info {
+      color: var(--blue);
+      background: var(--blue-2);
+      border-color: rgba(37, 99, 122, 0.18);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 12px;
+      padding-top: 10px;
+    }
+
+    .page-rail {
+      position: sticky;
+      top: 65px;
+      z-index: 10;
+      display: none;
+      gap: 7px;
+      margin: 0 -12px;
+      padding: 0 12px 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .page-rail::-webkit-scrollbar {
+      display: none;
+    }
+
+    .rail-button,
+    .tab-button,
+    .seg-button {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      border-radius: var(--radius);
+      min-height: 34px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-weight: 520;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .rail-button.active,
+    .tab-button.active,
+    .seg-button.active {
+      color: var(--green);
+      border-color: rgba(15, 118, 110, 0.34);
+      background: var(--green-2);
+      box-shadow: none;
+    }
+
+    .content {
+      min-width: 0;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+      animation: screenIn 160ms ease-out;
+    }
+
+    @keyframes screenIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .screen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 2px 0 12px;
+    }
+
+    .screen-kicker {
+      margin: 0 0 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 560;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    strong {
+      font-weight: 600;
+    }
+
+    h1 {
+      margin-bottom: 6px;
+      font-size: 22px;
+      line-height: 1.16;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 560;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 540;
+      letter-spacing: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .small {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card,
+    .event-row,
+    .metric-tile,
+    .plan-row,
+    .device-row,
+    .record-row,
+    .setting-row,
+    .report-row {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: none;
+    }
+
+    .card {
+      padding: 13px;
+    }
+
+    .critical-card {
+      border-color: rgba(180, 35, 24, 0.28);
+      background: #fffafa;
+    }
+
+    .hero-status {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-status.alert {
+      border-color: rgba(180, 35, 24, 0.28);
+      background: #fffafa;
+    }
+
+    .hero-main {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .hero-title {
+      margin-bottom: 4px;
+      font-size: 18px;
+      line-height: 1.18;
+      font-weight: 600;
+    }
+
+    .hero-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric-tile {
+      padding: 10px;
+      min-height: 84px;
+    }
+
+    .metric-tile[data-screen] {
+      cursor: pointer;
+    }
+
+    .metric-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 540;
+    }
+
+    .metric-value {
+      margin-bottom: 4px;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.16;
+    }
+
+    .metric-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .split-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .split-line:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .event-list,
+    .record-list,
+    .plan-list,
+    .device-list,
+    .report-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .event-row,
+    .record-row,
+    .plan-row,
+    .device-row,
+    .report-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px 11px;
+    }
+
+    .event-time,
+    .record-time {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 540;
+      white-space: nowrap;
+    }
+
+    .event-title,
+    .record-title,
+    .plan-title,
+    .device-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 560;
+      line-height: 1.25;
+    }
+
+    .event-detail,
+    .record-detail,
+    .plan-detail,
+    .device-detail {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .icon-box {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      color: var(--green);
+      font-weight: 560;
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .icon-box.warn {
+      color: var(--amber);
+      background: var(--amber-2);
+    }
+
+    .icon-box.bad {
+      color: var(--red);
+      background: var(--red-2);
+    }
+
+    .icon-box.info {
+      color: var(--blue);
+      background: var(--blue-2);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 16px 0 9px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .action-button,
+    .primary-button,
+    .secondary-button,
+    .danger-button,
+    .hold-button,
+    .step-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 39px;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      padding: 9px 11px;
+      font-size: 14px;
+      font-weight: 560;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .primary-button {
+      color: #fff;
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .secondary-button,
+    .action-button {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.92);
+      border-color: var(--line);
+    }
+
+    .danger-button {
+      color: #fff;
+      background: var(--red);
+      border-color: var(--red);
+    }
+
+    .action-button[data-command*="停止"],
+    .action-button.urgent {
+      color: var(--red);
+      border-color: rgba(180, 35, 24, 0.32);
+      background: var(--red-2);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .segmented {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(238, 243, 247, 0.78);
+      overflow-x: auto;
+    }
+
+    .seg-button {
+      min-height: 34px;
+      padding: 6px 10px;
+      box-shadow: none;
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .pause-banner {
+      display: grid;
+      gap: 9px;
+      padding: 13px;
+      border: 1px solid rgba(155, 93, 18, 0.24);
+      border-radius: var(--radius);
+      background: var(--amber-2);
+    }
+
+    .pause-banner h2 {
+      margin: 0;
+      color: var(--amber);
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 7px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .rule-list li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      align-items: start;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .check {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--green);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .warn-mark {
+      background: var(--amber);
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      padding-left: 18px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 5px;
+      bottom: 5px;
+      width: 2px;
+      background: var(--line);
+    }
+
+    .timeline-item {
+      position: relative;
+      padding: 0 0 0 8px;
+    }
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -16px;
+      top: 5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px var(--green-2);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 540;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+      padding: 9px 10px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: rgba(15, 118, 110, 0.62);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11);
+    }
+
+    .feeder-editor {
+      display: grid;
+      gap: 8px;
+    }
+
+    .feeder-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: 34px 54px 34px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: rgba(238, 243, 247, 0.82);
+    }
+
+    .step-button {
+      min-height: 34px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: #fff;
+    }
+
+    .step-value {
+      display: grid;
+      place-items: center;
+      min-height: 34px;
+      font-weight: 560;
+    }
+
+    .confirm-sheet {
+      display: none;
+      gap: 9px;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(180, 35, 24, 0.28);
+      background: var(--red-2);
+    }
+
+    .confirm-sheet.show {
+      display: grid;
+    }
+
+    #globalConfirm {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 76px;
+      z-index: 45;
+      box-shadow: var(--shadow);
+    }
+
+    .hold-button {
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      background: var(--red);
+      border-color: var(--red);
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .hold-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: var(--hold-progress, 0%);
+      background: rgba(255, 255, 255, 0.24);
+      transition: width 80ms linear;
+    }
+
+    .hold-button span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .device-layout {
+      display: grid;
+      gap: 10px;
+    }
+
+    .device-row {
+      grid-template-columns: auto 1fr;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .device-group-title {
+      margin: 8px 2px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .device-row.active {
+      border-color: rgba(15, 118, 110, 0.36);
+      background: var(--green-2);
+      box-shadow: none;
+    }
+
+    .detail-panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .detail-panel [data-device-panel] {
+      display: none;
+    }
+
+    .detail-panel [data-device-panel].active {
+      display: grid;
+      gap: 10px;
+    }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .kv {
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .kv span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 540;
+    }
+
+    .kv strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 560;
+      line-height: 1.25;
+    }
+
+    .record-tabs {
+      margin-bottom: 10px;
+    }
+
+    .menu-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .menu-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 62px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu-row::after {
+      content: ">";
+      color: var(--soft);
+    }
+
+    .menu-row .event-title,
+    .menu-row .event-detail {
+      display: block;
+    }
+
+    .record-group {
+      display: none;
+    }
+
+    .record-group.active {
+      display: grid;
+      gap: 7px;
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px;
+    }
+
+    .switch {
+      position: relative;
+      width: 48px;
+      height: 28px;
+    }
+
+    .switch input {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .switch span {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: #cbd5df;
+      transition: 160ms ease;
+      cursor: pointer;
+    }
+
+    .switch span::after {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(23, 33, 43, 0.18);
+      transition: 160ms ease;
+    }
+
+    .switch input:checked + span {
+      background: var(--green);
+    }
+
+    .switch input:checked + span::after {
+      transform: translateX(20px);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      background: rgba(255, 255, 255, 0.96);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-button {
+      display: grid;
+      gap: 3px;
+      justify-items: center;
+      min-width: 0;
+      min-height: 46px;
+      border: 0;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 560;
+      cursor: pointer;
+    }
+
+    .nav-button span:first-child {
+      display: grid;
+      place-items: center;
+      width: 23px;
+      height: 23px;
+      border-radius: 6px;
+      border: 1px solid currentColor;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .nav-button.active {
+      color: var(--green);
+      background: var(--green-2);
+    }
+
+    .toast {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 76px;
+      z-index: 40;
+      display: none;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      color: #fff;
+      background: #26342a;
+      box-shadow: var(--shadow);
+      font-weight: 560;
+      line-height: 1.35;
+    }
+
+    .toast.show {
+      display: block;
+      animation: toastIn 180ms ease-out;
+    }
+
+    .temp-chart {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .chart-grid {
+      position: relative;
+      height: 154px;
+      border-left: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line-strong);
+      background:
+        linear-gradient(180deg, rgba(219, 228, 236, 0.65) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(219, 228, 236, 0.45) 1px, transparent 1px);
+      background-size: 100% 38px, 58px 100%;
+      overflow: hidden;
+    }
+
+    .chart-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--blue);
+      transform-origin: left center;
+    }
+
+    .chart-line.hum {
+      background: var(--green);
+      opacity: 0.82;
+    }
+
+    .chart-dot {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 1px solid #fff;
+      background: var(--blue);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 1px 3px rgba(23, 33, 43, 0.16);
+    }
+
+    .chart-dot.hum {
+      background: var(--green);
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .temp-range-group {
+      display: none;
+    }
+
+    .temp-range-group.active {
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-swatch {
+      width: 18px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .legend-swatch.hum {
+      background: var(--green);
+    }
+
+    .page-group {
+      display: none;
+      margin: 6px 4px 2px;
+      color: var(--soft);
+      font-size: 11px;
+    }
+
+    body,
+    button,
+    input,
+    select,
+    .status-pill,
+    .mini-pill,
+    .tag,
+    .screen-kicker,
+    .metric-label,
+    .event-time,
+    .record-time,
+    .field label,
+    .kv span,
+    .nav-button,
+    .toast {
+      font-weight: 400;
+    }
+
+    h1,
+    h2,
+    h3,
+    strong,
+    .hero-title,
+    .metric-value,
+    .event-title,
+    .record-title,
+    .plan-title,
+    .device-title,
+    .icon-box,
+    .action-button,
+    .secondary-button,
+    .step-value,
+    .kv strong {
+      font-weight: 400;
+    }
+
+    .brand-title,
+    .brand-mark,
+    .primary-button,
+    .danger-button,
+    .hold-button {
+      font-weight: 500;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .desktop-only {
+      display: none;
+    }
+
+    @media (max-width: 430px) {
+      .grid.two,
+      .kv-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main {
+        display: grid;
+      }
+
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .event-row,
+      .record-row,
+      .plan-row,
+      .report-row {
+        grid-template-columns: auto 1fr;
+      }
+
+      .event-row .tag,
+      .record-row .tag,
+      .plan-row .tag,
+      .report-row .tag {
+        grid-column: 2;
+        width: max-content;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 860px) {
+      .app-shell {
+        padding: 0 20px 30px;
+      }
+
+      .topbar {
+        margin: 0 -20px;
+        padding: 14px 20px;
+      }
+
+      .workspace {
+        grid-template-columns: 256px minmax(0, 1fr);
+        align-items: start;
+        gap: 18px;
+      }
+
+      .page-rail {
+        top: 78px;
+        display: grid;
+        margin: 0;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.72);
+        overflow: visible;
+      }
+
+      .rail-button {
+        justify-content: flex-start;
+        width: 100%;
+        text-align: left;
+        white-space: normal;
+      }
+
+      .page-group {
+        display: block;
+      }
+
+      .screen-header {
+        margin-top: 10px;
+      }
+
+      .grid.desktop-two {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
+      .grid.desktop-three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .device-layout {
+        grid-template-columns: 360px minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .bottom-nav {
+        display: none;
+      }
+
+      .desktop-only {
+        display: block;
+      }
+
+      .toast {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        width: min(380px, calc(100vw - 48px));
+      }
+
+      #globalConfirm {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        width: min(390px, calc(100vw - 48px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">FA</div>
+        <div>
+          <p class="brand-title">FarmAuto</p>
+          <span class="brand-subtitle">已联网 · 自动门和下料正常</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="status-pill ok" id="topStatus"><span class="dot"></span>系统正常</span>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="page-rail" aria-label="完整导航">
+        <span class="page-group">日常使用</span>
+        <button class="rail-button active" data-screen="home-normal">日常首页</button>
+        <button class="rail-button" data-screen="home-alert">异常首页</button>
+        <button class="rail-button" data-screen="plans">计划总览</button>
+        <button class="rail-button" data-screen="door-plan">门控计划</button>
+        <button class="rail-button" data-screen="door-paused">门控暂停中</button>
+        <button class="rail-button" data-screen="feed-plan">下料计划</button>
+        <button class="rail-button" data-screen="feed-paused">下料暂停中</button>
+        <button class="rail-button" data-screen="manual-feed">手动下料</button>
+        <button class="rail-button" data-screen="temp-history">温湿度</button>
+        <button class="rail-button" data-screen="records">记录</button>
+        <button class="rail-button" data-screen="more">更多</button>
+        <span class="page-group">维护设置</span>
+        <button class="rail-button" data-screen="power-report">供电恢复报告</button>
+        <button class="rail-button" data-screen="devices">设备维护</button>
+        <button class="rail-button" data-screen="wechat">微信通知</button>
+      </aside>
+
+      <main class="content">
+        <section class="screen active" id="home-normal" data-top-state="ok" data-top-text="系统正常">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">首页 · 正常运行</p>
+              <h1>运行总览</h1>
+              <p class="muted">下一次自动动作：17:30 关门，18:00 下料。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>无人值守</span>
+          </div>
+
+          <div class="hero-status">
+            <div class="hero-main">
+              <div>
+                <div class="hero-title">当前无告警</div>
+                <p class="hero-copy">自动门、下料和微信提醒都在正常工作；没有需要马上处理的问题。</p>
+              </div>
+              <span class="mini-pill ok">微信通知待命</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-tile">
+                <div class="metric-label">门控 <span class="mini-pill ok">自动启用</span></div>
+                <div class="metric-value">门已打开</div>
+                <div class="metric-note">08:00 自动开门成功</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">下料 <span class="mini-pill ok">自动启用</span></div>
+                <div class="metric-value">早料完成</div>
+                <div class="metric-note">07:10 共 420g · 4 个下料器</div>
+              </div>
+              <div class="metric-tile" data-screen="temp-history">
+                <div class="metric-label">室外温湿度 <span class="mini-pill info">看历史</span></div>
+                <div class="metric-value">24.8°C · 68%</div>
+                <div class="metric-note">10:00 更新 · 每小时记录</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">设备连接 <span class="mini-pill ok">稳定</span></div>
+                <div class="metric-value">全部在线</div>
+                <div class="metric-note">所有自动设备都能联系上</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>最近关键事件</h2>
+            <button class="secondary-button" data-screen="records">看全部</button>
+          </div>
+          <div class="event-list">
+            <div class="event-row">
+              <div class="icon-box">门</div>
+              <div>
+                <p class="event-title">自动开门完成</p>
+                <p class="event-detail">门已到位并停止，状态正常</p>
+              </div>
+              <span class="event-time">08:00</span>
+            </div>
+            <div class="event-row">
+              <div class="icon-box">料</div>
+              <div>
+                <p class="event-title">早料计划完成</p>
+                <p class="event-detail">1 号 120g，2 号 100g，3 号 100g，4 号 100g</p>
+              </div>
+              <span class="event-time">07:10</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="plans" data-top-state="ok" data-top-text="自动计划">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">计划</p>
+              <h1>自动计划</h1>
+              <p class="muted">门控和下料分开设置；暂停只影响自动执行，不会改长期计划。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>2 类计划</span>
+          </div>
+
+          <div class="menu-grid">
+            <button class="menu-row" data-screen="door-plan">
+              <span class="icon-box">门</span>
+              <span>
+                <span class="event-title">门控计划</span>
+                <span class="event-detail">08:00 开门，17:30 关门，支持暂停自动门控</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="feed-plan">
+              <span class="icon-box">料</span>
+              <span>
+                <span class="event-title">下料计划</span>
+                <span class="event-detail">07:10 早料，18:00 晚料，支持暂停自动下料</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="power-report">
+              <span class="icon-box info">电</span>
+              <span>
+                <span class="event-title">供电恢复报告</span>
+                <span class="event-detail">查看断电期间是否错过门控或下料计划</span>
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section class="screen" id="temp-history" data-top-state="ok" data-top-text="温湿度">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">日常查看</p>
+              <h1>室外温湿度</h1>
+              <p class="muted">用于看长期天气变化和养殖环境趋势，不参与自动门和下料控制。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>10:50 更新</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>当前读数</h2>
+              <div class="metric-grid">
+                <div class="metric-tile">
+                  <div class="metric-label">温度</div>
+                  <div class="metric-value">24.8°C</div>
+                  <div class="metric-note">今日范围 18.9°C 到 26.2°C</div>
+                </div>
+                <div class="metric-tile">
+                  <div class="metric-label">湿度</div>
+                  <div class="metric-value">68%</div>
+                  <div class="metric-note">今日范围 58% 到 76%</div>
+                </div>
+              </div>
+              <div class="split-line">
+                <span class="muted">记录间隔</span>
+                <strong>每小时 1 个点</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">长期保存</span>
+                <strong>每小时原始点 + 每日汇总</strong>
+              </div>
+            </div>
+
+            <div class="temp-chart">
+              <div class="section-title" style="margin: 0;">
+                <h2 id="tempChartTitle">今天趋势</h2>
+                <span class="tag info" id="tempChartRange">24 个小时点</span>
+              </div>
+              <div class="segmented" aria-label="温湿度范围">
+                <button class="seg-button active" data-temp-range="today">今天</button>
+                <button class="seg-button" data-temp-range="month">30 天</button>
+                <button class="seg-button" data-temp-range="year">1 年</button>
+              </div>
+              <div class="chart-grid" aria-label="温湿度趋势图">
+                <span class="chart-line" style="left: 5%; top: 66%; width: 17%; transform: rotate(-16deg);"></span>
+                <span class="chart-line" style="left: 21%; top: 60%; width: 18%; transform: rotate(-20deg);"></span>
+                <span class="chart-line" style="left: 38%; top: 50%; width: 19%; transform: rotate(-8deg);"></span>
+                <span class="chart-line" style="left: 56%; top: 47%; width: 19%; transform: rotate(15deg);"></span>
+                <span class="chart-line" style="left: 74%; top: 55%; width: 19%; transform: rotate(10deg);"></span>
+                <span class="chart-line hum" style="left: 5%; top: 34%; width: 18%; transform: rotate(10deg);"></span>
+                <span class="chart-line hum" style="left: 22%; top: 38%; width: 18%; transform: rotate(14deg);"></span>
+                <span class="chart-line hum" style="left: 39%; top: 44%; width: 18%; transform: rotate(7deg);"></span>
+                <span class="chart-line hum" style="left: 56%; top: 47%; width: 18%; transform: rotate(-12deg);"></span>
+                <span class="chart-line hum" style="left: 73%; top: 42%; width: 19%; transform: rotate(-10deg);"></span>
+                <span class="chart-dot" style="left: 5%; top: 66%;"></span>
+                <span class="chart-dot" style="left: 22%; top: 60%;"></span>
+                <span class="chart-dot" style="left: 39%; top: 50%;"></span>
+                <span class="chart-dot" style="left: 57%; top: 47%;"></span>
+                <span class="chart-dot" style="left: 75%; top: 55%;"></span>
+                <span class="chart-dot" style="left: 93%; top: 59%;"></span>
+                <span class="chart-dot hum" style="left: 5%; top: 34%;"></span>
+                <span class="chart-dot hum" style="left: 23%; top: 38%;"></span>
+                <span class="chart-dot hum" style="left: 40%; top: 44%;"></span>
+                <span class="chart-dot hum" style="left: 57%; top: 47%;"></span>
+                <span class="chart-dot hum" style="left: 74%; top: 42%;"></span>
+                <span class="chart-dot hum" style="left: 93%; top: 37%;"></span>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-swatch"></span>温度</span>
+                <span class="legend-item"><span class="legend-swatch hum"></span>湿度</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>历史记录</h2>
+            <span class="tag info">示例数据</span>
+          </div>
+          <div class="record-list temp-range-group active" data-temp-group="today">
+            <div class="record-row">
+              <div class="icon-box">今</div>
+              <div>
+                <p class="record-title">今天</p>
+                <p class="record-detail">平均 22.6°C，湿度 67%；最高 26.2°C，最低 18.9°C</p>
+              </div>
+              <span class="record-time">24 点</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">10</div>
+              <div>
+                <p class="record-title">10:00</p>
+                <p class="record-detail">24.8°C，68%RH；读数正常</p>
+              </div>
+              <span class="record-time">整点</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">09</div>
+              <div>
+                <p class="record-title">09:00</p>
+                <p class="record-detail">23.9°C，70%RH；较 08:00 温度上升</p>
+              </div>
+              <span class="record-time">整点</span>
+            </div>
+          </div>
+          <div class="record-list temp-range-group" data-temp-group="month">
+            <div class="record-row">
+              <div class="icon-box">30</div>
+              <div>
+                <p class="record-title">过去 30 天</p>
+                <p class="record-detail">平均 20.9°C，平均湿度 72%；夜间湿度偏高 8 天</p>
+              </div>
+              <span class="record-time">720 点</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">高</div>
+              <div>
+                <p class="record-title">最高温日</p>
+                <p class="record-detail">6 月 18 日，最高 31.4°C，最低 22.1°C</p>
+              </div>
+              <span class="record-time">日汇总</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">湿</div>
+              <div>
+                <p class="record-title">湿度偏高提醒</p>
+                <p class="record-detail">过去 30 天有 8 天夜间湿度超过 85%</p>
+              </div>
+              <span class="record-time">统计</span>
+            </div>
+          </div>
+          <div class="record-list temp-range-group" data-temp-group="year">
+            <div class="record-row">
+              <div class="icon-box">年</div>
+              <div>
+                <p class="record-title">过去 1 年</p>
+                <p class="record-detail">每小时原始点约 8760 个，同时保留每日最高、最低、平均值</p>
+              </div>
+              <span class="record-time">长期</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">夏</div>
+              <div>
+                <p class="record-title">最热月份</p>
+                <p class="record-detail">7 月平均 28.2°C，最高 36.5°C</p>
+              </div>
+              <span class="record-time">月汇总</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">存</div>
+              <div>
+                <p class="record-title">多年保存建议</p>
+                <p class="record-detail">每小时点可保存多年；查询时优先显示日/月汇总，必要时再看原始点。</p>
+              </div>
+              <span class="record-time">方案</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="home-alert" data-top-state="bad" data-top-text="2 个问题">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">首页 · 有告警</p>
+              <h1>告警总览</h1>
+              <p class="muted">自动计划未全部停止；下料和设备连接异常需要优先检查。</p>
+            </div>
+            <span class="status-pill bad"><span class="dot"></span>2 个问题</span>
+          </div>
+
+          <div class="hero-status alert">
+            <div class="hero-main">
+              <div>
+                <div class="hero-title">优先处理：2 号下料器</div>
+                <p class="hero-copy">系统已发送微信告警。门控自动计划保持启用，下料自动计划建议暂停后现场检查。</p>
+              </div>
+              <span class="mini-pill bad">已通知</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-tile critical-card">
+                <div class="metric-label">下料 <span class="mini-pill warn">疑似异常</span></div>
+                <div class="metric-value">2 号偏差大</div>
+                <div class="metric-note">目标 100g，估算完成 38g；第一版只提示检查，不判定精确缺料</div>
+              </div>
+              <div class="metric-tile critical-card">
+                <div class="metric-label">设备连接 <span class="mini-pill bad">联系不上</span></div>
+                <div class="metric-value">2 号设备离线</div>
+                <div class="metric-note">最后正常时间 10:31，建议检查电源和接线</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">门控 <span class="mini-pill ok">自动启用</span></div>
+                <div class="metric-value">门已打开</div>
+                <div class="metric-note">17:30 仍会尝试自动关门</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">室外温湿度 <span class="mini-pill info">看历史</span></div>
+                <div class="metric-value">25.6°C · 71%</div>
+                <div class="metric-note">10:00 更新 · 每小时记录</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>建议处理</h2>
+          </div>
+          <div class="grid">
+            <div class="card critical-card">
+              <h3>暂停自动下料后检查料槽</h3>
+              <p class="muted">暂停不会修改长期计划；暂停期间仍可手动少量下料；错过计划默认不补跑。</p>
+              <div class="button-row">
+                <button class="danger-button" data-screen="feed-paused">暂停自动下料</button>
+                <button class="secondary-button" data-screen="manual-feed">手动下料</button>
+              </div>
+            </div>
+            <div class="card">
+              <h3>查看设备维护信息</h3>
+              <p class="muted">如果现场检查后还异常，再看设备连接、电源、地址和运行数据。</p>
+              <button class="secondary-button" data-screen="devices">打开设备维护</button>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>最近关键事件</h2>
+          </div>
+          <div class="event-list">
+            <div class="event-row">
+              <div class="icon-box bad">03</div>
+              <div>
+                <p class="event-title">2 号设备联系不上</p>
+                <p class="event-detail">系统多次尝试联系失败，建议检查电源和接线</p>
+              </div>
+              <span class="event-time">10:42</span>
+            </div>
+            <div class="event-row">
+              <div class="icon-box warn">料</div>
+              <div>
+                <p class="event-title">2 号下料器疑似异常</p>
+                <p class="event-detail">实际下料偏少，建议现场检查料槽和设备</p>
+              </div>
+              <span class="event-time">10:38</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="power-report" data-top-state="warn" data-top-text="供电恢复">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">系统报告</p>
+              <h1>供电已恢复</h1>
+              <p class="muted">系统根据时间和最近保存记录推测断电范围。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>需确认</span>
+          </div>
+
+          <div class="card critical-card">
+            <h2>恢复摘要</h2>
+            <div class="grid two">
+              <div class="kv">
+                <span>恢复时间</span>
+                <strong>今天 09:42</strong>
+              </div>
+              <div class="kv">
+                <span>推测断电范围</span>
+                <strong>06:18 到 09:42</strong>
+              </div>
+              <div class="kv">
+                <span>自动计划状态</span>
+                <strong>已恢复执行</strong>
+              </div>
+              <div class="kv">
+                <span>微信通知</span>
+                <strong>恢复报告已发送</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>错过计划</h2>
+          </div>
+          <div class="report-list">
+            <div class="report-row">
+              <div class="icon-box warn">门</div>
+              <div>
+                <p class="event-title">08:00 自动开门可能错过</p>
+                <p class="event-detail">恢复后检测到门位未知，未自动补跑；建议现场确认后手动开门或校准。</p>
+              </div>
+              <span class="tag warn">不补跑</span>
+            </div>
+            <div class="report-row">
+              <div class="icon-box warn">料</div>
+              <div>
+                <p class="event-title">07:10 早料计划错过</p>
+                <p class="event-detail">恢复后自动下料继续启用，但错过的早料不自动补跑。</p>
+              </div>
+              <span class="tag warn">需决定</span>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>恢复过程</h2>
+          </div>
+          <div class="card">
+            <div class="timeline">
+              <div class="timeline-item">
+                <p class="event-title">09:42 系统启动</p>
+                <p class="event-detail">系统时间有效，计划和记录加载成功。</p>
+              </div>
+              <div class="timeline-item">
+                <p class="event-title">09:43 检查设备连接</p>
+                <p class="event-detail">4 个设备在线，2 号下料设备首次无响应。</p>
+              </div>
+              <div class="timeline-item">
+                <p class="event-title">09:44 自动计划恢复</p>
+                <p class="event-detail">后续计划继续执行；断电期间错过计划不补跑。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>可执行动作</h2>
+          </div>
+          <div class="grid two">
+            <button class="secondary-button" data-screen="door-plan">查看门控计划</button>
+            <button class="secondary-button" data-screen="manual-feed">手动补少量下料</button>
+          </div>
+        </section>
+
+        <section class="screen" id="door-plan" data-top-state="ok" data-top-text="门控自动">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">门控</p>
+              <h1>每日门控计划</h1>
+              <p class="muted">每天可以设置多个开门、关门时间点；到位后设备会自动停止。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>自动启用</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>当前门控</h2>
+              <div class="split-line">
+                <span class="muted">门位置</span>
+                <strong>已打开 · 100%</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">自动门设备</span>
+                <strong>在线</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">下一计划</span>
+                <strong>17:30 关门</strong>
+              </div>
+              <div class="section-title">
+                <h2>手动动作</h2>
+              </div>
+              <div class="action-grid">
+                <button class="action-button" data-command="手动开门" data-confirm-note="自动门将执行开门，到位后自行停止。">开门</button>
+                <button class="action-button" data-command="手动关门" data-confirm-note="自动门将执行关门，到位后自行停止。">关门</button>
+                <button class="action-button urgent" data-command="手动停止门控" data-confirm-note="停止命令发出后，自动门会立即停止当前动作。">停止</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>自动计划</h2>
+              <div class="plan-list">
+                <div class="plan-row">
+                  <div class="icon-box">08</div>
+                  <div>
+                    <p class="plan-title">08:00 开门</p>
+                    <p class="plan-detail">每天执行 · 失败时微信通知</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box">17</div>
+                  <div>
+                    <p class="plan-title">17:30 关门</p>
+                    <p class="plan-detail">每天执行 · 到位后自动停止</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box info">21</div>
+                  <div>
+                    <p class="plan-title">21:00 关门复查</p>
+                    <p class="plan-detail">若已关门则只记录检查结果</p>
+                  </div>
+                  <span class="tag info">复查</span>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button">新增计划点</button>
+                <button class="danger-button" data-screen="door-paused">暂停自动门控</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="door-paused" data-top-state="warn" data-top-text="门控暂停">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">门控</p>
+              <h1>自动门控暂停中</h1>
+              <p class="muted">长期计划仍保留，暂停结束后继续按原计划运行。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>暂停到 18:00</span>
+          </div>
+
+          <div class="pause-banner">
+            <h2>暂停的是自动门控，不是手动控制</h2>
+            <ul class="rule-list">
+              <li><span class="check">✓</span><span>暂停期间可以在 Web 或本地按钮手动开门、关门、停止。</span></li>
+              <li><span class="check warn-mark">!</span><span>17:30 关门计划如果被暂停错过，默认不会补跑。</span></li>
+              <li><span class="check">✓</span><span>18:00 后自动门控恢复，下一次计划继续执行。</span></li>
+            </ul>
+            <div class="button-row">
+              <button class="primary-button" data-command="立即恢复自动门控" data-confirm-note="恢复后，后续门控计划继续执行；已错过计划不补跑。">立即恢复</button>
+              <button class="secondary-button">延长 2 小时</button>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>暂停期间手动动作</h2>
+          </div>
+          <div class="card">
+            <div class="action-grid">
+              <button class="action-button" data-command="暂停期间手动开门" data-confirm-note="仅执行这一次开门，不会修改自动门控计划。">开门</button>
+              <button class="action-button" data-command="暂停期间手动关门" data-confirm-note="仅执行这一次关门，不会修改自动门控计划。">关门</button>
+              <button class="action-button urgent" data-command="暂停期间停止门控" data-confirm-note="停止当前门控动作，自动门控仍保持暂停。">停止</button>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>原计划仍保留</h2>
+          </div>
+          <div class="plan-list">
+            <div class="plan-row">
+              <div class="icon-box warn">17</div>
+              <div>
+                <p class="plan-title">17:30 关门</p>
+                <p class="plan-detail">暂停窗口内，若到点不会执行，也不会补跑。</p>
+              </div>
+              <span class="tag warn">将跳过</span>
+            </div>
+            <div class="plan-row">
+              <div class="icon-box">08</div>
+              <div>
+                <p class="plan-title">明天 08:00 开门</p>
+                <p class="plan-detail">暂停结束后正常执行。</p>
+              </div>
+              <span class="tag ok">保留</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="feed-plan" data-top-state="ok" data-top-text="下料自动">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">下料</p>
+              <h1>每日下料计划</h1>
+              <p class="muted">每个时间点设置各下料器投喂多少；正常到点自动执行。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>自动启用</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>今日下料摘要</h2>
+              <div class="metric-grid">
+                <div class="metric-tile">
+                  <div class="metric-label">已完成</div>
+                  <div class="metric-value">420g</div>
+                  <div class="metric-note">07:10 早料</div>
+                </div>
+                <div class="metric-tile">
+                  <div class="metric-label">待执行</div>
+                  <div class="metric-value">520g</div>
+                  <div class="metric-note">18:00 晚料</div>
+                </div>
+              </div>
+              <div class="split-line">
+                <span class="muted">校准量</span>
+                <strong>已按每个下料器单独校准</strong>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button" data-screen="manual-feed">手动下料</button>
+                <button class="danger-button" data-screen="feed-paused">暂停自动下料</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>自动计划</h2>
+              <div class="plan-list">
+                <div class="plan-row">
+                  <div class="icon-box">早</div>
+                  <div>
+                    <p class="plan-title">07:10 早料</p>
+                    <p class="plan-detail">1号 120g · 2号 100g · 3号 100g · 4号 100g</p>
+                  </div>
+                  <span class="tag ok">已完成</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box">晚</div>
+                  <div>
+                    <p class="plan-title">18:00 晚料</p>
+                    <p class="plan-detail">1号 140g · 2号 120g · 3号 130g · 4号 130g</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box info">补</div>
+                  <div>
+                    <p class="plan-title">21:30 少量补料</p>
+                    <p class="plan-detail">仅 1 号和 3 号，各 40g</p>
+                  </div>
+                  <span class="tag info">启用</span>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button">新增计划点</button>
+                <button class="secondary-button">编辑每圈克数</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="feed-paused" data-top-state="warn" data-top-text="下料暂停">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">下料</p>
+              <h1>自动下料暂停中</h1>
+              <p class="muted">建议用于检修、补料、疑似异常排查，不改动长期下料计划。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>暂停到明天 06:00</span>
+          </div>
+
+          <div class="pause-banner">
+            <h2>暂停期间仍允许 Web 手动下料</h2>
+            <ul class="rule-list">
+              <li><span class="check">✓</span><span>暂停只拦截自动下料计划，手动下料需要单独确认。</span></li>
+              <li><span class="check warn-mark">!</span><span>18:00 晚料和 21:30 补料如果错过，默认不补跑。</span></li>
+              <li><span class="check">✓</span><span>明天 06:00 后自动下料恢复，后续计划继续执行。</span></li>
+            </ul>
+            <div class="button-row">
+              <button class="primary-button" data-command="立即恢复自动下料" data-confirm-note="恢复后，后续下料计划继续执行；已错过计划不补跑。">立即恢复</button>
+              <button class="secondary-button" data-screen="manual-feed">去手动下料</button>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>将跳过的计划</h2>
+          </div>
+          <div class="plan-list">
+            <div class="plan-row">
+              <div class="icon-box warn">晚</div>
+              <div>
+                <p class="plan-title">18:00 晚料</p>
+                <p class="plan-detail">暂停窗口内，到点不会执行。</p>
+              </div>
+              <span class="tag warn">将跳过</span>
+            </div>
+            <div class="plan-row">
+              <div class="icon-box warn">补</div>
+              <div>
+                <p class="plan-title">21:30 少量补料</p>
+                <p class="plan-detail">暂停窗口内，到点不会执行。</p>
+              </div>
+              <span class="tag warn">将跳过</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="manual-feed" data-top-state="warn" data-top-text="手动下料">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">手动控制</p>
+              <h1>Web 手动下料</h1>
+              <p class="muted">手动下料是立即动作，必须先核对下料器和克数，再长按发送。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>需确认</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>选择下料量</h2>
+              <div class="feeder-editor">
+                <div class="feeder-line" data-feeder-line>
+                  <div>
+                    <p class="event-title">1 号下料器</p>
+                    <p class="event-detail">校准量 8.0g/圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-10" aria-label="1 号减少">−</button>
+                    <div class="step-value" data-value>40</div>
+                    <button class="step-button" data-step="10" aria-label="1 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feeder-line>
+                  <div>
+                    <p class="event-title">2 号下料器</p>
+                    <p class="event-detail">最近疑似异常</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-10" aria-label="2 号减少">−</button>
+                    <div class="step-value" data-value>0</div>
+                    <button class="step-button" data-step="10" aria-label="2 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feeder-line>
+                  <div>
+                    <p class="event-title">3 号下料器</p>
+                    <p class="event-detail">校准量 8.2g/圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-10" aria-label="3 号减少">−</button>
+                    <div class="step-value" data-value>40</div>
+                    <button class="step-button" data-step="10" aria-label="3 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feeder-line>
+                  <div>
+                    <p class="event-title">4 号下料器</p>
+                    <p class="event-detail">校准量 8.0g/圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-10" aria-label="4 号减少">−</button>
+                    <div class="step-value" data-value>40</div>
+                    <button class="step-button" data-step="10" aria-label="4 号增加">+</button>
+                  </div>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="primary-button" id="buildFeedConfirm">生成确认清单</button>
+                <button class="secondary-button" id="clearFeed">全部清零</button>
+              </div>
+            </div>
+
+            <div class="card critical-card">
+              <h2>发送前确认</h2>
+              <div class="confirm-sheet show" id="manualFeedConfirm">
+                <div>
+                  <p class="event-title">将立即下料：共 120g</p>
+                  <p class="event-detail" id="feedConfirmText">1 号 40g，3 号 40g，4 号 40g；2 号不下料。</p>
+                </div>
+                <ul class="rule-list">
+                  <li><span class="check warn-mark">!</span><span>发送后会立即下料，请确认料槽和下料器都安全。</span></li>
+                  <li><span class="check">✓</span><span>这次手动下料不会修改自动计划。</span></li>
+                </ul>
+                <button class="hold-button" data-hold-command="发送手动下料命令" data-hold-note="手动下料命令已发送，执行结果会写入下料记录。"><span>长按 2 秒发送</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="devices" data-top-state="warn" data-top-text="1 个离线">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">维护 · RS485 设备</p>
+              <h1>设备维护</h1>
+              <p class="muted">给维护人员查看地址、通讯、电机、电流和编码器状态。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>5 在线 · 1 离线</span>
+          </div>
+
+          <div class="device-layout">
+            <div class="device-list">
+              <div class="device-group-title">门控设备</div>
+              <button class="device-row active" data-device="door01">
+                <div class="icon-box">01</div>
+                <div>
+                  <p class="device-title">门控 01 · 鸡舍门</p>
+                  <p class="device-detail">在线 · 位置 100% · 电流正常</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="door02">
+                <div class="icon-box info">02</div>
+                <div>
+                  <p class="device-title">门控 02 · 预留门位</p>
+                  <p class="device-detail">未启用 · 可后续扩展</p>
+                </div>
+              </button>
+
+              <div class="device-group-title">下料设备</div>
+              <button class="device-row" data-device="feed01">
+                <div class="icon-box">01</div>
+                <div>
+                  <p class="device-title">下料 01 · 1 号下料器</p>
+                  <p class="device-detail">在线 · 最近完成 120g</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="feed02">
+                <div class="icon-box bad">02</div>
+                <div>
+                  <p class="device-title">下料 02 · 2 号下料器</p>
+                  <p class="device-detail">离线 · 连续 6 次轮询无响应</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="feed03">
+                <div class="icon-box">03</div>
+                <div>
+                  <p class="device-title">下料 03 · 3 号下料器</p>
+                  <p class="device-detail">在线 · 电流正常</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="feed04">
+                <div class="icon-box">04</div>
+                <div>
+                  <p class="device-title">下料 04 · 4 号下料器</p>
+                  <p class="device-detail">在线 · 编码器正常</p>
+                </div>
+              </button>
+
+              <div class="device-group-title">传感器</div>
+              <button class="device-row" data-device="sensor01">
+                <div class="icon-box info">01</div>
+                <div>
+                  <p class="device-title">温湿度 01 · 室外</p>
+                  <p class="device-detail">在线 · 每小时记录</p>
+                </div>
+              </button>
+            </div>
+
+            <div class="detail-panel">
+              <div data-device-panel="door01" class="active">
+                <div class="card">
+                  <h2>门控 01 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>门控</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>01</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，18ms</strong></div>
+                    <div class="kv"><span>门位置</span><strong>已打开 100%</strong></div>
+                    <div class="kv"><span>电机状态</span><strong>停止</strong></div>
+                    <div class="kv"><span>电流</span><strong>0.08A 空闲</strong></div>
+                    <div class="kv"><span>编码器</span><strong>脉冲稳定</strong></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <h2>可执行动作</h2>
+                  <div class="action-grid">
+                    <button class="action-button" data-command="门控 01 开门" data-confirm-note="门控 01 将执行开门，到位后自行停止。">开门</button>
+                    <button class="action-button" data-command="门控 01 关门" data-confirm-note="门控 01 将执行关门，到位后自行停止。">关门</button>
+                    <button class="action-button urgent" data-command="门控 01 停止" data-confirm-note="停止门控 01 当前动作。">停止</button>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="door02">
+                <div class="card">
+                  <h2>门控 02 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>门控</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>02</strong></div>
+                    <div class="kv"><span>启用状态</span><strong>未启用</strong></div>
+                    <div class="kv"><span>用途</span><strong>预留门位</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="feed01">
+                <div class="card">
+                  <h2>下料 01 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>11</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，23ms</strong></div>
+                    <div class="kv"><span>每圈克数</span><strong>8.0g</strong></div>
+                    <div class="kv"><span>最近动作</span><strong>120g 完成</strong></div>
+                    <div class="kv"><span>编码器</span><strong>目标脉冲完成</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="feed02">
+                <div class="card critical-card">
+                  <h2>下料 02 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>12</strong></div>
+                    <div class="kv"><span>通讯</span><strong>离线</strong></div>
+                    <div class="kv"><span>最后在线</span><strong>10:31</strong></div>
+                    <div class="kv"><span>连续失败</span><strong>6 次</strong></div>
+                    <div class="kv"><span>最近异常</span><strong>疑似下料不足</strong></div>
+                    <div class="kv"><span>建议</span><strong>检查供电和接线</strong></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <h2>记录摘要</h2>
+                  <p class="muted">10:38 下料执行中编码器脉冲不足；10:42 起通讯中断。第一版只提示“疑似异常，建议检查”。</p>
+                  <button class="secondary-button" data-screen="records">查看设备维护记录</button>
+                </div>
+              </div>
+
+              <div data-device-panel="feed03">
+                <div class="card">
+                  <h2>下料 03 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>13</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，21ms</strong></div>
+                    <div class="kv"><span>每圈克数</span><strong>8.2g</strong></div>
+                    <div class="kv"><span>电流</span><strong>正常</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="feed04">
+                <div class="card">
+                  <h2>下料 04 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>14</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，19ms</strong></div>
+                    <div class="kv"><span>每圈克数</span><strong>8.0g</strong></div>
+                    <div class="kv"><span>编码器</span><strong>正常</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="sensor01">
+                <div class="card">
+                  <h2>温湿度 01 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>传感器</strong></div>
+                    <div class="kv"><span>安装位置</span><strong>室外</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线</strong></div>
+                    <div class="kv"><span>记录间隔</span><strong>每小时</strong></div>
+                    <div class="kv"><span>最近读数</span><strong>24.8°C / 68%</strong></div>
+                    <div class="kv"><span>用途</span><strong>只记录，不控制</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="records" data-top-state="ok" data-top-text="记录">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">记录</p>
+              <h1>分类记录</h1>
+              <p class="muted">日常记录按门控、下料、系统和设备维护拆开查看。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>记录正常</span>
+          </div>
+
+          <div class="segmented record-tabs" aria-label="记录分类">
+            <button class="seg-button active" data-record-tab="door">门控</button>
+            <button class="seg-button" data-record-tab="feed">下料</button>
+            <button class="seg-button" data-record-tab="system">系统</button>
+            <button class="seg-button" data-record-tab="comm">设备维护</button>
+          </div>
+
+          <div class="record-group active" data-record-group="door">
+            <div class="record-row">
+              <div class="icon-box">门</div>
+              <div>
+                <p class="record-title">自动开门完成</p>
+                <p class="record-detail">门已到位并停止，状态正常</p>
+              </div>
+              <span class="record-time">今天 08:00</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">复</div>
+              <div>
+                <p class="record-title">关门复查跳过</p>
+                <p class="record-detail">检测到门已关闭，仅记录状态</p>
+              </div>
+              <span class="record-time">昨天 21:00</span>
+            </div>
+          </div>
+
+          <div class="record-group" data-record-group="feed">
+            <div class="record-row">
+              <div class="icon-box">料</div>
+              <div>
+                <p class="record-title">早料计划完成</p>
+                <p class="record-detail">共 420g · 4 个下料器完成</p>
+              </div>
+              <span class="record-time">今天 07:10</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box warn">2</div>
+              <div>
+                <p class="record-title">2 号下料器疑似异常</p>
+                <p class="record-detail">目标 100g，估算偏低；建议检查，不做精确缺料承诺</p>
+              </div>
+              <span class="record-time">今天 10:38</span>
+            </div>
+          </div>
+
+          <div class="record-group" data-record-group="system">
+            <div class="record-row">
+              <div class="icon-box warn">电</div>
+              <div>
+                <p class="record-title">供电恢复报告生成</p>
+                <p class="record-detail">推测断电 06:18 到 09:42，自动计划已恢复</p>
+              </div>
+              <span class="record-time">今天 09:44</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">时</div>
+              <div>
+                <p class="record-title">系统时间检查通过</p>
+                <p class="record-detail">启动后时间可信，记录可用</p>
+              </div>
+              <span class="record-time">今天 09:42</span>
+            </div>
+          </div>
+
+          <div class="record-group" data-record-group="comm">
+            <div class="record-row">
+              <div class="icon-box bad">03</div>
+              <div>
+                <p class="record-title">2 号下料设备联系不上</p>
+                <p class="record-detail">连续 6 次无响应，最后在线 10:31</p>
+              </div>
+              <span class="record-time">今天 10:42</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">总</div>
+              <div>
+                <p class="record-title">设备连接检查正常</p>
+                <p class="record-detail">自动门、1 号、3 号、4 号下料设备响应正常</p>
+              </div>
+              <span class="record-time">今天 10:41</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="more" data-top-state="ok" data-top-text="更多">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">导航</p>
+              <h1>更多功能</h1>
+              <p class="muted">日常低频功能和维护设置集中放在这里，避免首页和底部导航过重。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>导航</span>
+          </div>
+
+          <div class="section-title">
+            <h2>日常查看</h2>
+          </div>
+          <div class="menu-grid">
+            <button class="menu-row" data-screen="records">
+              <span class="icon-box">记</span>
+              <span>
+                <span class="event-title">分类记录</span>
+                <span class="event-detail">门控、下料、系统和设备维护记录</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="temp-history">
+              <span class="icon-box info">温</span>
+              <span>
+                <span class="event-title">温湿度历史</span>
+                <span class="event-detail">查看今天、30 天和 1 年趋势</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="power-report">
+              <span class="icon-box warn">电</span>
+              <span>
+                <span class="event-title">供电恢复报告</span>
+                <span class="event-detail">确认断电期间是否错过计划</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="section-title">
+            <h2>维护设置</h2>
+          </div>
+          <div class="menu-grid">
+            <button class="menu-row" data-screen="devices">
+              <span class="icon-box">设</span>
+              <span>
+                <span class="event-title">设备维护</span>
+                <span class="event-detail">按门控、下料、传感器查看设备状态</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="wechat">
+              <span class="icon-box info">微</span>
+              <span>
+                <span class="event-title">微信通知</span>
+                <span class="event-detail">设置告警通知和发送测试通知</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="section-title">
+            <h2>原型状态</h2>
+          </div>
+          <div class="menu-grid">
+            <button class="menu-row" data-screen="home-alert">
+              <span class="icon-box warn">异</span>
+              <span>
+                <span class="event-title">异常首页示例</span>
+                <span class="event-detail">用于验证有告警时首页是否看得懂</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="door-paused">
+              <span class="icon-box warn">门</span>
+              <span>
+                <span class="event-title">门控暂停状态</span>
+                <span class="event-detail">验证暂停自动门控的解释是否清楚</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="feed-paused">
+              <span class="icon-box warn">料</span>
+              <span>
+                <span class="event-title">下料暂停状态</span>
+                <span class="event-detail">验证暂停自动下料的解释是否清楚</span>
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section class="screen" id="wechat" data-top-state="ok" data-top-text="微信通知">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">通知</p>
+              <h1>微信通知设置</h1>
+              <p class="muted">正常时少打扰，异常和供电恢复时主动通知。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>已启用</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>通知开关</h2>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">严重告警</p>
+                  <p class="event-detail">设备联系不上、门控失败、堵转、过流</p>
+                </div>
+                <label class="switch"><input type="checkbox" checked><span></span></label>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">疑似异常</p>
+                  <p class="event-detail">疑似下料不足、运行数据异常</p>
+                </div>
+                <label class="switch"><input type="checkbox" checked><span></span></label>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">供电恢复报告</p>
+                  <p class="event-detail">恢复时间、断电范围、错过计划</p>
+                </div>
+                <label class="switch"><input type="checkbox" checked><span></span></label>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">每日正常摘要</p>
+                  <p class="event-detail">每天固定时间发一条运行摘要</p>
+                </div>
+                <label class="switch"><input type="checkbox"><span></span></label>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>测试通知</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="notifyTarget">接收对象</label>
+                  <select id="notifyTarget">
+                    <option>主人微信</option>
+                    <option>值班家人</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="notifyToken">通知密钥</label>
+                  <input id="notifyToken" type="password" value="************" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="notifyPreview">测试内容</label>
+                  <input id="notifyPreview" value="FarmAuto 测试通知：主控在线，微信通知可用。">
+                </div>
+                <button class="primary-button" id="testNotify">发送测试通知</button>
+                <p class="muted small" id="notifyResult">上次测试：今天 09:45 发送成功。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="常用入口">
+    <button class="nav-button active" data-screen="home-normal"><span>首</span><span>首页</span></button>
+    <button class="nav-button" data-screen="plans"><span>计</span><span>计划</span></button>
+    <button class="nav-button" data-screen="manual-feed"><span>手</span><span>手动</span></button>
+    <button class="nav-button" data-screen="temp-history"><span>温</span><span>温湿度</span></button>
+    <button class="nav-button" data-screen="more"><span>更</span><span>更多</span></button>
+  </nav>
+
+  <div class="confirm-sheet" id="globalConfirm" aria-live="polite">
+    <div>
+      <p class="event-title" id="globalConfirmTitle">确认动作</p>
+      <p class="event-detail" id="globalConfirmNote"></p>
+    </div>
+    <button class="hold-button" id="globalHold" data-hold-command="" data-hold-note=""><span>长按 2 秒发送</span></button>
+    <button class="secondary-button" id="cancelConfirm">取消</button>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const screens = Array.from(document.querySelectorAll(".screen"));
+    const topStatus = document.getElementById("topStatus");
+    const toast = document.getElementById("toast");
+    const globalConfirm = document.getElementById("globalConfirm");
+    const globalHold = document.getElementById("globalHold");
+    const globalConfirmTitle = document.getElementById("globalConfirmTitle");
+    const globalConfirmNote = document.getElementById("globalConfirmNote");
+    const cancelConfirm = document.getElementById("cancelConfirm");
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2800);
+    }
+
+    function navRootFor(id) {
+      if (["plans", "door-plan", "door-paused", "feed-plan", "feed-paused", "power-report"].includes(id)) return "plans";
+      if (["records", "devices", "wechat", "more", "home-alert"].includes(id)) return "more";
+      return id;
+    }
+
+    function setScreen(id) {
+      const target = document.getElementById(id);
+      if (!target) return;
+      screens.forEach((screen) => screen.classList.toggle("active", screen.id === id));
+      document.querySelectorAll("[data-screen]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.screen === id);
+      });
+      document.querySelectorAll(".bottom-nav .nav-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.screen === navRootFor(id));
+      });
+      const state = target.dataset.topState || "ok";
+      const text = target.dataset.topText || "系统正常";
+      topStatus.className = "status-pill " + (state === "bad" ? "bad" : state === "warn" ? "warn" : "ok");
+      topStatus.innerHTML = '<span class="dot"></span>' + text;
+      globalConfirm.classList.remove("show");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.addEventListener("click", (event) => {
+      const screenButton = event.target.closest("[data-screen]");
+      if (screenButton) {
+        setScreen(screenButton.dataset.screen);
+      }
+    });
+
+    document.querySelectorAll("[data-command]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const command = button.dataset.command;
+        globalConfirmTitle.textContent = "确认：" + command;
+        globalConfirmNote.textContent = button.dataset.confirmNote || "该动作会立即发送到主控。";
+        globalHold.dataset.holdCommand = command;
+        globalHold.dataset.holdNote = command + "命令已发送。";
+        globalConfirm.classList.add("show");
+        globalConfirm.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    });
+
+    cancelConfirm.addEventListener("click", () => {
+      globalConfirm.classList.remove("show");
+      showToast("已取消，未发送命令。");
+    });
+
+    let holdTimer = null;
+    let holdProgressTimer = null;
+    function bindHold(button) {
+      const duration = 1400;
+      const start = (event) => {
+        event.preventDefault();
+        let progress = 0;
+        button.style.setProperty("--hold-progress", "0%");
+        clearInterval(holdProgressTimer);
+        clearTimeout(holdTimer);
+        holdProgressTimer = setInterval(() => {
+          progress += 80 / duration * 100;
+          button.style.setProperty("--hold-progress", Math.min(progress, 100) + "%");
+        }, 80);
+        holdTimer = setTimeout(() => {
+          clearInterval(holdProgressTimer);
+          button.style.setProperty("--hold-progress", "100%");
+          const note = button.dataset.holdNote || button.dataset.holdCommand || "命令已发送。";
+          showToast(note);
+          globalConfirm.classList.remove("show");
+          setTimeout(() => button.style.setProperty("--hold-progress", "0%"), 260);
+        }, duration);
+      };
+      const cancel = () => {
+        clearTimeout(holdTimer);
+        clearInterval(holdProgressTimer);
+        button.style.setProperty("--hold-progress", "0%");
+      };
+      button.addEventListener("mousedown", start);
+      button.addEventListener("touchstart", start, { passive: false });
+      ["mouseup", "mouseleave", "touchend", "touchcancel"].forEach((type) => {
+        button.addEventListener(type, cancel);
+      });
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+    }
+
+    document.querySelectorAll(".hold-button").forEach(bindHold);
+
+    function refreshFeedConfirm() {
+      const values = Array.from(document.querySelectorAll("[data-feeder-line] [data-value]"))
+        .map((node, index) => ({ index: index + 1, grams: Number(node.textContent) }));
+      const total = values.reduce((sum, item) => sum + item.grams, 0);
+      const active = values.filter((item) => item.grams > 0)
+        .map((item) => item.index + " 号 " + item.grams + "g");
+      const skipped = values.filter((item) => item.grams === 0)
+        .map((item) => item.index + " 号不下料");
+      document.querySelector("#manualFeedConfirm .event-title").textContent = "将立即下料：共 " + total + "g";
+      document.getElementById("feedConfirmText").textContent = [...active, ...skipped].join("，") + "。";
+    }
+
+    document.querySelectorAll("[data-step]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const valueNode = button.parentElement.querySelector("[data-value]");
+        const next = Math.max(0, Math.min(300, Number(valueNode.textContent) + Number(button.dataset.step)));
+        valueNode.textContent = next;
+        refreshFeedConfirm();
+      });
+    });
+
+    document.getElementById("buildFeedConfirm").addEventListener("click", () => {
+      refreshFeedConfirm();
+      showToast("确认清单已更新，请核对后长按发送。");
+    });
+
+    document.getElementById("clearFeed").addEventListener("click", () => {
+      document.querySelectorAll("[data-feeder-line] [data-value]").forEach((node) => {
+        node.textContent = "0";
+      });
+      refreshFeedConfirm();
+      showToast("已全部清零。");
+    });
+
+    document.querySelectorAll("[data-device]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.device;
+        document.querySelectorAll("[data-device]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-device-panel]").forEach((panel) => {
+          panel.classList.toggle("active", panel.dataset.devicePanel === id);
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-record-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.recordTab;
+        document.querySelectorAll("[data-record-tab]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-record-group]").forEach((group) => {
+          group.classList.toggle("active", group.dataset.recordGroup === id);
+        });
+      });
+    });
+
+    const tempTitles = {
+      today: ["今天趋势", "24 个小时点"],
+      month: ["30 天趋势", "每天概览 + 小时原始点"],
+      year: ["1 年趋势", "月汇总 + 每小时原始点"]
+    };
+
+    document.querySelectorAll("[data-temp-range]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.tempRange;
+        document.querySelectorAll("[data-temp-range]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-temp-group]").forEach((group) => {
+          group.classList.toggle("active", group.dataset.tempGroup === id);
+        });
+        document.getElementById("tempChartTitle").textContent = tempTitles[id][0];
+        document.getElementById("tempChartRange").textContent = tempTitles[id][1];
+      });
+    });
+
+    document.getElementById("testNotify").addEventListener("click", () => {
+      document.getElementById("notifyResult").textContent = "刚刚发送：测试通知已提交，等待微信端确认。";
+      showToast("测试通知已发送。");
+    });
+
+    refreshFeedConfirm();
+  </script>
+</body>
+</html>

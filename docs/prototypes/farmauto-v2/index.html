@@ -1,0 +1,3661 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FarmAuto Web 原型</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface-2: #eef3f7;
+      --line: #dbe4ec;
+      --line-strong: #c5d2dc;
+      --text: #17212b;
+      --muted: #667789;
+      --soft: #8a98a8;
+      --green: #0f766e;
+      --green-2: #e7f7f4;
+      --blue: #1d5f7a;
+      --blue-2: #e8f3f7;
+      --amber: #9b5d12;
+      --amber-2: #fff6e5;
+      --red: #b42318;
+      --red-2: #fff0ee;
+      --shadow: 0 10px 26px rgba(23, 33, 43, 0.07);
+      --radius: 8px;
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(15, 118, 110, 0.05), transparent 230px),
+        linear-gradient(90deg, rgba(29, 95, 122, 0.035) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(29, 95, 122, 0.025) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, 28px 28px, 28px 28px, auto;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-shell {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 0 12px 92px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 -12px;
+      padding: 10px 12px;
+      background: rgba(245, 247, 250, 0.94);
+      border-bottom: 1px solid rgba(219, 228, 236, 0.92);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      border-radius: var(--radius);
+      background: var(--green);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.1;
+      font-weight: 600;
+    }
+
+    .brand-subtitle {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .status-pill,
+    .mini-pill,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 560;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    .mini-pill,
+    .tag {
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
+    .ok {
+      color: var(--green);
+      background: var(--green-2);
+      border-color: rgba(36, 107, 69, 0.18);
+    }
+
+    .warn {
+      color: var(--amber);
+      background: var(--amber-2);
+      border-color: rgba(154, 92, 19, 0.20);
+    }
+
+    .bad {
+      color: var(--red);
+      background: var(--red-2);
+      border-color: rgba(167, 53, 47, 0.20);
+    }
+
+    .info {
+      color: var(--blue);
+      background: var(--blue-2);
+      border-color: rgba(37, 99, 122, 0.18);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 12px;
+      padding-top: 10px;
+    }
+
+    .page-rail {
+      position: sticky;
+      top: 65px;
+      z-index: 10;
+      display: none;
+      gap: 7px;
+      margin: 0 -12px;
+      padding: 0 12px 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .page-rail::-webkit-scrollbar {
+      display: none;
+    }
+
+    .rail-button,
+    .tab-button,
+    .seg-button {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      border-radius: var(--radius);
+      min-height: 34px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-weight: 520;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .rail-button.active,
+    .tab-button.active,
+    .seg-button.active {
+      color: var(--green);
+      border-color: rgba(15, 118, 110, 0.34);
+      background: var(--green-2);
+      box-shadow: none;
+    }
+
+    .content {
+      min-width: 0;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+      animation: screenIn 160ms ease-out;
+    }
+
+    @keyframes screenIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .screen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 2px 0 12px;
+    }
+
+    .screen-kicker {
+      margin: 0 0 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 560;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    strong {
+      font-weight: 540;
+    }
+
+    h1 {
+      margin-bottom: 6px;
+      font-size: 20px;
+      line-height: 1.16;
+      font-weight: 560;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 540;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 520;
+      letter-spacing: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .small {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card,
+    .event-row,
+    .metric-tile,
+    .plan-row,
+    .device-row,
+    .record-row,
+    .setting-row,
+    .report-row {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: none;
+    }
+
+    .card {
+      padding: 13px;
+    }
+
+    .critical-card {
+      border-color: rgba(180, 35, 24, 0.28);
+      background: #fffafa;
+    }
+
+    .hero-status {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-status.alert {
+      border-color: rgba(180, 35, 24, 0.28);
+      background: #fffafa;
+    }
+
+    .hero-main {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .hero-title {
+      margin-bottom: 4px;
+      font-size: 16px;
+      line-height: 1.18;
+      font-weight: 560;
+    }
+
+    .hero-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric-tile {
+      padding: 10px;
+      min-height: 76px;
+    }
+
+    .metric-tile[data-screen] {
+      cursor: pointer;
+    }
+
+    .record-row[data-screen] {
+      cursor: pointer;
+    }
+
+    .metric-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .metric-value {
+      margin-bottom: 4px;
+      font-size: 16px;
+      font-weight: 560;
+      line-height: 1.16;
+    }
+
+    .metric-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .split-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .split-line:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .event-list,
+    .record-list,
+    .plan-list,
+    .device-list,
+    .report-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .event-row,
+    .record-row,
+    .plan-row,
+    .device-row,
+    .report-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px 11px;
+    }
+
+    .event-time,
+    .record-time {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .event-title,
+    .record-title,
+    .plan-title,
+    .device-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 520;
+      line-height: 1.25;
+    }
+
+    .event-detail,
+    .record-detail,
+    .plan-detail,
+    .device-detail {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .icon-box {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      color: var(--green);
+      font-weight: 520;
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .icon-box.warn {
+      color: var(--amber);
+      background: var(--amber-2);
+    }
+
+    .icon-box.bad {
+      color: var(--red);
+      background: var(--red-2);
+    }
+
+    .icon-box.info {
+      color: var(--blue);
+      background: var(--blue-2);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 16px 0 9px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .action-button,
+    .primary-button,
+    .secondary-button,
+    .danger-button,
+    .hold-button,
+    .step-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 39px;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      padding: 9px 11px;
+      font-size: 14px;
+      font-weight: 520;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .primary-button {
+      color: #fff;
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .secondary-button,
+    .action-button {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.92);
+      border-color: var(--line);
+    }
+
+    .danger-button {
+      color: #fff;
+      background: var(--red);
+      border-color: var(--red);
+    }
+
+    .action-button[data-command*="停止"],
+    .action-button.urgent {
+      color: var(--red);
+      border-color: rgba(180, 35, 24, 0.32);
+      background: var(--red-2);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .segmented {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(238, 243, 247, 0.78);
+      overflow-x: auto;
+    }
+
+    .seg-button {
+      min-height: 34px;
+      padding: 6px 10px;
+      box-shadow: none;
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .pause-banner {
+      display: grid;
+      gap: 9px;
+      padding: 13px;
+      border: 1px solid rgba(155, 93, 18, 0.24);
+      border-radius: var(--radius);
+      background: var(--amber-2);
+    }
+
+    .pause-banner h2 {
+      margin: 0;
+      color: var(--amber);
+    }
+
+    .pause-mode-panel {
+      display: none;
+    }
+
+    .pause-mode-panel.active {
+      display: block;
+    }
+
+    .progress-track {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .run-lines {
+      display: grid;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .run-line {
+      display: grid;
+      gap: 5px;
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .run-line:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .run-line-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .idle-state {
+      border-style: dashed;
+      background: rgba(248, 251, 252, 0.86);
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 7px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .rule-list li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      align-items: start;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .check {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--green);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .warn-mark {
+      background: var(--amber);
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      padding-left: 18px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 5px;
+      bottom: 5px;
+      width: 2px;
+      background: var(--line);
+    }
+
+    .timeline-item {
+      position: relative;
+      padding: 0 0 0 8px;
+    }
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -16px;
+      top: 5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px var(--green-2);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 540;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+      padding: 9px 10px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: rgba(15, 118, 110, 0.62);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11);
+    }
+
+    .field textarea {
+      min-height: 78px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .feeder-editor {
+      display: grid;
+      gap: 8px;
+    }
+
+    .feeder-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: 34px 68px 34px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: rgba(238, 243, 247, 0.82);
+    }
+
+    .step-button {
+      min-height: 34px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: #fff;
+    }
+
+    .step-value {
+      display: grid;
+      place-items: center;
+      min-height: 34px;
+      font-weight: 560;
+    }
+
+    .confirm-sheet {
+      display: none;
+      gap: 9px;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(180, 35, 24, 0.28);
+      background: var(--red-2);
+    }
+
+    .confirm-sheet.show {
+      display: grid;
+    }
+
+    #globalConfirm {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 76px;
+      z-index: 45;
+      box-shadow: var(--shadow);
+    }
+
+    .hold-button {
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      background: var(--red);
+      border-color: var(--red);
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .hold-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: var(--hold-progress, 0%);
+      background: rgba(255, 255, 255, 0.24);
+      transition: width 80ms linear;
+    }
+
+    .hold-button span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .device-layout {
+      display: grid;
+      gap: 10px;
+    }
+
+    .device-row {
+      grid-template-columns: auto 1fr;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .device-group-title {
+      margin: 8px 2px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .device-row.active {
+      border-color: rgba(15, 118, 110, 0.36);
+      background: var(--green-2);
+      box-shadow: none;
+    }
+
+    .detail-panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .detail-panel [data-device-panel] {
+      display: none;
+    }
+
+    .detail-panel [data-device-panel].active {
+      display: grid;
+      gap: 10px;
+    }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .kv {
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .kv span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 540;
+    }
+
+    .kv strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 560;
+      line-height: 1.25;
+    }
+
+    .record-tabs {
+      margin-bottom: 10px;
+    }
+
+    .menu-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .menu-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 62px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu-row::after {
+      content: ">";
+      color: var(--soft);
+    }
+
+    .menu-row .event-title,
+    .menu-row .event-detail {
+      display: block;
+    }
+
+    .record-group {
+      display: none;
+    }
+
+    .record-group.active {
+      display: grid;
+      gap: 7px;
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px;
+    }
+
+    .switch {
+      position: relative;
+      width: 48px;
+      height: 28px;
+    }
+
+    .switch input {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .switch span {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: #cbd5df;
+      transition: 160ms ease;
+      cursor: pointer;
+    }
+
+    .switch span::after {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(23, 33, 43, 0.18);
+      transition: 160ms ease;
+    }
+
+    .switch input:checked + span {
+      background: var(--green);
+    }
+
+    .switch input:checked + span::after {
+      transform: translateX(20px);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      background: rgba(255, 255, 255, 0.96);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-button {
+      display: grid;
+      gap: 3px;
+      justify-items: center;
+      min-width: 0;
+      min-height: 46px;
+      border: 0;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 560;
+      cursor: pointer;
+    }
+
+    .nav-button span:first-child {
+      display: grid;
+      place-items: center;
+      width: 23px;
+      height: 23px;
+      border-radius: 6px;
+      border: 1px solid currentColor;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .nav-button.active {
+      color: var(--green);
+      background: var(--green-2);
+    }
+
+    .toast {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 76px;
+      z-index: 40;
+      display: none;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      color: #fff;
+      background: #26342a;
+      box-shadow: var(--shadow);
+      font-weight: 560;
+      line-height: 1.35;
+    }
+
+    .toast.show {
+      display: block;
+      animation: toastIn 180ms ease-out;
+    }
+
+    .temp-chart {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .chart-grid {
+      position: relative;
+      height: 154px;
+      border-left: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line-strong);
+      background:
+        linear-gradient(180deg, rgba(219, 228, 236, 0.65) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(219, 228, 236, 0.45) 1px, transparent 1px);
+      background-size: 100% 38px, 58px 100%;
+      overflow: hidden;
+    }
+
+    .chart-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--blue);
+      transform-origin: left center;
+    }
+
+    .chart-line.hum {
+      background: var(--green);
+      opacity: 0.82;
+    }
+
+    .chart-dot {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 1px solid #fff;
+      background: var(--blue);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 1px 3px rgba(23, 33, 43, 0.16);
+    }
+
+    .chart-dot.hum {
+      background: var(--green);
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .temp-range-group {
+      display: none;
+    }
+
+    .temp-range-group.active {
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-swatch {
+      width: 18px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .legend-swatch.hum {
+      background: var(--green);
+    }
+
+    .page-group {
+      display: none;
+      margin: 6px 4px 2px;
+      color: var(--soft);
+      font-size: 11px;
+    }
+
+    .rail-title {
+      display: none;
+      margin: 0 4px 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    body,
+    button,
+    input,
+    select,
+    .status-pill,
+    .mini-pill,
+    .tag,
+    .screen-kicker,
+    .metric-label,
+    .event-time,
+    .record-time,
+    .field label,
+    .kv span,
+    .nav-button,
+    .toast {
+      font-weight: 400;
+    }
+
+    h1,
+    h2,
+    h3,
+    strong,
+    .hero-title,
+    .metric-value,
+    .event-title,
+    .record-title,
+    .plan-title,
+    .device-title,
+    .icon-box,
+    .action-button,
+    .secondary-button,
+    .step-value,
+    .kv strong {
+      font-weight: 400;
+    }
+
+    .brand-title,
+    .brand-mark,
+    .primary-button,
+    .danger-button,
+    .hold-button {
+      font-weight: 500;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .desktop-only {
+      display: none;
+    }
+
+    @media (max-width: 430px) {
+      .grid.two,
+      .kv-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main {
+        display: grid;
+      }
+
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .event-row,
+      .record-row,
+      .plan-row,
+      .report-row {
+        grid-template-columns: auto 1fr;
+      }
+
+      .event-row .tag,
+      .record-row .tag,
+      .plan-row .tag,
+      .report-row .tag {
+        grid-column: 2;
+        width: max-content;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 860px) {
+      .app-shell {
+        padding: 0 20px 30px;
+      }
+
+      .topbar {
+        margin: 0 -20px;
+        padding: 14px 20px;
+      }
+
+      .workspace {
+        grid-template-columns: 256px minmax(0, 1fr);
+        align-items: start;
+        gap: 18px;
+      }
+
+      .page-rail {
+        top: 78px;
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.72);
+        overflow: visible;
+      }
+
+      .rail-button {
+        justify-content: flex-start;
+        width: 100%;
+        text-align: left;
+        white-space: normal;
+      }
+
+      .page-group {
+        display: block;
+      }
+
+      .rail-title {
+        display: block;
+      }
+
+      .screen-header {
+        margin-top: 10px;
+      }
+
+      .grid.desktop-two {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+
+      .grid.desktop-three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .device-layout {
+        grid-template-columns: 360px minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .bottom-nav {
+        display: none;
+      }
+
+      .desktop-only {
+        display: block;
+      }
+
+      .toast {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        width: min(380px, calc(100vw - 48px));
+      }
+
+      #globalConfirm {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        width: min(390px, calc(100vw - 48px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">FA</div>
+        <div>
+          <p class="brand-title">FarmAuto</p>
+          <span class="brand-subtitle">已联网 · 门控和下料正常</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="status-pill ok" id="topStatus"><span class="dot"></span>系统正常</span>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="page-rail" aria-label="主导航">
+        <span class="rail-title">主导航</span>
+        <button class="rail-button active" data-screen="home-normal">首页</button>
+        <button class="rail-button" data-screen="plans">自动</button>
+        <button class="rail-button" data-screen="manual">手动</button>
+        <button class="rail-button" data-screen="records">记录</button>
+        <button class="rail-button" data-screen="more">设置</button>
+      </aside>
+
+      <main class="content">
+        <section class="screen active" id="home-normal" data-top-state="ok" data-top-text="系统正常">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">首页 · 正常运行</p>
+              <h1>运行总览</h1>
+              <p class="muted">下一次自动动作：17:30 关门，18:00 下料。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>无人值守</span>
+          </div>
+
+          <div class="hero-status">
+            <div class="hero-main">
+              <div>
+                <div class="hero-title">当前无告警</div>
+                <p class="hero-copy">门控、下料和微信提醒都在正常工作；当前没有正在执行的动作。</p>
+              </div>
+              <span class="mini-pill ok">微信通知待命</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-tile">
+                <div class="metric-label">门控 01 · 主门 <span class="mini-pill ok">自动启用</span></div>
+                <div class="metric-value">已打开</div>
+                <div class="metric-note">当前位置 5.5/5.5 圈 · 100%；下次 17:30 关门</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">18:00 晚料 <span class="mini-pill ok">自动启用</span></div>
+                <div class="metric-value">等待执行</div>
+                <div class="metric-note">计划合计 520g · 约 65.5 圈；1、2、3、4 号下料器</div>
+              </div>
+              <div class="metric-tile" data-screen="temp-history">
+                <div class="metric-label">室外温湿度 <span class="mini-pill info">看历史</span></div>
+                <div class="metric-value">24.8°C · 68%</div>
+                <div class="metric-note">10:00 更新 · 每小时记录</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">设备连接 <span class="mini-pill ok">稳定</span></div>
+                <div class="metric-value">全部在线</div>
+                <div class="metric-note">所有自动设备都能联系上</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>当前执行</h2>
+            <span class="tag ok">空闲</span>
+          </div>
+          <div class="card idle-state">
+            <div class="section-title" style="margin: 0 0 8px;">
+              <h2>当前没有正在执行的动作</h2>
+              <span class="tag ok">可手动操作</span>
+            </div>
+            <div class="split-line">
+              <span class="muted">门控</span>
+              <strong>空闲 · 门控 01 已打开</strong>
+            </div>
+            <div class="split-line">
+              <span class="muted">下料</span>
+              <strong>空闲 · 下次 18:00</strong>
+            </div>
+            <div class="split-line">
+              <span class="muted">下一次自动动作</span>
+              <strong>17:30 门控 01 关门</strong>
+            </div>
+          </div>
+
+          <div class="card critical-card" id="powerRecoveryNotice" style="margin-top: 10px;">
+            <div class="section-title" style="margin: 0 0 8px;">
+              <h2>新生成供电恢复报告</h2>
+              <span class="tag warn">未处理</span>
+            </div>
+            <p class="muted" style="margin-bottom: 10px;">今天 09:44 生成。推测断电 06:18 到 09:42，可能错过 08:00 开门和 07:10 早料。</p>
+            <div class="button-row">
+              <button class="primary-button" data-screen="power-report">查看报告</button>
+              <button class="secondary-button" id="hidePowerRecoveryNotice">不再显示</button>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>最近关键事件</h2>
+            <button class="secondary-button" data-screen="records">看全部</button>
+          </div>
+          <div class="event-list">
+            <div class="event-row">
+              <div class="icon-box">门</div>
+              <div>
+                <p class="event-title">自动开门完成</p>
+                <p class="event-detail">门已到位并停止，状态正常</p>
+              </div>
+              <span class="event-time">08:00</span>
+            </div>
+            <div class="event-row">
+              <div class="icon-box">料</div>
+              <div>
+                <p class="event-title">早料计划完成</p>
+                <p class="event-detail">1 号 120g，2 号 100g，3 号 100g，4 号 100g</p>
+              </div>
+              <span class="event-time">07:10</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="plans" data-top-state="ok" data-top-text="自动计划">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">计划</p>
+              <h1>自动计划</h1>
+              <p class="muted">这里只管理每天自动执行的门控和下料计划；手动动作在“手动”里操作。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>2 类计划</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <div class="section-title" style="margin: 0 0 10px;">
+                <h2>门控计划</h2>
+                <span class="tag ok">自动启用</span>
+              </div>
+              <div class="split-line">
+                <span class="muted">门控 01 · 主门</span>
+                <strong>5.5 圈 · 100%</strong>
+              </div>
+              <div class="plan-list" style="margin-top: 10px;">
+                <div class="plan-row">
+                  <div class="icon-box">08</div>
+                  <div>
+                    <p class="plan-title">08:00 开门 · 门控 01</p>
+                    <p class="plan-detail">每天执行 · 到位后自动停止</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box">17</div>
+                  <div>
+                    <p class="plan-title">17:30 关门 · 门控 01</p>
+                    <p class="plan-detail">每天执行 · 到位后自动停止</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button" data-screen="door-plan-form">新增门控计划</button>
+                <button class="secondary-button" data-screen="door-plan">查看门控计划</button>
+                <button class="danger-button" data-screen="door-paused">暂停自动门控</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="section-title" style="margin: 0 0 10px;">
+                <h2>下料计划</h2>
+                <span class="tag ok">自动启用</span>
+              </div>
+              <div class="split-line">
+                <span class="muted">今日已完成</span>
+                <strong>07:10 早料 · 420g · 约 53.0 圈</strong>
+              </div>
+              <div class="plan-list" style="margin-top: 10px;">
+                <div class="plan-row">
+                  <div class="icon-box">早</div>
+                  <div>
+                    <p class="plan-title">07:10 早料</p>
+                    <p class="plan-detail">共 420g · 约 53.0 圈 · 1、2、3、4 号</p>
+                  </div>
+                  <span class="tag ok">已完成</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box">晚</div>
+                  <div>
+                    <p class="plan-title">18:00 晚料</p>
+                    <p class="plan-detail">共 520g · 约 65.5 圈 · 1、2、3、4 号</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box info">补</div>
+                  <div>
+                    <p class="plan-title">21:30 少量补料</p>
+                    <p class="plan-detail">共 80g · 约 10.0 圈 · 1、3 号</p>
+                  </div>
+                  <span class="tag info">启用</span>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button" data-screen="feed-plan-form">新增下料计划</button>
+                <button class="secondary-button" data-screen="feed-plan">查看下料计划</button>
+                <button class="danger-button" data-screen="feed-paused">暂停自动下料</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="temp-history" data-top-state="ok" data-top-text="温湿度">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">日常查看</p>
+              <h1>室外温湿度</h1>
+              <p class="muted">默认显示近 24 小时趋势；30 天和 1 年用于查看长期变化，不参与门控和下料控制。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>10:50 更新</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>当前读数</h2>
+              <div class="metric-grid">
+                <div class="metric-tile">
+                  <div class="metric-label">温度</div>
+                  <div class="metric-value">24.8°C</div>
+                  <div class="metric-note">今日范围 18.9°C 到 26.2°C</div>
+                </div>
+                <div class="metric-tile">
+                  <div class="metric-label">湿度</div>
+                  <div class="metric-value">68%</div>
+                  <div class="metric-note">今日范围 58% 到 76%</div>
+                </div>
+              </div>
+              <div class="split-line">
+                <span class="muted">记录间隔</span>
+                <strong>每小时 1 个点</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">长期保存</span>
+                <strong>每小时原始点 + 每日汇总</strong>
+              </div>
+            </div>
+
+            <div class="temp-chart">
+              <div class="section-title" style="margin: 0;">
+                <h2 id="tempChartTitle">近 24 小时趋势</h2>
+                <span class="tag info" id="tempChartRange">24 个小时点</span>
+              </div>
+              <div class="segmented" aria-label="温湿度范围">
+                <button class="seg-button active" data-temp-range="today">近24小时</button>
+                <button class="seg-button" data-temp-range="month">近30天</button>
+                <button class="seg-button" data-temp-range="year">近1年</button>
+              </div>
+              <div class="chart-grid" aria-label="温湿度趋势图">
+                <span class="chart-line" style="left: 5%; top: 66%; width: 17%; transform: rotate(-16deg);"></span>
+                <span class="chart-line" style="left: 21%; top: 60%; width: 18%; transform: rotate(-20deg);"></span>
+                <span class="chart-line" style="left: 38%; top: 50%; width: 19%; transform: rotate(-8deg);"></span>
+                <span class="chart-line" style="left: 56%; top: 47%; width: 19%; transform: rotate(15deg);"></span>
+                <span class="chart-line" style="left: 74%; top: 55%; width: 19%; transform: rotate(10deg);"></span>
+                <span class="chart-line hum" style="left: 5%; top: 34%; width: 18%; transform: rotate(10deg);"></span>
+                <span class="chart-line hum" style="left: 22%; top: 38%; width: 18%; transform: rotate(14deg);"></span>
+                <span class="chart-line hum" style="left: 39%; top: 44%; width: 18%; transform: rotate(7deg);"></span>
+                <span class="chart-line hum" style="left: 56%; top: 47%; width: 18%; transform: rotate(-12deg);"></span>
+                <span class="chart-line hum" style="left: 73%; top: 42%; width: 19%; transform: rotate(-10deg);"></span>
+                <span class="chart-dot" style="left: 5%; top: 66%;"></span>
+                <span class="chart-dot" style="left: 22%; top: 60%;"></span>
+                <span class="chart-dot" style="left: 39%; top: 50%;"></span>
+                <span class="chart-dot" style="left: 57%; top: 47%;"></span>
+                <span class="chart-dot" style="left: 75%; top: 55%;"></span>
+                <span class="chart-dot" style="left: 93%; top: 59%;"></span>
+                <span class="chart-dot hum" style="left: 5%; top: 34%;"></span>
+                <span class="chart-dot hum" style="left: 23%; top: 38%;"></span>
+                <span class="chart-dot hum" style="left: 40%; top: 44%;"></span>
+                <span class="chart-dot hum" style="left: 57%; top: 47%;"></span>
+                <span class="chart-dot hum" style="left: 74%; top: 42%;"></span>
+                <span class="chart-dot hum" style="left: 93%; top: 37%;"></span>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-swatch"></span>温度</span>
+                <span class="legend-item"><span class="legend-swatch hum"></span>湿度</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>数据摘要</h2>
+            <span class="tag info">示例数据</span>
+          </div>
+          <div class="record-list temp-range-group active" data-temp-group="today">
+            <div class="record-row">
+              <div class="icon-box">今</div>
+              <div>
+                <p class="record-title">近 24 小时</p>
+                <p class="record-detail">平均 22.6°C，湿度 67%；最高 26.2°C，最低 18.9°C</p>
+              </div>
+              <span class="record-time">24 点</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">10</div>
+              <div>
+                <p class="record-title">10:00</p>
+                <p class="record-detail">24.8°C，68%RH；读数正常</p>
+              </div>
+              <span class="record-time">整点</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">09</div>
+              <div>
+                <p class="record-title">09:00</p>
+                <p class="record-detail">23.9°C，70%RH；较 08:00 温度上升</p>
+              </div>
+              <span class="record-time">整点</span>
+            </div>
+          </div>
+          <div class="record-list temp-range-group" data-temp-group="month">
+            <div class="record-row">
+              <div class="icon-box">30</div>
+              <div>
+                <p class="record-title">过去 30 天</p>
+                <p class="record-detail">平均 20.9°C，平均湿度 72%；夜间湿度偏高 8 天</p>
+              </div>
+              <span class="record-time">720 点</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">高</div>
+              <div>
+                <p class="record-title">最高温日</p>
+                <p class="record-detail">6 月 18 日，最高 31.4°C，最低 22.1°C</p>
+              </div>
+              <span class="record-time">日汇总</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">湿</div>
+              <div>
+                <p class="record-title">湿度偏高提醒</p>
+                <p class="record-detail">过去 30 天有 8 天夜间湿度超过 85%</p>
+              </div>
+              <span class="record-time">统计</span>
+            </div>
+          </div>
+          <div class="record-list temp-range-group" data-temp-group="year">
+            <div class="record-row">
+              <div class="icon-box">年</div>
+              <div>
+                <p class="record-title">过去 1 年</p>
+                <p class="record-detail">每小时原始点约 8760 个，同时保留每日最高、最低、平均值</p>
+              </div>
+              <span class="record-time">长期</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">夏</div>
+              <div>
+                <p class="record-title">最热月份</p>
+                <p class="record-detail">7 月平均 28.2°C，最高 36.5°C</p>
+              </div>
+              <span class="record-time">月汇总</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">存</div>
+              <div>
+                <p class="record-title">多年保存方式</p>
+                <p class="record-detail">每小时点可保存多年；查询时优先显示日/月汇总，必要时再看原始点。</p>
+              </div>
+              <span class="record-time">方案</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="home-alert" data-top-state="bad" data-top-text="2 个问题">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">首页 · 有告警</p>
+              <h1>告警总览</h1>
+              <p class="muted">门控自动仍启用；下料和设备连接异常已记录。</p>
+            </div>
+            <span class="status-pill bad"><span class="dot"></span>2 个问题</span>
+          </div>
+
+          <div class="hero-status alert">
+            <div class="hero-main">
+              <div>
+                <div class="hero-title">2 号下料器异常</div>
+                <p class="hero-copy">系统已发送微信告警。门控自动计划保持启用，下料异常和设备离线已记录。</p>
+              </div>
+              <span class="mini-pill bad">已通知</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-tile critical-card">
+                <div class="metric-label">下料 <span class="mini-pill warn">疑似异常</span></div>
+                <div class="metric-value">2 号偏差大</div>
+                <div class="metric-note">目标 100g，估算完成 38g；第一版只提示检查，不判定精确缺料</div>
+              </div>
+              <div class="metric-tile critical-card">
+                <div class="metric-label">设备连接 <span class="mini-pill bad">联系不上</span></div>
+                <div class="metric-value">2 号设备离线</div>
+                <div class="metric-note">最后正常时间 10:31，连续 6 次无响应</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">门控 <span class="mini-pill ok">自动启用</span></div>
+                <div class="metric-value">门已打开</div>
+                <div class="metric-note">当前位置 5.5 圈 · 100%；17:30 自动关门</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">室外温湿度 <span class="mini-pill info">看历史</span></div>
+                <div class="metric-value">25.6°C · 71%</div>
+                <div class="metric-note">10:00 更新 · 每小时记录</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>最近关键事件</h2>
+          </div>
+          <div class="event-list">
+            <div class="event-row">
+              <div class="icon-box bad">03</div>
+              <div>
+                <p class="event-title">2 号设备联系不上</p>
+                <p class="event-detail">系统多次尝试联系失败，最后在线 10:31</p>
+              </div>
+              <span class="event-time">10:42</span>
+            </div>
+            <div class="event-row">
+              <div class="icon-box warn">料</div>
+              <div>
+                <p class="event-title">2 号下料器疑似异常</p>
+                <p class="event-detail">目标 100g，估算偏低；已写入下料记录</p>
+              </div>
+              <span class="event-time">10:38</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="power-report" data-top-state="warn" data-top-text="供电恢复">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">系统报告</p>
+              <h1>供电已恢复</h1>
+              <p class="muted">系统根据时间和最近保存记录推测断电范围。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>需确认</span>
+          </div>
+
+          <div class="card critical-card">
+            <h2>恢复摘要</h2>
+            <div class="grid two">
+              <div class="kv">
+                <span>恢复时间</span>
+                <strong>今天 09:42</strong>
+              </div>
+              <div class="kv">
+                <span>推测断电范围</span>
+                <strong>06:18 到 09:42</strong>
+              </div>
+              <div class="kv">
+                <span>自动计划状态</span>
+                <strong>已恢复执行</strong>
+              </div>
+              <div class="kv">
+                <span>微信通知</span>
+                <strong>恢复报告已发送</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>错过计划</h2>
+          </div>
+          <div class="report-list">
+            <div class="report-row">
+              <div class="icon-box warn">门</div>
+              <div>
+                <p class="event-title">08:00 自动开门可能错过</p>
+                <p class="event-detail">恢复后检测到门位未知，未自动补跑；状态写入系统记录。</p>
+              </div>
+              <span class="tag warn">不补跑</span>
+            </div>
+            <div class="report-row">
+              <div class="icon-box warn">料</div>
+              <div>
+                <p class="event-title">07:10 早料计划错过</p>
+                <p class="event-detail">恢复后自动下料继续启用，但错过的早料不自动补跑。</p>
+              </div>
+              <span class="tag warn">需决定</span>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>恢复过程</h2>
+          </div>
+          <div class="card">
+            <div class="timeline">
+              <div class="timeline-item">
+                <p class="event-title">09:42 系统启动</p>
+                <p class="event-detail">系统时间有效，计划和记录加载成功。</p>
+              </div>
+              <div class="timeline-item">
+                <p class="event-title">09:43 检查设备连接</p>
+                <p class="event-detail">4 个设备在线，2 号下料设备首次无响应。</p>
+              </div>
+              <div class="timeline-item">
+                <p class="event-title">09:44 自动计划恢复</p>
+                <p class="event-detail">后续计划继续执行；断电期间错过计划不补跑。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>可执行动作</h2>
+          </div>
+          <div class="grid two">
+            <button class="secondary-button" data-screen="door-plan">查看门控计划</button>
+            <button class="secondary-button" data-screen="manual-feed">手动补少量下料</button>
+            <button class="secondary-button" id="hidePowerRecoveryNoticeFromReport">首页不再提示</button>
+          </div>
+        </section>
+
+        <section class="screen" id="door-plan" data-top-state="ok" data-top-text="门控自动">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">门控</p>
+              <h1>每日门控计划</h1>
+              <p class="muted">每天可以设置多个开门、关门时间点；到位后设备会自动停止。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>自动启用</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>当前门控</h2>
+              <div class="split-line">
+                <span class="muted">门位置</span>
+                <strong>已打开 · 5.5 圈 · 100%</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">门控设备</span>
+                <strong>在线</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">下一计划</span>
+                <strong>17:30 关门</strong>
+              </div>
+              <p class="muted small" style="margin: 10px 0 0;">关门位置为 0 圈，开门位置为 5.5 圈；自动执行到位后由门控设备本地停止。</p>
+            </div>
+
+            <div class="card">
+              <h2>自动计划</h2>
+              <div class="plan-list">
+                <div class="plan-row">
+                  <div class="icon-box">08</div>
+                  <div>
+                    <p class="plan-title">08:00 开门 · 门控 01</p>
+                    <p class="plan-detail">每天执行 · 失败时微信通知</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box">17</div>
+                  <div>
+                    <p class="plan-title">17:30 关门 · 门控 01</p>
+                    <p class="plan-detail">每天执行 · 到位后自动停止</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button" data-screen="door-plan-form">新增计划点</button>
+                <button class="danger-button" data-screen="door-paused">暂停自动门控</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="door-plan-form" data-top-state="ok" data-top-text="新增门控">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">门控 · 新增计划</p>
+              <h1>新增门控计划点</h1>
+              <p class="muted">设置每天到点执行开门或关门；保存后进入门控自动计划。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>表单</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>计划内容</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="doorPlanDevice">门控设备</label>
+                  <select id="doorPlanDevice">
+                    <option>门控 01 · 主门</option>
+                    <option>门控 02 · 预留门位（未启用）</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="doorPlanTime">执行时间</label>
+                  <input id="doorPlanTime" type="time" value="17:30">
+                </div>
+                <div class="field">
+                  <label for="doorPlanAction">执行动作</label>
+                  <select id="doorPlanAction">
+                    <option>关门</option>
+                    <option>开门</option>
+                  </select>
+                </div>
+                <div class="split-line">
+                  <span class="muted">重复</span>
+                  <strong>每天</strong>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <p class="event-title">启用这个计划点</p>
+                    <p class="event-detail">关闭后计划保留，但到点不执行。</p>
+                  </div>
+                  <label class="switch"><input type="checkbox" checked><span></span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>保存前确认</h2>
+              <ul class="rule-list">
+                <li><span class="check">✓</span><span>计划只影响自动执行，不影响手动开门、关门、停止。</span></li>
+                <li><span class="check warn-mark">!</span><span>如果计划点在暂停期间错过，默认不补跑。</span></li>
+                <li><span class="check">✓</span><span>执行结果会写入门控记录，失败时发送微信通知。</span></li>
+              </ul>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="primary-button" data-command="保存门控 01 计划点" data-confirm-note="将为门控 01 新增一个自动计划点。">保存计划点</button>
+                <button class="secondary-button" data-screen="door-plan">返回门控计划</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="door-paused" data-top-state="warn" data-top-text="门控暂停">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">门控</p>
+              <h1>暂停自动门控</h1>
+              <p class="muted">选择暂停到某个时间，或无限期暂停。只暂停自动门控，长期计划不改。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>待确认</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card critical-card">
+              <h2>暂停方式</h2>
+              <div class="segmented" aria-label="门控暂停方式" style="margin-bottom: 10px;">
+                <button class="seg-button active" data-pause-mode="until" data-pause-scope="door">暂停到指定时间</button>
+                <button class="seg-button" data-pause-mode="forever" data-pause-scope="door">无限期暂停</button>
+              </div>
+              <div class="pause-mode-panel active" data-pause-panel="door-until">
+                <div class="form-grid">
+                  <div class="button-row">
+                    <button class="secondary-button" data-pause-preset="door" data-pause-label="今天 18:00" data-pause-value="2026-06-22T18:00">到今天 18:00</button>
+                    <button class="secondary-button" data-pause-preset="door" data-pause-label="明天 06:00" data-pause-value="2026-06-23T06:00">到明天 06:00</button>
+                    <button class="secondary-button" data-pause-preset="door" data-pause-label="6 小时后自动恢复" data-pause-value="2026-06-22T20:30">暂停 6 小时</button>
+                    <button class="secondary-button" data-pause-preset="door" data-pause-label="12 小时后自动恢复" data-pause-value="2026-06-23T02:30">暂停 12 小时</button>
+                    <button class="secondary-button" data-pause-preset="door" data-pause-label="24 小时后自动恢复" data-pause-value="2026-06-23T14:30">暂停 24 小时</button>
+                  </div>
+                  <div class="field">
+                    <label for="doorPauseUntil">恢复时间</label>
+                    <input id="doorPauseUntil" type="datetime-local" value="2026-06-22T18:00" data-pause-input="door">
+                  </div>
+                  <div class="split-line">
+                    <span class="muted">当前选择</span>
+                    <strong id="doorPauseSummary">暂停到今天 18:00</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="pause-mode-panel" data-pause-panel="door-forever">
+                <div class="split-line">
+                  <span class="muted">当前选择</span>
+                  <strong>无限期暂停，手动恢复</strong>
+                </div>
+                <p class="muted small" style="margin: 8px 0 0;">恢复前不会执行门控自动计划。</p>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="danger-button" data-command="确认暂停自动门控" data-confirm-note="确认后只暂停自动门控；手动开门、关门、停止仍可使用。">确认暂停</button>
+                <button class="secondary-button" data-screen="door-plan">返回门控计划</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>暂停影响</h2>
+              <ul class="rule-list">
+                <li><span class="check">✓</span><span>只拦截门控自动计划，手动开门、关门、停止仍在“手动”页执行。</span></li>
+                <li><span class="check warn-mark">!</span><span>暂停期间错过的门控计划不补跑。</span></li>
+                <li><span class="check">✓</span><span>选择指定时间时，到点后自动恢复后续计划。</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>暂停期间会跳过</h2>
+          </div>
+          <div class="plan-list">
+            <div class="plan-row">
+              <div class="icon-box warn">17</div>
+              <div>
+                <p class="plan-title">17:30 关门</p>
+                <p class="plan-detail">暂停窗口内，若到点不会执行，也不会补跑。</p>
+              </div>
+              <span class="tag warn">将跳过</span>
+            </div>
+            <div class="plan-row">
+              <div class="icon-box">08</div>
+              <div>
+                <p class="plan-title">明天 08:00 开门</p>
+                <p class="plan-detail">如果已恢复，正常执行；如果无限期暂停，继续跳过。</p>
+              </div>
+              <span class="tag ok">保留</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="feed-plan" data-top-state="ok" data-top-text="下料自动">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">下料</p>
+              <h1>每日下料计划</h1>
+              <p class="muted">每个时间点设置各下料器下料多少；正常到点自动执行。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>自动启用</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>今日下料摘要</h2>
+              <div class="split-line">
+                <span class="muted">已完成</span>
+                <strong>07:10 早料 · 420g · 约 53.0 圈</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">待执行</span>
+                <strong>18:00 晚料 · 520g · 约 65.5 圈</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">校准量</span>
+                <strong>由下料器校准维护</strong>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="danger-button" data-screen="feed-paused">暂停自动下料</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>自动计划</h2>
+              <div class="plan-list">
+                <div class="plan-row">
+                  <div class="icon-box">早</div>
+                  <div>
+                    <p class="plan-title">07:10 早料</p>
+                    <p class="plan-detail">共 420g · 约 53.0 圈 · 1、2、3、4 号</p>
+                  </div>
+                  <span class="tag ok">已完成</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box">晚</div>
+                  <div>
+                    <p class="plan-title">18:00 晚料</p>
+                    <p class="plan-detail">共 520g · 约 65.5 圈 · 1、2、3、4 号</p>
+                  </div>
+                  <span class="tag ok">启用</span>
+                </div>
+                <div class="plan-row">
+                  <div class="icon-box info">补</div>
+                  <div>
+                    <p class="plan-title">21:30 少量补料</p>
+                    <p class="plan-detail">共 80g · 约 10.0 圈 · 1、3 号</p>
+                  </div>
+                  <span class="tag info">启用</span>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button" data-screen="feed-plan-form">新增计划点</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="feed-plan-form" data-top-state="ok" data-top-text="新增下料">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">下料 · 新增计划</p>
+              <h1>新增下料计划点</h1>
+              <p class="muted">设置每天哪个时间点下多少饲料；每个下料器可以单独填写。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>表单</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>计划内容</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="feedPlanTime">执行时间</label>
+                  <input id="feedPlanTime" type="time" value="18:00">
+                </div>
+                <div class="field">
+                  <label for="feedPlanName">计划名称</label>
+                  <input id="feedPlanName" value="晚料">
+                </div>
+                <div class="split-line">
+                  <span class="muted">重复</span>
+                  <strong>每天</strong>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <p class="event-title">启用这个计划点</p>
+                    <p class="event-detail">关闭后计划保留，但到点不下料。</p>
+                  </div>
+                  <label class="switch"><input type="checkbox" checked><span></span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>各下料器数量</h2>
+              <div class="segmented" aria-label="下料计划单位" style="margin-bottom: 10px;">
+                <button class="seg-button active" data-feed-plan-mode="grams">按重量（克）</button>
+                <button class="seg-button" data-feed-plan-mode="turns">按圈数（圈）</button>
+              </div>
+              <p class="muted small" id="feedPlanModeHint">当前按重量设置，每次调整 10g；系统会按校准值换算为输出轴圈数。</p>
+              <div class="feeder-editor">
+                <div class="feeder-line" data-feed-plan-line data-index="1" data-calibration="8.0" data-grams="140" data-turns="17.5">
+                  <div>
+                    <p class="event-title">1 号下料器</p>
+                    <p class="event-detail" data-feed-plan-helper>校准量 8.0g/圈，约 17.5 圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-feed-plan-step="-1" aria-label="1 号减少">−</button>
+                    <div class="step-value" data-feed-plan-value>140g</div>
+                    <button class="step-button" data-feed-plan-step="1" aria-label="1 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feed-plan-line data-index="2" data-calibration="7.6" data-grams="120" data-turns="15.8">
+                  <div>
+                    <p class="event-title">2 号下料器</p>
+                    <p class="event-detail" data-feed-plan-helper>校准量 7.6g/圈，约 15.8 圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-feed-plan-step="-1" aria-label="2 号减少">−</button>
+                    <div class="step-value" data-feed-plan-value>120g</div>
+                    <button class="step-button" data-feed-plan-step="1" aria-label="2 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feed-plan-line data-index="3" data-calibration="8.2" data-grams="130" data-turns="15.9">
+                  <div>
+                    <p class="event-title">3 号下料器</p>
+                    <p class="event-detail" data-feed-plan-helper>校准量 8.2g/圈，约 15.9 圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-feed-plan-step="-1" aria-label="3 号减少">−</button>
+                    <div class="step-value" data-feed-plan-value>130g</div>
+                    <button class="step-button" data-feed-plan-step="1" aria-label="3 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feed-plan-line data-index="4" data-calibration="8.0" data-grams="130" data-turns="16.3">
+                  <div>
+                    <p class="event-title">4 号下料器</p>
+                    <p class="event-detail" data-feed-plan-helper>校准量 8.0g/圈，约 16.3 圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-feed-plan-step="-1" aria-label="4 号减少">−</button>
+                    <div class="step-value" data-feed-plan-value>130g</div>
+                    <button class="step-button" data-feed-plan-step="1" aria-label="4 号增加">+</button>
+                  </div>
+                </div>
+              </div>
+              <p class="muted small" id="feedPlanSummary" style="margin: 10px 0 0;">共 520g，约 65.5 圈；保存后每天按这个计划执行。</p>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="primary-button" data-command="保存下料计划点" data-confirm-note="将新增一个下料自动计划点。">保存计划点</button>
+                <button class="secondary-button" data-screen="feed-plan">返回下料计划</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="feed-paused" data-top-state="warn" data-top-text="下料暂停">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">下料</p>
+              <h1>暂停自动下料</h1>
+              <p class="muted">选择暂停到某个时间，或无限期暂停。只暂停自动下料，长期计划不改。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>待确认</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card critical-card">
+              <h2>暂停方式</h2>
+              <div class="segmented" aria-label="下料暂停方式" style="margin-bottom: 10px;">
+                <button class="seg-button active" data-pause-mode="until" data-pause-scope="feed">暂停到指定时间</button>
+                <button class="seg-button" data-pause-mode="forever" data-pause-scope="feed">无限期暂停</button>
+              </div>
+              <div class="pause-mode-panel active" data-pause-panel="feed-until">
+                <div class="form-grid">
+                  <div class="button-row">
+                    <button class="secondary-button" data-pause-preset="feed" data-pause-label="今天 20:00" data-pause-value="2026-06-22T20:00">到今天 20:00</button>
+                    <button class="secondary-button" data-pause-preset="feed" data-pause-label="明天 06:00" data-pause-value="2026-06-23T06:00">到明天 06:00</button>
+                    <button class="secondary-button" data-pause-preset="feed" data-pause-label="6 小时后自动恢复" data-pause-value="2026-06-22T20:30">暂停 6 小时</button>
+                    <button class="secondary-button" data-pause-preset="feed" data-pause-label="12 小时后自动恢复" data-pause-value="2026-06-23T02:30">暂停 12 小时</button>
+                    <button class="secondary-button" data-pause-preset="feed" data-pause-label="24 小时后自动恢复" data-pause-value="2026-06-23T14:30">暂停 24 小时</button>
+                  </div>
+                  <div class="field">
+                    <label for="feedPauseUntil">恢复时间</label>
+                    <input id="feedPauseUntil" type="datetime-local" value="2026-06-23T06:00" data-pause-input="feed">
+                  </div>
+                  <div class="split-line">
+                    <span class="muted">当前选择</span>
+                    <strong id="feedPauseSummary">暂停到明天 06:00</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="pause-mode-panel" data-pause-panel="feed-forever">
+                <div class="split-line">
+                  <span class="muted">当前选择</span>
+                  <strong>无限期暂停，手动恢复</strong>
+                </div>
+                <p class="muted small" style="margin: 8px 0 0;">恢复前不会执行下料自动计划。</p>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="danger-button" data-command="确认暂停自动下料" data-confirm-note="确认后只暂停自动下料；手动下料仍可单独执行。">确认暂停</button>
+                <button class="secondary-button" data-screen="feed-plan">返回下料计划</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>暂停影响</h2>
+              <ul class="rule-list">
+                <li><span class="check">✓</span><span>只拦截下料自动计划，手动下料仍在“手动”页单独确认。</span></li>
+                <li><span class="check warn-mark">!</span><span>暂停期间错过的下料计划不补跑。</span></li>
+                <li><span class="check">✓</span><span>选择指定时间时，到点后自动恢复后续计划。</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>暂停期间会跳过</h2>
+          </div>
+          <div class="plan-list">
+            <div class="plan-row">
+              <div class="icon-box warn">晚</div>
+              <div>
+                <p class="plan-title">18:00 晚料</p>
+                <p class="plan-detail">暂停窗口内，到点不会执行。</p>
+              </div>
+              <span class="tag warn">将跳过</span>
+            </div>
+            <div class="plan-row">
+              <div class="icon-box warn">补</div>
+              <div>
+                <p class="plan-title">21:30 少量补料</p>
+                <p class="plan-detail">暂停窗口内，到点不会执行。</p>
+              </div>
+              <span class="tag warn">将跳过</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="manual" data-top-state="warn" data-top-text="手动操作">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">手动</p>
+              <h1>手动操作</h1>
+              <p class="muted">这里放立即动作。门控按当前门位执行，手动下料需要核对后发送。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>需谨慎</span>
+          </div>
+
+          <div class="section-title">
+            <h2>当前执行</h2>
+            <span class="tag ok">空闲</span>
+          </div>
+          <div class="card idle-state">
+            <div class="section-title" style="margin: 0 0 8px;">
+              <h2>当前没有正在执行的动作</h2>
+              <span class="tag ok">可发送手动命令</span>
+            </div>
+            <div class="split-line">
+              <span class="muted">门控</span>
+              <strong>空闲 · 门控 01 已打开</strong>
+            </div>
+            <div class="split-line">
+              <span class="muted">下料</span>
+              <strong>空闲 · 4 个下料器可用</strong>
+            </div>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>门控手动操作</h2>
+              <div class="field" style="margin-bottom: 8px;">
+                <label for="manualDoorDevice">门控设备</label>
+                <select id="manualDoorDevice">
+                  <option>门控 01 · 主门</option>
+                  <option>门控 02 · 预留门位（未启用）</option>
+                </select>
+              </div>
+              <div class="split-line">
+                <span class="muted">当前门位</span>
+                <strong>5.5 圈 · 100%</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">校准范围</span>
+                <strong>0 圈关门，5.5 圈开门</strong>
+              </div>
+              <div class="action-grid" style="margin-top: 12px;">
+                <button class="action-button" data-command="门控 01 手动开门" data-confirm-note="门控 01 将执行开门，到位后自行停止。">开门</button>
+                <button class="action-button" data-command="门控 01 手动关门" data-confirm-note="门控 01 将执行关门，到位后自行停止。">关门</button>
+                <button class="action-button urgent" data-command="门控 01 手动停止" data-confirm-note="停止门控 01 当前动作；如果门控空闲，只记录一次停止确认。">停止</button>
+              </div>
+            </div>
+
+            <div class="card critical-card">
+              <h2>手动下料</h2>
+              <div class="split-line">
+                <span class="muted">设备状态</span>
+                <strong>4 个下料器可用</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">发送方式</span>
+                <strong>选量后长按 1 秒发送</strong>
+              </div>
+              <p class="muted small" style="margin: 10px 0 12px;">进入后先选择重量或圈数，核对无误后再发送。</p>
+              <div class="button-row">
+                <button class="primary-button" data-screen="manual-feed">手动下料</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>操作原则</h2>
+          </div>
+          <div class="card">
+            <ul class="rule-list">
+              <li><span class="check">✓</span><span>手动动作只执行一次，结果写入对应记录。</span></li>
+              <li><span class="check warn-mark">!</span><span>暂停自动执行时，手动操作仍允许，但需要单独确认。</span></li>
+              <li><span class="check">✓</span><span>开门、关门命令到达时会先读取当前门位，已到位时只记录状态。</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="screen" id="manual-feed" data-top-state="warn" data-top-text="手动下料">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">手动控制</p>
+              <h1>手动下料</h1>
+              <p class="muted">手动下料是立即动作，先统一选择按重量或按输出轴圈数，再核对每个下料器。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>需确认</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>选择下料量</h2>
+              <div class="segmented" aria-label="手动下料方式" style="margin-bottom: 10px;">
+                <button class="seg-button active" data-feed-mode="grams">按重量（克）</button>
+                <button class="seg-button" data-feed-mode="turns">按圈数（圈）</button>
+              </div>
+              <p class="muted small" id="feedModeHint">当前按重量设置，每次调整 10g；系统会按校准值换算为输出轴圈数。</p>
+              <div class="feeder-editor">
+                <div class="feeder-line" data-feeder-line data-index="1" data-calibration="8.0" data-grams="40" data-turns="5.0">
+                  <div>
+                    <p class="event-title">1 号下料器</p>
+                    <p class="event-detail" data-feed-helper>校准量 8.0g/圈，约 5.0 圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-1" aria-label="1 号减少">−</button>
+                    <div class="step-value" data-value>40g</div>
+                    <button class="step-button" data-step="1" aria-label="1 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feeder-line data-index="2" data-calibration="7.6" data-grams="0" data-turns="0">
+                  <div>
+                    <p class="event-title">2 号下料器</p>
+                    <p class="event-detail" data-feed-helper>当前设置为 0，不下料</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-1" aria-label="2 号减少">−</button>
+                    <div class="step-value" data-value>0g</div>
+                    <button class="step-button" data-step="1" aria-label="2 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feeder-line data-index="3" data-calibration="8.2" data-grams="40" data-turns="4.9">
+                  <div>
+                    <p class="event-title">3 号下料器</p>
+                    <p class="event-detail" data-feed-helper>校准量 8.2g/圈，约 4.9 圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-1" aria-label="3 号减少">−</button>
+                    <div class="step-value" data-value>40g</div>
+                    <button class="step-button" data-step="1" aria-label="3 号增加">+</button>
+                  </div>
+                </div>
+                <div class="feeder-line" data-feeder-line data-index="4" data-calibration="8.0" data-grams="40" data-turns="5.0">
+                  <div>
+                    <p class="event-title">4 号下料器</p>
+                    <p class="event-detail" data-feed-helper>校准量 8.0g/圈，约 5.0 圈</p>
+                  </div>
+                  <div class="stepper">
+                    <button class="step-button" data-step="-1" aria-label="4 号减少">−</button>
+                    <div class="step-value" data-value>40g</div>
+                    <button class="step-button" data-step="1" aria-label="4 号增加">+</button>
+                  </div>
+                </div>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="primary-button" id="buildFeedConfirm">核对下料内容</button>
+                <button class="secondary-button" id="clearFeed">全部清零</button>
+              </div>
+            </div>
+
+            <div class="card critical-card">
+              <h2>发送前确认</h2>
+              <div class="confirm-sheet show" id="manualFeedConfirm">
+                <div>
+                  <p class="event-title">将立即下料：共 120g</p>
+                  <p class="event-detail" id="feedConfirmText">1 号 40g，3 号 40g，4 号 40g；2 号不下料。</p>
+                </div>
+                <ul class="rule-list">
+                  <li><span class="check warn-mark">!</span><span>发送后会立即下料，请确认料槽和下料器都安全。</span></li>
+                  <li><span class="check">✓</span><span>发送后只执行这一次，结果写入下料记录。</span></li>
+                </ul>
+                <button class="hold-button" data-hold-command="发送手动下料命令" data-hold-note="手动下料命令已发送，执行结果会写入下料记录。"><span>长按 1 秒发送</span></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="feeder-calibration" data-top-state="warn" data-top-text="下料校准">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">维护 · 下料器校准</p>
+              <h1>下料器校准</h1>
+              <p class="muted">每个下料器都维护“每圈多少克”。已知参数可直接填写；未知时用称重标定计算。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>需现场操作</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>当前校准值</h2>
+              <div class="split-line">
+                <span class="muted">1 号下料器</span>
+                <strong>8.0g / 圈</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">2 号下料器</span>
+                <strong>7.6g / 圈 · 需复核</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">3 号下料器</span>
+                <strong>8.2g / 圈</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">4 号下料器</span>
+                <strong>8.0g / 圈</strong>
+              </div>
+              <p class="muted small" style="margin: 10px 0 0;">这个值用于把“克数”和“输出轴圈数”互相换算。</p>
+            </div>
+
+            <div class="card">
+              <h2>直接输入参数</h2>
+              <div class="form-grid">
+                <div class="grid two">
+                  <div class="field">
+                    <label for="calDirectOne">1 号下料器（g/圈）</label>
+                    <input id="calDirectOne" type="number" min="0.1" step="0.1" value="8.0">
+                  </div>
+                  <div class="field">
+                    <label for="calDirectTwo">2 号下料器（g/圈）</label>
+                    <input id="calDirectTwo" type="number" min="0.1" step="0.1" value="7.6">
+                  </div>
+                </div>
+                <div class="grid two">
+                  <div class="field">
+                    <label for="calDirectThree">3 号下料器（g/圈）</label>
+                    <input id="calDirectThree" type="number" min="0.1" step="0.1" value="8.2">
+                  </div>
+                  <div class="field">
+                    <label for="calDirectFour">4 号下料器（g/圈）</label>
+                    <input id="calDirectFour" type="number" min="0.1" step="0.1" value="8.0">
+                  </div>
+                </div>
+                <button class="primary-button" data-command="保存下料器每圈克数" data-confirm-note="保存后，自动计划和手动按重量下料都会按新的每圈克数换算。">保存每圈克数</button>
+              </div>
+            </div>
+
+            <div class="card critical-card">
+              <h2>称重标定</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="calFeeder">选择下料器</label>
+                  <select id="calFeeder">
+                    <option>2 号下料器</option>
+                    <option>1 号下料器</option>
+                    <option>3 号下料器</option>
+                    <option>4 号下料器</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="calTurns">试转圈数</label>
+                  <input id="calTurns" type="number" min="0.1" step="0.1" value="10.0">
+                </div>
+                <button class="danger-button" data-command="下料器称重标定试转" data-confirm-note="设备会按设置圈数转动，用于称重标定。">按设置圈数试转</button>
+                <div class="field">
+                  <label for="calWeight">称到的饲料重量</label>
+                  <input id="calWeight" type="number" min="0" step="0.1" value="76.0">
+                </div>
+                <div class="kv-grid">
+                  <div class="kv"><span>计算结果</span><strong>7.6g / 圈</strong></div>
+                  <div class="kv"><span>保存后影响</span><strong>自动和手动按重量下料</strong></div>
+                </div>
+                <button class="primary-button" data-command="保存下料器标定结果" data-confirm-note="保存后，后续下料会按新的每圈克数换算。">保存标定结果</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>称重标定步骤</h2>
+          </div>
+          <div class="record-list">
+            <div class="record-row">
+              <div class="icon-box">1</div>
+              <div>
+                <p class="record-title">选择下料器和试转圈数</p>
+                <p class="record-detail">圈数支持 0.1 圈精度；常用 10 圈便于称重。</p>
+              </div>
+              <span class="tag info">设置</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">2</div>
+              <div>
+                <p class="record-title">现场接料并称重</p>
+                <p class="record-detail">称重后填入实际重量，系统计算每圈克数。</p>
+              </div>
+              <span class="tag warn">现场</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">3</div>
+              <div>
+                <p class="record-title">保存标定结果</p>
+                <p class="record-detail">保存后影响自动计划和手动按重量下料；按圈数下料不受克数换算影响。</p>
+              </div>
+              <span class="tag ok">保存</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="door-calibration" data-top-state="warn" data-top-text="门控校准">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">维护 · 门控校准</p>
+              <h1>门控校准</h1>
+              <p class="muted">维护关门位置、开门位置和当前位置。已知圈数可直接填写；未知时用行程标定保存位置。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>需现场确认</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>当前门位</h2>
+              <div class="kv-grid">
+                <div class="kv"><span>门控设备</span><strong>门控 01</strong></div>
+                <div class="kv"><span>当前位置</span><strong>5.5 圈 · 100%</strong></div>
+                <div class="kv"><span>关门位置</span><strong>0.0 圈 · 0%</strong></div>
+                <div class="kv"><span>开门位置</span><strong>5.5 圈 · 100%</strong></div>
+                <div class="kv"><span>编码器</span><strong>约 1820 脉冲</strong></div>
+                <div class="kv"><span>到位判断</span><strong>分站本地闭环</strong></div>
+              </div>
+              <p class="muted small" style="margin: 10px 0 0;">主控只下发动作和配置；到位停止、堵转保护和异常停止由门控设备本地完成。</p>
+            </div>
+
+            <div class="card">
+              <h2>直接输入参数</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="doorDirectDevice">门控设备</label>
+                  <select id="doorDirectDevice">
+                    <option>门控 01 · 当前启用</option>
+                  </select>
+                </div>
+                <div class="grid two">
+                  <div class="field">
+                    <label for="doorClosedTurns">关门位置（圈）</label>
+                    <input id="doorClosedTurns" type="number" min="0" step="0.1" value="0.0">
+                  </div>
+                  <div class="field">
+                    <label for="doorOpenTurns">开门位置（圈）</label>
+                    <input id="doorOpenTurns" type="number" min="0" step="0.1" value="5.5">
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="doorCurrentTurns">当前位置（圈）</label>
+                  <input id="doorCurrentTurns" type="number" min="0" step="0.1" value="5.5">
+                </div>
+                <button class="primary-button" data-command="保存门控位置参数" data-confirm-note="保存后，门控设备会按新的关门、开门位置判断行程。">保存位置参数</button>
+              </div>
+            </div>
+
+            <div class="card critical-card">
+              <h2>行程标定</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="doorCalDevice">选择门控设备</label>
+                  <select id="doorCalDevice">
+                    <option>门控 01 · 当前启用</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="doorStepTurns">每次移动步长</label>
+                  <input id="doorStepTurns" type="number" min="0.1" step="0.1" value="0.1">
+                </div>
+                <div class="action-grid">
+                  <button class="action-button" data-jog="向开门方向移动 0.1 圈">向开门方向移动</button>
+                  <button class="action-button" data-jog="向关门方向移动 0.1 圈">向关门方向移动</button>
+                  <button class="action-button urgent" data-jog="停止门控移动">停止移动</button>
+                </div>
+                <button class="secondary-button" data-command="保存当前为关门位置" data-confirm-note="将当前门位保存为 0% 关门位置。">设为关门位置</button>
+                <button class="secondary-button" data-command="保存当前为开门位置" data-confirm-note="将当前门位保存为 100% 开门位置。">设为开门位置</button>
+                <button class="danger-button" data-command="执行门控行程学习" data-confirm-note="门控设备会学习开门到关门的完整行程。">行程学习</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <h2>校准记录</h2>
+          </div>
+          <div class="record-list">
+            <div class="record-row">
+              <div class="icon-box">门</div>
+              <div>
+                <p class="record-title">上次行程学习完成</p>
+                <p class="record-detail">门控 01 · 0.0 到 5.5 圈 · 约 1820 脉冲</p>
+              </div>
+              <span class="record-time">6 月 18 日</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">保</div>
+              <div>
+                <p class="record-title">保护参数由设备本地执行</p>
+                <p class="record-detail">过流、堵转、到位停止不依赖主控实时通讯。</p>
+              </div>
+              <span class="record-time">规则</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="settings" data-top-state="ok" data-top-text="系统设置">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">维护 · 系统设置</p>
+              <h1>系统设置</h1>
+              <p class="muted">集中管理会影响长期自动运行的参数；日常计划页只设置每天几点执行什么。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>参数正常</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>温湿度记录</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="settingTempInterval">温湿度记录间隔</label>
+                  <select id="settingTempInterval">
+                    <option>每 1 小时 1 个点（默认）</option>
+                    <option>每 2 小时 1 个点</option>
+                    <option>每 4 小时 1 个点</option>
+                    <option>每 8 小时 1 个点</option>
+                    <option>每 12 小时 1 个点</option>
+                    <option>每 24 小时 1 个点</option>
+                  </select>
+                </div>
+                <div class="split-line">
+                  <span class="muted">允许范围</span>
+                  <strong>1 到 24 小时</strong>
+                </div>
+                <div class="split-line">
+                  <span class="muted">长期保存</span>
+                  <strong>小时原始点 + 日汇总</strong>
+                </div>
+                <button class="primary-button" data-command="保存温湿度记录间隔" data-confirm-note="保存后会影响后续温湿度采样和记录频率；已有记录不改变。">保存记录间隔</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>设备连接判定</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="settingPollInterval">设备轮询间隔</label>
+                  <select id="settingPollInterval">
+                    <option>每 10 秒检查一次</option>
+                    <option>每 30 秒检查一次</option>
+                    <option>每 60 秒检查一次</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="settingOfflineCount">离线判定</label>
+                  <select id="settingOfflineCount">
+                    <option>连续 6 次联系不上</option>
+                    <option>连续 3 次联系不上</option>
+                    <option>连续 10 次联系不上</option>
+                  </select>
+                </div>
+                <button class="primary-button" data-command="保存设备连接判定" data-confirm-note="保存后会影响设备离线告警的判定速度。">保存连接设置</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>时间与供电恢复</h2>
+              <div class="split-line">
+                <span class="muted">系统时间</span>
+                <strong>已同步 · RTC 正常</strong>
+              </div>
+              <div class="split-line">
+                <span class="muted">供电恢复报告</span>
+                <strong>首页提示到手动关闭</strong>
+              </div>
+              <div class="button-row" style="margin-top: 12px;">
+                <button class="secondary-button" data-command="立即同步系统时间" data-confirm-note="主控会重新同步时间，并写入系统记录。">同步时间</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>当前规则说明</h2>
+              <ul class="rule-list">
+                <li><span class="check">✓</span><span>手动操作只执行一次，结果写入记录。</span></li>
+                <li><span class="check warn-mark">!</span><span>暂停期间错过的计划默认不补跑。</span></li>
+                <li><span class="check">✓</span><span>供电恢复后恢复后续计划，并写入系统记录。</span></li>
+                <li><span class="check">✓</span><span>门控到位和异常停止由设备本地闭环完成。</span></li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="devices" data-top-state="warn" data-top-text="1 个离线">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">维护 · 设备诊断</p>
+              <h1>设备维护</h1>
+              <p class="muted">给维护人员查看设备地址、通讯质量、固件、电机、电流、编码器和校准状态。</p>
+            </div>
+            <span class="status-pill warn"><span class="dot"></span>5 在线 · 1 离线</span>
+          </div>
+
+          <div class="device-layout">
+            <div class="device-list">
+              <div class="device-group-title">门控设备</div>
+              <button class="device-row active" data-device="door01">
+                <div class="icon-box">01</div>
+                <div>
+                  <p class="device-title">门控 01 · 主门</p>
+                  <p class="device-detail">在线 · 地址 01 · 18ms · 位置 5.5 圈</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="door02">
+                <div class="icon-box info">02</div>
+                <div>
+                  <p class="device-title">门控 02 · 预留门位</p>
+                  <p class="device-detail">未启用 · 地址 02 · 未参与计划</p>
+                </div>
+              </button>
+
+              <div class="device-group-title">下料设备</div>
+              <button class="device-row" data-device="feed01">
+                <div class="icon-box">01</div>
+                <div>
+                  <p class="device-title">下料 01 · 1 号下料器</p>
+                  <p class="device-detail">在线 · 地址 11 · 8.0g/圈 · 编码器正常</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="feed02">
+                <div class="icon-box bad">02</div>
+                <div>
+                  <p class="device-title">下料 02 · 2 号下料器</p>
+                  <p class="device-detail">离线 · 地址 12 · 连续 6 次无响应</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="feed03">
+                <div class="icon-box">03</div>
+                <div>
+                  <p class="device-title">下料 03 · 3 号下料器</p>
+                  <p class="device-detail">在线 · 地址 13 · 8.2g/圈 · 电流正常</p>
+                </div>
+              </button>
+              <button class="device-row" data-device="feed04">
+                <div class="icon-box">04</div>
+                <div>
+                  <p class="device-title">下料 04 · 4 号下料器</p>
+                  <p class="device-detail">在线 · 地址 14 · 8.0g/圈 · 编码器正常</p>
+                </div>
+              </button>
+
+              <div class="device-group-title">传感器</div>
+              <button class="device-row" data-device="sensor01">
+                <div class="icon-box info">01</div>
+                <div>
+                  <p class="device-title">温湿度 01 · 室外</p>
+                  <p class="device-detail">在线 · 主控本地传感器 · 每小时记录</p>
+                </div>
+              </button>
+            </div>
+
+            <div class="detail-panel">
+              <div data-device-panel="door01" class="active">
+                <div class="card">
+                  <h2>门控 01 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>门控</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>01</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，18ms</strong></div>
+                    <div class="kv"><span>固件版本</span><strong>Door-0.4.2</strong></div>
+                    <div class="kv"><span>门位置</span><strong>已打开 · 5.5 圈 · 100%</strong></div>
+                    <div class="kv"><span>电机状态</span><strong>停止</strong></div>
+                    <div class="kv"><span>电流</span><strong>0.08A 空闲</strong></div>
+                    <div class="kv"><span>编码器</span><strong>1820 脉冲行程</strong></div>
+                    <div class="kv"><span>保护</span><strong>过流/堵转启用</strong></div>
+                    <div class="kv"><span>最近动作</span><strong>08:00 自动开门完成</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="door02">
+                <div class="card">
+                  <h2>门控 02 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>门控</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>02</strong></div>
+                    <div class="kv"><span>启用状态</span><strong>未启用</strong></div>
+                    <div class="kv"><span>用途</span><strong>预留门位</strong></div>
+                    <div class="kv"><span>计划绑定</span><strong>未绑定</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="feed01">
+                <div class="card">
+                  <h2>下料 01 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>11</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，23ms</strong></div>
+                    <div class="kv"><span>固件版本</span><strong>Feed-0.4.1</strong></div>
+                    <div class="kv"><span>每圈克数</span><strong>8.0g</strong></div>
+                    <div class="kv"><span>最近动作</span><strong>120g 完成</strong></div>
+                    <div class="kv"><span>编码器</span><strong>目标脉冲完成</strong></div>
+                    <div class="kv"><span>电机电流</span><strong>0.42A 峰值</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="feed02">
+                <div class="card critical-card">
+                  <h2>下料 02 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>12</strong></div>
+                    <div class="kv"><span>通讯</span><strong>离线</strong></div>
+                    <div class="kv"><span>固件版本</span><strong>未知</strong></div>
+                    <div class="kv"><span>最后在线</span><strong>10:31</strong></div>
+                    <div class="kv"><span>连续失败</span><strong>6 次</strong></div>
+                    <div class="kv"><span>最近异常</span><strong>疑似下料不足</strong></div>
+                    <div class="kv"><span>排查项</span><strong>供电和接线</strong></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <h2>诊断摘要</h2>
+                  <p class="muted" style="margin-bottom: 0;">10:38 下料执行中编码器脉冲不足；10:42 起通讯中断。第一版只提示“疑似异常”。</p>
+                </div>
+              </div>
+
+              <div data-device-panel="feed03">
+                <div class="card">
+                  <h2>下料 03 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>13</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，21ms</strong></div>
+                    <div class="kv"><span>固件版本</span><strong>Feed-0.4.1</strong></div>
+                    <div class="kv"><span>每圈克数</span><strong>8.2g</strong></div>
+                    <div class="kv"><span>电流</span><strong>正常</strong></div>
+                    <div class="kv"><span>编码器</span><strong>正常</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="feed04">
+                <div class="card">
+                  <h2>下料 04 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>下料</strong></div>
+                    <div class="kv"><span>RS485 地址</span><strong>14</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线，19ms</strong></div>
+                    <div class="kv"><span>固件版本</span><strong>Feed-0.4.1</strong></div>
+                    <div class="kv"><span>每圈克数</span><strong>8.0g</strong></div>
+                    <div class="kv"><span>编码器</span><strong>正常</strong></div>
+                    <div class="kv"><span>电流</span><strong>正常</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div data-device-panel="sensor01">
+                <div class="card">
+                  <h2>温湿度 01 详情</h2>
+                  <div class="kv-grid">
+                    <div class="kv"><span>设备类型</span><strong>传感器</strong></div>
+                    <div class="kv"><span>型号</span><strong>SHT30</strong></div>
+                    <div class="kv"><span>安装位置</span><strong>室外</strong></div>
+                    <div class="kv"><span>通讯</span><strong>在线</strong></div>
+                    <div class="kv"><span>记录间隔</span><strong>每小时</strong></div>
+                    <div class="kv"><span>最近读数</span><strong>24.8°C / 68%</strong></div>
+                    <div class="kv"><span>用途</span><strong>只记录，不控制</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="records" data-top-state="ok" data-top-text="记录">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">记录</p>
+              <h1>分类记录</h1>
+              <p class="muted">门控和下料看业务结果；系统事件看主控、供电、时间和计划恢复；设备通讯看分站、电机、电流和编码器诊断。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>记录正常</span>
+          </div>
+
+          <div class="segmented record-tabs" aria-label="记录分类">
+            <button class="seg-button active" data-record-tab="door">门控</button>
+            <button class="seg-button" data-record-tab="feed">下料</button>
+            <button class="seg-button" data-record-tab="temp">温湿度</button>
+            <button class="seg-button" data-record-tab="system">系统事件</button>
+            <button class="seg-button" data-record-tab="comm">设备通讯</button>
+          </div>
+
+          <div class="record-group active" data-record-group="door">
+            <div class="record-row">
+              <div class="icon-box">门</div>
+              <div>
+                <p class="record-title">自动开门完成</p>
+                <p class="record-detail">门已到位并停止，状态正常</p>
+              </div>
+              <span class="record-time">今天 08:00</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">复</div>
+              <div>
+                <p class="record-title">关门计划无需动作</p>
+                <p class="record-detail">到点时门已关闭，系统只记录状态</p>
+              </div>
+              <span class="record-time">昨天 21:00</span>
+            </div>
+          </div>
+
+          <div class="record-group" data-record-group="feed">
+            <div class="record-row">
+              <div class="icon-box">料</div>
+              <div>
+                <p class="record-title">早料计划完成</p>
+                <p class="record-detail">共 420g · 约 53.0 圈 · 4 个下料器完成</p>
+              </div>
+              <span class="record-time">今天 07:10</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box warn">2</div>
+              <div>
+                <p class="record-title">2 号下料器疑似异常</p>
+                <p class="record-detail">目标 100g，估算偏低；不做精确缺料承诺</p>
+              </div>
+              <span class="record-time">今天 10:38</span>
+            </div>
+          </div>
+
+          <div class="record-group" data-record-group="temp">
+            <div class="record-row" data-screen="temp-history">
+              <div class="icon-box info">温</div>
+              <div>
+                <p class="record-title">温湿度历史</p>
+                <p class="record-detail">每小时记录 1 个点，默认看近 24 小时，也可查看 30 天和 1 年趋势</p>
+              </div>
+              <span class="record-time">10:00</span>
+            </div>
+            <div class="record-row" data-screen="temp-history">
+              <div class="icon-box">今</div>
+              <div>
+                <p class="record-title">今日温湿度记录正常</p>
+                <p class="record-detail">温度 18.9°C 到 26.2°C，湿度 58% 到 76%</p>
+              </div>
+              <span class="record-time">今天</span>
+            </div>
+          </div>
+
+          <div class="record-group" data-record-group="system">
+            <div class="record-row" data-screen="power-report">
+              <div class="icon-box warn">电</div>
+              <div>
+                <p class="record-title">供电恢复报告生成</p>
+                <p class="record-detail">推测断电 06:18 到 09:42，点开查看错过计划和恢复结果</p>
+              </div>
+              <span class="record-time">今天 09:44</span>
+            </div>
+            <div class="record-row" data-screen="power-report">
+              <div class="icon-box info">电</div>
+              <div>
+                <p class="record-title">历史供电恢复报告</p>
+                <p class="record-detail">昨天 03:12 恢复，未发现错过计划</p>
+              </div>
+              <span class="record-time">昨天</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box info">时</div>
+              <div>
+                <p class="record-title">系统时间检查通过</p>
+                <p class="record-detail">启动后时间可信，记录可用</p>
+              </div>
+              <span class="record-time">今天 09:42</span>
+            </div>
+          </div>
+
+          <div class="record-group" data-record-group="comm">
+            <div class="record-row">
+              <div class="icon-box bad">03</div>
+              <div>
+                <p class="record-title">2 号下料设备联系不上</p>
+                <p class="record-detail">设备通讯连续 6 次无响应，最后在线 10:31；归入设备通讯，不等同于下料结果</p>
+              </div>
+              <span class="record-time">今天 10:42</span>
+            </div>
+            <div class="record-row">
+              <div class="icon-box">总</div>
+              <div>
+                <p class="record-title">设备连接检查正常</p>
+                <p class="record-detail">门控 01、下料 01、下料 03、下料 04 响应正常，通讯延迟低于 30ms</p>
+              </div>
+              <span class="record-time">今天 10:41</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="more" data-top-state="ok" data-top-text="设置">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">设置</p>
+              <h1>设置与维护</h1>
+              <p class="muted">这里放系统配置、设备维护和通知设置；日常查看和操作不放在这里。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>配置入口</span>
+          </div>
+
+          <div class="section-title">
+            <h2>系统配置</h2>
+          </div>
+          <div class="menu-grid">
+            <button class="menu-row" data-screen="settings">
+              <span class="icon-box">参</span>
+              <span>
+                <span class="event-title">系统设置</span>
+                <span class="event-detail">温湿度记录间隔、维护入口和当前自动运行规则说明</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="feeder-calibration">
+              <span class="icon-box">校</span>
+              <span>
+                <span class="event-title">下料器校准</span>
+                <span class="event-detail">试转、称重并保存每圈多少克</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="door-calibration">
+              <span class="icon-box">门</span>
+              <span>
+                <span class="event-title">门控校准</span>
+                <span class="event-detail">维护开门、关门位置和门控行程</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="devices">
+              <span class="icon-box">设</span>
+              <span>
+                <span class="event-title">设备维护</span>
+                <span class="event-detail">按门控、下料、传感器查看通讯和诊断状态</span>
+              </span>
+            </button>
+            <button class="menu-row" data-screen="wechat">
+              <span class="icon-box info">微</span>
+              <span>
+                <span class="event-title">微信通知</span>
+                <span class="event-detail">设置告警通知和发送测试通知</span>
+              </span>
+            </button>
+          </div>
+
+        </section>
+
+        <section class="screen" id="wechat" data-top-state="ok" data-top-text="微信通知">
+          <div class="screen-header">
+            <div>
+              <p class="screen-kicker">通知</p>
+              <h1>微信通知设置</h1>
+              <p class="muted">正常时少打扰，异常和供电恢复时主动通知。</p>
+            </div>
+            <span class="status-pill ok"><span class="dot"></span>已启用</span>
+          </div>
+
+          <div class="grid desktop-two">
+            <div class="card">
+              <h2>通知开关</h2>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">严重告警</p>
+                  <p class="event-detail">设备联系不上、门控失败、堵转、过流</p>
+                </div>
+                <label class="switch"><input type="checkbox" checked><span></span></label>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">疑似异常</p>
+                  <p class="event-detail">疑似下料不足、运行数据异常</p>
+                </div>
+                <label class="switch"><input type="checkbox" checked><span></span></label>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">供电恢复报告</p>
+                  <p class="event-detail">恢复时间、断电范围、错过计划</p>
+                </div>
+                <label class="switch"><input type="checkbox" checked><span></span></label>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <p class="event-title">每日正常摘要</p>
+                  <p class="event-detail">每天固定时间发一条运行摘要</p>
+                </div>
+                <label class="switch"><input type="checkbox"><span></span></label>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>测试通知</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="notifyTarget">接收对象</label>
+                  <select id="notifyTarget">
+                    <option>主人微信</option>
+                    <option>值班家人</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="notifyToken">通知密钥</label>
+                  <input id="notifyToken" type="password" value="************" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="notifyPreview">测试内容</label>
+                  <input id="notifyPreview" value="FarmAuto 测试通知：主控在线，微信通知可用。">
+                </div>
+                <button class="primary-button" id="testNotify">发送测试通知</button>
+                <p class="muted small" id="notifyResult">上次测试：今天 09:45 发送成功。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="常用入口">
+    <button class="nav-button active" data-screen="home-normal"><span>首</span><span>首页</span></button>
+    <button class="nav-button" data-screen="plans"><span>自</span><span>自动</span></button>
+    <button class="nav-button" data-screen="manual"><span>手</span><span>手动</span></button>
+    <button class="nav-button" data-screen="records"><span>记</span><span>记录</span></button>
+    <button class="nav-button" data-screen="more"><span>设</span><span>设置</span></button>
+  </nav>
+
+  <div class="confirm-sheet" id="globalConfirm" aria-live="polite">
+    <div>
+      <p class="event-title" id="globalConfirmTitle">确认动作</p>
+      <p class="event-detail" id="globalConfirmNote"></p>
+    </div>
+    <button class="hold-button" id="globalHold" data-hold-command="" data-hold-note=""><span>长按 1 秒发送</span></button>
+    <button class="secondary-button" id="cancelConfirm">取消</button>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const screens = Array.from(document.querySelectorAll(".screen"));
+    const topStatus = document.getElementById("topStatus");
+    const toast = document.getElementById("toast");
+    const globalConfirm = document.getElementById("globalConfirm");
+    const globalHold = document.getElementById("globalHold");
+    const globalConfirmTitle = document.getElementById("globalConfirmTitle");
+    const globalConfirmNote = document.getElementById("globalConfirmNote");
+    const cancelConfirm = document.getElementById("cancelConfirm");
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2800);
+    }
+
+    function navRootFor(id) {
+      if (id === "home-alert") return "home-normal";
+      if (["plans", "door-plan", "door-plan-form", "door-paused", "feed-plan", "feed-plan-form", "feed-paused"].includes(id)) return "plans";
+      if (["manual", "manual-feed"].includes(id)) return "manual";
+      if (["records", "temp-history", "power-report"].includes(id)) return "records";
+      if (["devices", "settings", "feeder-calibration", "door-calibration", "wechat", "more"].includes(id)) return "more";
+      return id;
+    }
+
+    function setScreen(id) {
+      const target = document.getElementById(id);
+      if (!target) return;
+      screens.forEach((screen) => screen.classList.toggle("active", screen.id === id));
+      document.querySelectorAll(".page-rail .rail-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.screen === navRootFor(id));
+      });
+      document.querySelectorAll(".bottom-nav .nav-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.screen === navRootFor(id));
+      });
+      const state = target.dataset.topState || "ok";
+      const text = target.dataset.topText || "系统正常";
+      topStatus.className = "status-pill " + (state === "bad" ? "bad" : state === "warn" ? "warn" : "ok");
+      topStatus.innerHTML = '<span class="dot"></span>' + text;
+      globalConfirm.classList.remove("show");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.addEventListener("click", (event) => {
+      const screenButton = event.target.closest("[data-screen]");
+      if (screenButton) {
+        setScreen(screenButton.dataset.screen);
+      }
+    });
+
+    function hidePowerRecoveryNotice() {
+      const notice = document.getElementById("powerRecoveryNotice");
+      if (notice) notice.style.display = "none";
+      showToast("首页不再显示这条供电恢复报告提示。");
+    }
+
+    document.getElementById("hidePowerRecoveryNotice")?.addEventListener("click", hidePowerRecoveryNotice);
+    document.getElementById("hidePowerRecoveryNoticeFromReport")?.addEventListener("click", hidePowerRecoveryNotice);
+
+    document.querySelectorAll("[data-command]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const command = button.dataset.command;
+        globalConfirmTitle.textContent = "确认：" + command;
+        globalConfirmNote.textContent = button.dataset.confirmNote || "该动作会立即发送到主控。";
+        globalHold.dataset.holdCommand = command;
+        globalHold.dataset.holdNote = command + "命令已发送。";
+        globalConfirm.classList.add("show");
+        globalConfirm.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    });
+
+    document.querySelectorAll("[data-jog]").forEach((button) => {
+      button.addEventListener("click", () => {
+        showToast(button.dataset.jog + "。");
+      });
+    });
+
+    function setPauseMode(scope, mode) {
+      document.querySelectorAll('[data-pause-scope="' + scope + '"]').forEach((button) => {
+        button.classList.toggle("active", button.dataset.pauseMode === mode);
+      });
+      document.querySelectorAll('[data-pause-panel^="' + scope + '-"]').forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.pausePanel === scope + "-" + mode);
+      });
+    }
+
+    function formatPauseDateTime(value) {
+      if (!value) return "暂停到指定时间";
+      const parts = value.split("T");
+      if (parts.length !== 2) return "暂停到 " + value;
+      const dateParts = parts[0].split("-");
+      const time = parts[1].slice(0, 5);
+      return "暂停到 " + Number(dateParts[1]) + "月" + Number(dateParts[2]) + "日 " + time;
+    }
+
+    document.querySelectorAll("[data-pause-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        setPauseMode(button.dataset.pauseScope, button.dataset.pauseMode);
+      });
+    });
+
+    document.querySelectorAll("[data-pause-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const scope = button.dataset.pausePreset;
+        const input = document.querySelector('[data-pause-input="' + scope + '"]');
+        const summary = document.getElementById(scope + "PauseSummary");
+        if (input) input.value = button.dataset.pauseValue;
+        if (summary) {
+          const label = button.dataset.pauseLabel;
+          summary.textContent = label.includes("小时后") ? "暂停 " + label : "暂停到" + label;
+        }
+        setPauseMode(scope, "until");
+      });
+    });
+
+    document.querySelectorAll("[data-pause-input]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const scope = input.dataset.pauseInput;
+        const summary = document.getElementById(scope + "PauseSummary");
+        if (summary) summary.textContent = formatPauseDateTime(input.value);
+      });
+    });
+
+    cancelConfirm.addEventListener("click", () => {
+      globalConfirm.classList.remove("show");
+      showToast("已取消，未发送命令。");
+    });
+
+    let holdTimer = null;
+    let holdProgressTimer = null;
+    function bindHold(button) {
+      const duration = 1000;
+      const start = (event) => {
+        event.preventDefault();
+        let progress = 0;
+        button.style.setProperty("--hold-progress", "0%");
+        clearInterval(holdProgressTimer);
+        clearTimeout(holdTimer);
+        holdProgressTimer = setInterval(() => {
+          progress += 80 / duration * 100;
+          button.style.setProperty("--hold-progress", Math.min(progress, 100) + "%");
+        }, 80);
+        holdTimer = setTimeout(() => {
+          clearInterval(holdProgressTimer);
+          button.style.setProperty("--hold-progress", "100%");
+          const note = button.dataset.holdNote || button.dataset.holdCommand || "命令已发送。";
+          showToast(note);
+          globalConfirm.classList.remove("show");
+          setTimeout(() => button.style.setProperty("--hold-progress", "0%"), 260);
+        }, duration);
+      };
+      const cancel = () => {
+        clearTimeout(holdTimer);
+        clearInterval(holdProgressTimer);
+        button.style.setProperty("--hold-progress", "0%");
+      };
+      button.addEventListener("mousedown", start);
+      button.addEventListener("touchstart", start, { passive: false });
+      ["mouseup", "mouseleave", "touchend", "touchcancel"].forEach((type) => {
+        button.addEventListener(type, cancel);
+      });
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+    }
+
+    document.querySelectorAll(".hold-button").forEach(bindHold);
+
+    let feedInputMode = "grams";
+    let feedPlanInputMode = "grams";
+
+    function feedLines() {
+      return Array.from(document.querySelectorAll("[data-feeder-line]"));
+    }
+
+    function oneDecimal(value) {
+      return (Math.round(value * 10) / 10).toFixed(1);
+    }
+
+    function renderFeedEditor() {
+      document.querySelectorAll("[data-feed-mode]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.feedMode === feedInputMode);
+      });
+      const hint = document.getElementById("feedModeHint");
+      if (hint) {
+        hint.textContent = feedInputMode === "grams"
+          ? "当前按重量设置，每次调整 10g；系统会按校准值换算为输出轴圈数。"
+          : "当前按输出轴圈数设置，每次调整 0.1 圈；适合现场少量试料或校准后复核。";
+      }
+
+      feedLines().forEach((line) => {
+        const valueNode = line.querySelector("[data-value]");
+        const helper = line.querySelector("[data-feed-helper]");
+        const calibration = Number(line.dataset.calibration);
+        const grams = Number(line.dataset.grams);
+        const turns = Number(line.dataset.turns);
+        if (feedInputMode === "grams") {
+          valueNode.textContent = Math.round(grams) + "g";
+          helper.textContent = grams > 0
+            ? "校准量 " + calibration + "g/圈，约 " + oneDecimal(grams / calibration) + " 圈"
+            : "当前不下料";
+        } else {
+          valueNode.textContent = oneDecimal(turns) + "圈";
+          helper.textContent = turns > 0
+            ? "约 " + Math.round(turns * calibration) + "g，最小 0.1 圈"
+            : "当前不下料，最小 0.1 圈";
+        }
+      });
+      refreshFeedConfirm();
+    }
+
+    function feedPlanLines() {
+      return Array.from(document.querySelectorAll("[data-feed-plan-line]"));
+    }
+
+    function renderFeedPlanEditor() {
+      document.querySelectorAll("[data-feed-plan-mode]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.feedPlanMode === feedPlanInputMode);
+      });
+      const hint = document.getElementById("feedPlanModeHint");
+      if (hint) {
+        hint.textContent = feedPlanInputMode === "grams"
+          ? "当前按重量设置，每次调整 10g；系统会按校准值换算为输出轴圈数。"
+          : "当前按输出轴圈数设置，每次调整 0.1 圈；系统会按校准值估算饲料重量。";
+      }
+
+      feedPlanLines().forEach((line) => {
+        const valueNode = line.querySelector("[data-feed-plan-value]");
+        const helper = line.querySelector("[data-feed-plan-helper]");
+        const calibration = Number(line.dataset.calibration);
+        const grams = Number(line.dataset.grams);
+        const turns = Number(line.dataset.turns);
+        if (feedPlanInputMode === "grams") {
+          valueNode.textContent = Math.round(grams) + "g";
+          helper.textContent = grams > 0
+            ? "校准量 " + calibration + "g/圈，约 " + oneDecimal(grams / calibration) + " 圈"
+            : "当前计划不下料";
+        } else {
+          valueNode.textContent = oneDecimal(turns) + "圈";
+          helper.textContent = turns > 0
+            ? "约 " + Math.round(turns * calibration) + "g，最小 0.1 圈"
+            : "当前计划不下料，最小 0.1 圈";
+        }
+      });
+      refreshFeedPlanSummary();
+    }
+
+    function refreshFeedPlanSummary() {
+      const summary = document.getElementById("feedPlanSummary");
+      if (!summary) return;
+      const values = feedPlanLines().map((line) => ({
+        calibration: Number(line.dataset.calibration),
+        grams: Number(line.dataset.grams),
+        turns: Number(line.dataset.turns)
+      }));
+      const totalGrams = values.reduce((sum, item) => sum + item.grams, 0);
+      const totalTurns = values.reduce((sum, item) => sum + item.turns, 0);
+      summary.textContent = feedPlanInputMode === "grams"
+        ? "共 " + Math.round(totalGrams) + "g，约 " + oneDecimal(totalTurns) + " 圈；保存后每天按这个计划执行。"
+        : "共 " + oneDecimal(totalTurns) + " 圈，约 " + Math.round(totalGrams) + "g；保存后每天按这个计划执行。";
+    }
+
+    function refreshFeedConfirm() {
+      const values = feedLines().map((line) => ({
+        index: Number(line.dataset.index),
+        calibration: Number(line.dataset.calibration),
+        grams: Number(line.dataset.grams),
+        turns: Number(line.dataset.turns)
+      }));
+      const skipped = values.filter((item) => item.grams <= 0 && item.turns <= 0)
+        .map((item) => item.index + " 号不下料");
+
+      if (feedInputMode === "grams") {
+        const total = values.reduce((sum, item) => sum + item.grams, 0);
+        const active = values.filter((item) => item.grams > 0)
+          .map((item) => item.index + " 号 " + Math.round(item.grams) + "g（约 " + oneDecimal(item.grams / item.calibration) + " 圈）");
+        document.querySelector("#manualFeedConfirm .event-title").textContent = "将立即按重量下料：共 " + Math.round(total) + "g";
+        document.getElementById("feedConfirmText").textContent = [...active, ...skipped].join("，") + "。";
+        return;
+      }
+
+      const totalTurns = values.reduce((sum, item) => sum + item.turns, 0);
+      const totalGrams = values.reduce((sum, item) => sum + item.turns * item.calibration, 0);
+      const active = values.filter((item) => item.turns > 0)
+        .map((item) => item.index + " 号 " + oneDecimal(item.turns) + " 圈（约 " + Math.round(item.turns * item.calibration) + "g）");
+      document.querySelector("#manualFeedConfirm .event-title").textContent = "将立即按圈数下料：共 " + oneDecimal(totalTurns) + " 圈";
+      document.getElementById("feedConfirmText").textContent = [...active, ...skipped, "估算共 " + Math.round(totalGrams) + "g"].join("，") + "。";
+    }
+
+    document.querySelectorAll("[data-feed-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        feedInputMode = button.dataset.feedMode;
+        renderFeedEditor();
+      });
+    });
+
+    document.querySelectorAll("[data-feed-plan-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        feedPlanInputMode = button.dataset.feedPlanMode;
+        renderFeedPlanEditor();
+      });
+    });
+
+    document.querySelectorAll("[data-step]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const line = button.closest("[data-feeder-line]");
+        const direction = Number(button.dataset.step);
+        const calibration = Number(line.dataset.calibration);
+        if (feedInputMode === "grams") {
+          const nextGrams = Math.max(0, Math.min(300, Number(line.dataset.grams) + direction * 10));
+          line.dataset.grams = String(nextGrams);
+          line.dataset.turns = oneDecimal(nextGrams / calibration);
+        } else {
+          const nextTurns = Math.max(0, Math.min(50, Number(line.dataset.turns) + direction * 0.1));
+          line.dataset.turns = oneDecimal(nextTurns);
+          line.dataset.grams = String(Math.round(nextTurns * calibration));
+        }
+        renderFeedEditor();
+      });
+    });
+
+    document.querySelectorAll("[data-feed-plan-step]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const line = button.closest("[data-feed-plan-line]");
+        const direction = Number(button.dataset.feedPlanStep);
+        const calibration = Number(line.dataset.calibration);
+        if (feedPlanInputMode === "grams") {
+          const nextGrams = Math.max(0, Math.min(1000, Number(line.dataset.grams) + direction * 10));
+          line.dataset.grams = String(nextGrams);
+          line.dataset.turns = oneDecimal(nextGrams / calibration);
+        } else {
+          const nextTurns = Math.max(0, Math.min(120, Number(line.dataset.turns) + direction * 0.1));
+          line.dataset.turns = oneDecimal(nextTurns);
+          line.dataset.grams = String(Math.round(nextTurns * calibration));
+        }
+        renderFeedPlanEditor();
+      });
+    });
+
+    document.getElementById("buildFeedConfirm").addEventListener("click", () => {
+      refreshFeedConfirm();
+      showToast("下料内容已更新，请核对后长按 1 秒发送。");
+    });
+
+    document.getElementById("clearFeed").addEventListener("click", () => {
+      feedLines().forEach((line) => {
+        line.dataset.grams = "0";
+        line.dataset.turns = "0";
+      });
+      renderFeedEditor();
+      showToast("已全部清零。");
+    });
+
+    renderFeedEditor();
+    renderFeedPlanEditor();
+
+    document.querySelectorAll("[data-device]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.device;
+        document.querySelectorAll("[data-device]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-device-panel]").forEach((panel) => {
+          panel.classList.toggle("active", panel.dataset.devicePanel === id);
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-record-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.recordTab;
+        document.querySelectorAll("[data-record-tab]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-record-group]").forEach((group) => {
+          group.classList.toggle("active", group.dataset.recordGroup === id);
+        });
+      });
+    });
+
+    const tempTitles = {
+      today: ["近 24 小时趋势", "24 个小时点"],
+      month: ["30 天趋势", "每天概览 + 小时原始点"],
+      year: ["1 年趋势", "月汇总 + 每小时原始点"]
+    };
+
+    document.querySelectorAll("[data-temp-range]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.tempRange;
+        document.querySelectorAll("[data-temp-range]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-temp-group]").forEach((group) => {
+          group.classList.toggle("active", group.dataset.tempGroup === id);
+        });
+        document.getElementById("tempChartTitle").textContent = tempTitles[id][0];
+        document.getElementById("tempChartRange").textContent = tempTitles[id][1];
+      });
+    });
+
+    document.getElementById("testNotify").addEventListener("click", () => {
+      document.getElementById("notifyResult").textContent = "刚刚发送：测试通知已提交，等待微信端确认。";
+      showToast("测试通知已发送。");
+    });
+
+    refreshFeedConfirm();
+  </script>
+</body>
+</html>

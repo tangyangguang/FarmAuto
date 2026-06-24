@@ -1,60 +1,33 @@
 # FarmAuto
 
-FarmAuto 是养殖自动化设备 monorepo，规划包含两个独立应用：
+FarmAuto 是用于农场自动化的 ESP32 + RS485 分布式控制项目。
 
-- Esp32FarmDoor：鸡舍/养殖场自动门控制器。
-- Esp32FarmFeeder：三路喂食器控制器。
+## 目标
 
-当前阶段已从分析、策划和文档进入源码阶段。公共库源码骨架已创建，`apps/Esp32FarmDoor` 和 `apps/Esp32FarmFeeder` 已创建最小可编译应用骨架。
+用一个 ESP32 主控板统一管理多个 RS485 分站，实现：
 
-正式文档按编号放在 `docs/` 中，建议从 [docs/00-overview.md](docs/00-overview.md) 开始阅读。
+- 自动下料：控制 12V 双向减速电机，业务上通常只单向下料。
+- 自动门控：控制 12V 双向减速电机，实现开门、关门、停止和校准。
+- Web 管理：配置分站、下料计划、每圈克数、门控参数和运行状态。
+- 本地应急：主控板 4 个按键只做简单操作，不做复杂配置。
+- 可靠记录：使用 RTC 提供时间，使用 FRAM 保存配置、计划、状态和日志。
 
-## 重要边界
+## 当前硬件方向
 
-- 只引用同级目录的 Esp32Base，不修改 Esp32Base。
-- `old_prj/` 只读参考，只用于识别和完善需求，不参考其实现方案。
-- 首版不接入 Blinker、MQTT 或云端控制协议。
-- 公共库沉淀可跨项目复用的硬件/存储能力，不包含具体应用项目独有逻辑。
+主控板使用现有 ESP32 主控 PCB，只使用 ESP32、RS485、RTC、FRAM、按键和指示灯。
 
-## Source Status
+分站板重新设计，统一使用 STC8H8K64U、RS485、4 位拨码地址、AT8236 电机驱动、编码器输入和 INA240A2 电流检测。
 
-Current source work includes public library skeletons under `lib/` and minimal compile-ready application shells under `apps/Esp32FarmDoor` and `apps/Esp32FarmFeeder`.
-Implemented host-tested application logic currently includes business record codecs, record file rotation, feeder scheduling, feeder bucket state handling, fixed payload codecs for AT24C-backed recovery/state data, and AT24C128 RecordStore startup restore/write-back glue.
-The current firmware still does not output real motor PWM or read real encoder counts; those hardware paths require bench validation before enabling.
+## 关键设计判断
 
-## Core Board Smoke Test
+- 主控只做联网、配置、调度、记录和分站管理，不直接控制电机。
+- 分站必须本地闭环执行电机动作，不能依赖主控实时发送停止命令。
+- 下料和门控共用分站硬件，通过软件模式区分。
+- 下料支持按圈数或克数执行，每圈克数可配置。
+- 电流检测用于过流、堵转和异常辅助判断；缺料检测后续根据实测数据再决定。
 
-For a new ESP32 board, upload both firmware and the LittleFS image. The firmware uses Esp32Base `FULL` profile and expects a LittleFS partition for file log and business records.
+## 目录边界
 
-```bash
-platformio run -d apps/Esp32FarmDoor -e esp32e_full -t upload --upload-port /dev/cu.usbserial-130
-platformio run -d apps/Esp32FarmDoor -e esp32e_full -t uploadfs --upload-port /dev/cu.usbserial-130
-
-platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t upload --upload-port /dev/cu.usbserial-130
-platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t uploadfs --upload-port /dev/cu.usbserial-130
-```
-
-Without AT24C128 or motor hardware connected, startup should still complete. I2C warnings are expected on a bare core board; PWM and motor output remain disabled in the current firmware.
-
-After the board joins WiFi, run non-destructive HTTP smoke tests:
-
-```bash
-./tools/smoke_http.sh door http://192.168.2.156 admin admin
-./tools/smoke_http.sh feeder http://192.168.2.156 admin admin
-```
-
-The smoke script checks business pages, read-only JSON APIs, and unauthenticated API rejection. It does not trigger motor output, calibration writes, feeding, or door movement.
-
-## Web OTA
-
-Both application projects reuse Esp32Base Web OTA. After an initial serial upload and WiFi provisioning, upload firmware through each app's `platformio.webota.ini` configuration:
-
-```bash
-platformio run -d apps/Esp32FarmDoor -e esp32e_full -t webota
-
-platformio run -d apps/Esp32FarmFeeder -e esp32e_full -t webota
-```
-
-The default Web OTA host is `192.168.2.158`. If the device IP changes, edit the matching `platformio.webota.ini` and update `esp32base_webota_host`.
-
-The `webota` target is provided by `Esp32Base/scripts/esp32base_webota.py`. FarmAuto does not implement its own OTA page, upload handler, SHA256 check, rollback, or restart flow.
+- `old_prj/` 是正在运行的老项目，只读参考，不能修改、删除或提交。
+- `pcb/` 是现有 PCB、BOM、网表资料，只读参考，修改前必须确认。
+- `_pending_delete/` 是旧 FarmAuto 实现的待删除归档，默认不再参考、不再维护。
