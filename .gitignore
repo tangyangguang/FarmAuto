@@ -3,3 +3,5 @@ _pending_delete/
 .DS_Store
 .pio/
 .vscode/
+__pycache__/
+*.pyc

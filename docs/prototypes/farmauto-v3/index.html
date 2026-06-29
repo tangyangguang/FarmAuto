@@ -1848,7 +1848,7 @@
               <div class="metric-tile critical-card">
                 <div class="metric-label">下料 <span class="mini-pill warn">疑似异常</span></div>
                 <div class="metric-value">2 号偏差大</div>
-                <div class="metric-note">目标 100g，估算完成 38g；第一版只提示检查，不判定精确缺料</div>
+                <div class="metric-note">目标 100g，估算完成 38g；按编码器完成量提示异常，不判定精确缺料</div>
               </div>
               <div class="metric-tile critical-card">
                 <div class="metric-label">设备连接 <span class="mini-pill bad">联系不上</span></div>
@@ -2819,15 +2819,15 @@
               <div class="param-list">
                 <div class="param-row">
                   <div class="param-head"><span class="param-name">通讯方式</span><span class="param-value">RS485 主控轮询总线</span></div>
-                  <div class="param-meta"><span>作用：主控与门控、下料分站通讯。</span><span>可取值：第一版固定，不提供其他连接方式。</span></div>
+                  <div class="param-meta"><span>作用：主控与门控、下料分站通讯。</span><span>可取值：成品固定为 RS485 主控轮询，不提供其他连接方式。</span></div>
                 </div>
                 <div class="param-row">
-                  <div class="param-head"><span class="param-name">设备地址范围</span><span class="param-value">1-15</span></div>
-                  <div class="param-meta"><span>作用：扫描和绑定分站拨码地址。</span><span>可取值：1-15 可绑定；0 是保留地址，不允许普通设备使用。</span></div>
+                  <div class="param-head"><span class="param-name">设备地址范围</span><span class="param-value">默认 1-15</span></div>
+                  <div class="param-meta"><span>作用：扫描和绑定分站通讯地址。</span><span>可取值：4 位拨码默认发现 1-15；已配置地址可手动绑定默认范围外；0 是保留地址。</span></div>
                 </div>
                 <div class="param-row">
-                  <div class="param-head"><span class="param-name">通讯速率</span><span class="param-value">待工程固化</span></div>
-                  <div class="param-meta"><span>作用：主控和分站串口通讯速率。</span><span>可取值：必须与分站固件一致；当前项目文档未定具体波特率。</span></div>
+                  <div class="param-head"><span class="param-name">通讯速率</span><span class="param-value">9600 8N1</span></div>
+                  <div class="param-meta"><span>作用：主控和分站串口通讯速率。</span><span>可取值：工程默认值，需现场总线实测确认；主控与分站必须一致。</span></div>
                 </div>
               </div>
             </div>
@@ -2836,16 +2836,16 @@
               <h2>扫描与离线判定</h2>
               <div class="param-list">
                 <div class="param-row">
-                  <div class="param-head"><span class="param-name">扫描地址</span><span class="param-value">1-15</span></div>
-                  <div class="param-meta"><span>作用：设备管理里主动扫描哪些 RS485 地址在线。</span><span>可取值：第一版固定 1-15；地址 0 只做异常提示。</span></div>
+                  <div class="param-head"><span class="param-name">扫描地址</span><span class="param-value">默认 1-15</span></div>
+                  <div class="param-meta"><span>作用：设备管理里主动扫描哪些 RS485 地址在线。</span><span>可取值：默认扫描当前拨码范围；维护入口允许测试和绑定手动输入地址。</span></div>
                 </div>
                 <div class="param-row">
-                  <div class="param-head"><span class="param-name">正常轮询间隔</span><span class="param-value">待工程固化</span></div>
-                  <div class="param-meta"><span>作用：主控后台检查已启用设备是否在线。</span><span>可取值：需结合总线数量和分站响应时间确认，不能在原型里伪造默认值。</span></div>
+                  <div class="param-head"><span class="param-name">正常轮询间隔</span><span class="param-value">空闲约 1000ms</span></div>
+                  <div class="param-meta"><span>作用：主控后台检查已启用设备是否在线。</span><span>可取值：动作中相关通道约 200ms；最终按现场总线实测校正。</span></div>
                 </div>
                 <div class="param-row">
-                  <div class="param-head"><span class="param-name">离线判定</span><span class="param-value">待工程固化</span></div>
-                  <div class="param-meta"><span>作用：决定什么时候写入设备通讯记录并触发异常提醒。</span><span>可取值：建议按“连续失败次数 + 最近在线时间”实现，具体次数由工程方案确定。</span></div>
+                  <div class="param-head"><span class="param-name">离线判定</span><span class="param-value">5 次或 10s</span></div>
+                  <div class="param-meta"><span>作用：决定什么时候写入设备通讯记录并触发异常提醒。</span><span>可取值：连续 5 次失败，或超过 10s 无有效响应；最终按现场实测校正。</span></div>
                 </div>
               </div>
             </div>
@@ -2859,7 +2859,7 @@
                 </div>
                 <div class="param-row">
                   <div class="param-head"><span class="param-name">历史保存</span><span class="param-value">每小时 1 个点</span></div>
-                  <div class="param-meta"><span>作用：长期查看温湿度变化。</span><span>可取值：第一版固定，不在 Web 页面修改。</span></div>
+                  <div class="param-meta"><span>作用：长期查看温湿度变化。</span><span>可取值：成品默认固定，不在 Web 页面修改。</span></div>
                 </div>
               </div>
             </div>
@@ -3103,7 +3103,7 @@
                     </div>
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">保护阈值</span><span class="param-value">过流/堵转启用</span></div>
-                      <div class="param-meta"><span>作用：异常时由分站本地停止。</span><span>第一版不做精确缺料承诺。</span></div>
+                      <div class="param-meta"><span>作用：异常时由分站本地停止。</span><span>用于过流、堵转和异常辅助，不做精确缺料承诺。</span></div>
                     </div>
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">方向极性</span><span class="param-value">下料为正向</span></div>
@@ -3134,7 +3134,7 @@
                 </div>
                 <div class="card">
                   <h2>诊断摘要</h2>
-                  <p class="muted" style="margin-bottom: 0;">10:38 下料执行中编码器脉冲不足；10:42 起通讯中断。第一版只提示“疑似异常”。</p>
+                  <p class="muted" style="margin-bottom: 0;">10:38 下料执行中编码器脉冲不足；10:42 起通讯中断。系统只提示“疑似异常”，不判定精确缺料。</p>
                 </div>
               </div>
 
@@ -3622,7 +3622,7 @@
               <div class="setting-row">
                 <div>
                   <p class="event-title">每日正常摘要</p>
-                  <p class="event-detail">正常时不主动打扰，第一版默认关闭</p>
+                  <p class="event-detail">正常时不主动打扰，默认关闭</p>
                 </div>
                 <label class="switch"><input type="checkbox"><span></span></label>
               </div>
