@@ -52,6 +52,7 @@ bool transactAndParseCommon(uint8_t station_address,
                             size_t request_len,
                             FaMasterCommonResponse* common,
                             const char* stage);
+void sendStopActiveActionApi(void);
 
 void sendFeedPage(void);
 void sendManualFeedApi(void);

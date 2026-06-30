@@ -246,6 +246,7 @@ void sendActiveActionPanel(void) {
              static_cast<unsigned long>(active->target_pulses));
     Esp32BaseWeb::sendInfoRowCompact("Progress", "Last status returned by station.", progress);
     Esp32BaseWeb::sendInfoRowCompact("Last error", "Last master-side polling error.", g_action_runtime->lastError());
+    Esp32BaseWeb::sendChunk("<div class='actions'><form method='post' action='/api/action/stop-active' onsubmit='return once(this)'><input class='danger' type='submit' value='Stop active'></form></div>");
     Esp32BaseWeb::endPanel();
 }
 
@@ -323,6 +324,52 @@ bool transactAndParseCommon(uint8_t station_address,
     return true;
 }
 
+void sendStopActiveActionApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("action_stop")) {
+        return;
+    }
+    if (g_rs485_master == nullptr || g_transport == nullptr || g_action_runtime == nullptr) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"service_unavailable\"}");
+        return;
+    }
+    if (!g_action_runtime->isBusy() || g_action_runtime->activeRecord() == nullptr) {
+        Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"no_active_action\"}");
+        return;
+    }
+    if (!g_transport->isReady()) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"transport\":\"not_configured\"}");
+        return;
+    }
+
+    const FaActionRecord* active = g_action_runtime->activeRecord();
+    const uint8_t station_address = active->bus_address;
+    uint8_t request[FA_MAX_FRAME_LEN];
+    size_t request_len = 0u;
+    uint8_t seq = 0u;
+    const FaFrameResult frame_result = fa_rs485_master_build_stop_action(g_rs485_master,
+                                                                        station_address,
+                                                                        request,
+                                                                        sizeof(request),
+                                                                        &request_len,
+                                                                        &seq);
+    if (frame_result != FA_FRAME_OK) {
+        sendFeedTransportError(500, "stop_active", "frame", frameResultName(frame_result));
+        return;
+    }
+    FaMasterCommonResponse common;
+    if (!transactAndParseCommon(station_address, seq, FA_CMD_STOP_ACTION, request, request_len, &common, "stop_active")) {
+        return;
+    }
+
+    Esp32BaseWeb::beginJson(200);
+    Esp32BaseWeb::sendChunk("\"ok\":true,\"command\":\"stop_active\",\"actionId\":");
+    sendNumber(active->action_id);
+    Esp32BaseWeb::sendChunk(",\"stationAddress\":");
+    sendNumber(station_address);
+    Esp32BaseWeb::sendChunk(",\"message\":\"stop accepted by active station\"");
+    Esp32BaseWeb::endJson();
+}
+
 void fa_master_web_register_config(void) {
     Esp32BaseWeb::setDeviceName("FarmAuto");
     Esp32BaseWeb::setHomePath("/feed");
@@ -398,4 +445,5 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addApi("/api/door/close", sendDoorCloseApi);
     Esp32BaseWeb::addApi("/api/door/stop", sendDoorStopApi);
     Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
+    Esp32BaseWeb::addApi("/api/action/stop-active", sendStopActiveActionApi);
 }
