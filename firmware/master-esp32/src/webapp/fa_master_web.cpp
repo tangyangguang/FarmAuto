@@ -19,6 +19,7 @@ constexpr const char* kOverCurrentMa = "oc_ma";
 constexpr const char* kMaxRunMs = "max_ms";
 constexpr const char* kMaxActionPulses = "max_p";
 constexpr uint16_t kSingleFeederDeviceId = 1u;
+constexpr uint8_t kRecentRecordLimit = 8u;
 
 FaFeedService* g_feed_service = nullptr;
 FaRs485Master* g_rs485_master = nullptr;
@@ -117,6 +118,197 @@ const char* frameResultName(FaFrameResult result) {
     }
 }
 
+const char* recordStateName(uint8_t state) {
+    switch (state) {
+    case FA_ACTION_RECORD_RUNNING:
+        return "running";
+    case FA_ACTION_RECORD_COMPLETED:
+        return "completed";
+    case FA_ACTION_RECORD_STOPPED:
+        return "stopped";
+    case FA_ACTION_RECORD_FAILED:
+        return "failed";
+    default:
+        return "unknown";
+    }
+}
+
+const char* stopReasonName(uint8_t reason) {
+    switch (reason) {
+    case FA_STOP_NONE:
+        return "none";
+    case FA_STOP_TARGET_REACHED:
+        return "target";
+    case FA_STOP_MASTER_COMMAND:
+        return "master_stop";
+    case FA_STOP_OVER_CURRENT:
+        return "over_current";
+    case FA_STOP_STALL:
+        return "stall";
+    case FA_STOP_TIMEOUT:
+        return "timeout";
+    case FA_STOP_TARGET_OVERRUN:
+        return "overrun";
+    case FA_STOP_WATCHDOG:
+        return "watchdog";
+    case FA_STOP_LOCAL_FAULT:
+        return "local_fault";
+    default:
+        return "unknown";
+    }
+}
+
+const char* faultName(uint16_t fault) {
+    switch (fault) {
+    case FA_FAULT_NONE:
+        return "none";
+    case FA_FAULT_OVER_CURRENT:
+        return "over_current";
+    case FA_FAULT_STALL:
+        return "stall";
+    case FA_FAULT_ENCODER_LOST:
+        return "encoder_lost";
+    case FA_FAULT_RUN_TIMEOUT:
+        return "run_timeout";
+    case FA_FAULT_TARGET_OVERRUN:
+        return "target_overrun";
+    case FA_FAULT_CONFIG_INVALID:
+        return "config_invalid";
+    case FA_FAULT_DRIVER_ABNORMAL:
+        return "driver_abnormal";
+    case FA_FAULT_CURRENT_SENSOR:
+        return "current_sensor";
+    case FA_FAULT_WATCHDOG_RESET:
+        return "watchdog_reset";
+    case FA_FAULT_RESERVED_ADDRESS:
+        return "reserved_address";
+    case FA_FAULT_COMMAND_REJECTED:
+        return "command_rejected";
+    case FA_FAULT_COMMUNICATION:
+        return "communication";
+    default:
+        return "unknown";
+    }
+}
+
+void formatDurationMs(uint32_t ms, char* out, size_t len) {
+    if (out == nullptr || len == 0u) {
+        return;
+    }
+    if (ms >= 1000u) {
+        snprintf(out, len, "%lu.%03lus", static_cast<unsigned long>(ms / 1000u), static_cast<unsigned long>(ms % 1000u));
+    } else {
+        snprintf(out, len, "%lums", static_cast<unsigned long>(ms));
+    }
+}
+
+void formatTimeValue(uint32_t seconds, char* out, size_t len) {
+    if (out == nullptr || len == 0u) {
+        return;
+    }
+    if (seconds == 0u) {
+        snprintf(out, len, "-");
+        return;
+    }
+    if (!Esp32BaseTime::formatEpoch(seconds, out, len, "%m-%d %H:%M:%S")) {
+        snprintf(out, len, "%lus", static_cast<unsigned long>(seconds));
+    }
+}
+
+void formatAmount(const FaActionRecord& record, char* out, size_t len) {
+    if (out == nullptr || len == 0u) {
+        return;
+    }
+    if (record.amount_mode == FA_FEED_AMOUNT_MG) {
+        snprintf(out, len, "%lu mg", static_cast<unsigned long>(record.amount_value));
+    } else if (record.amount_mode == FA_FEED_AMOUNT_TURNS_X1000) {
+        snprintf(out, len, "%lu/1000 turn", static_cast<unsigned long>(record.amount_value));
+    } else {
+        snprintf(out, len, "%lu", static_cast<unsigned long>(record.amount_value));
+    }
+}
+
+void sendRecordTableRow(const FaActionRecord& record) {
+    char started[24];
+    char duration[20];
+    char amount[28];
+    formatTimeValue(record.started_at_s, started, sizeof(started));
+    formatDurationMs(record.run_ms, duration, sizeof(duration));
+    formatAmount(record, amount, sizeof(amount));
+
+    Esp32BaseWeb::sendChunk("<tr><td>");
+    sendNumber(record.action_id);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(recordStateName(record.state));
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(started);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(amount);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    sendNumber(record.completed_pulses);
+    Esp32BaseWeb::sendChunk(" / ");
+    sendNumber(record.target_pulses);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(duration);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    sendNumber(record.bus_address);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(stopReasonName(record.stop_reason));
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(faultName(record.fault_code));
+    Esp32BaseWeb::sendChunk("</td></tr>");
+}
+
+void sendActiveActionPanel(void) {
+    if (g_action_runtime == nullptr || !g_action_runtime->isBusy()) {
+        return;
+    }
+
+    const FaActionRecord* active = g_action_runtime->activeRecord();
+    if (active == nullptr) {
+        return;
+    }
+
+    char amount[28];
+    formatAmount(*active, amount, sizeof(amount));
+    Esp32BaseWeb::beginPanel("Active action");
+    Esp32BaseWeb::sendInfoRowCompact("Action", "Currently tracked by master polling.", recordStateName(active->state));
+    Esp32BaseWeb::sendInfoRowCompact("Amount", "Original manual request.", amount);
+    char progress[36];
+    snprintf(progress, sizeof(progress), "%lu / %lu pulses",
+             static_cast<unsigned long>(active->completed_pulses),
+             static_cast<unsigned long>(active->target_pulses));
+    Esp32BaseWeb::sendInfoRowCompact("Progress", "Last status returned by station.", progress);
+    Esp32BaseWeb::sendInfoRowCompact("Last error", "Last master-side polling error.", g_action_runtime->lastError());
+    Esp32BaseWeb::endPanel();
+}
+
+void sendRecentRecordsPanel(void) {
+    Esp32BaseWeb::beginPanel("Recent records");
+    if (!FaActionRecordStore::isReady()) {
+        Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN, "Records unavailable", "LittleFS action record store is not ready.");
+        Esp32BaseWeb::endPanel();
+        return;
+    }
+    const uint16_t count = FaActionRecordStore::count();
+    if (count == 0u) {
+        Esp32BaseWeb::sendInfoRowCompact("No records", "Completed or failed actions will appear here.");
+        Esp32BaseWeb::endPanel();
+        return;
+    }
+
+    const uint16_t limit = count < kRecentRecordLimit ? count : kRecentRecordLimit;
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>State</th><th>Started</th><th>Amount</th><th>Pulses</th><th>Run</th><th>Addr</th><th>Stop</th><th>Fault</th></tr></thead><tbody>");
+    for (uint16_t i = 0u; i < limit; ++i) {
+        FaActionRecord record;
+        if (FaActionRecordStore::readLatest(i, record)) {
+            sendRecordTableRow(record);
+        }
+    }
+    Esp32BaseWeb::sendChunk("</tbody></table></div>");
+    Esp32BaseWeb::endPanel();
+}
+
 void sendFeedTransportError(uint16_t http_code, const char* stage, const char* error_key, const char* error_value) {
     Esp32BaseWeb::beginJson(http_code);
     Esp32BaseWeb::sendChunk("\"ok\":false,\"stage\":\"");
@@ -195,6 +387,9 @@ void sendFeedPage(void) {
     Esp32BaseWeb::sendChunk("<div class='field med'><label>Mode</label><select name='mode'><option value='mg'>mg</option><option value='turns'>turns x1000</option></select><small>Use App Config for calibration.</small></div>");
     Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='Run / preview'></div></form>");
     Esp32BaseWeb::endPanel();
+
+    sendActiveActionPanel();
+    sendRecentRecordsPanel();
 
     Esp32BaseWeb::sendInfoRowCompactLink("Feeder parameters", "Station address, pulses/turn, grams/turn and safety limits are stored by Esp32Base App Config.", "App Config", "/esp32base/app-config", "Edit", Esp32BaseWeb::UI_INFO);
 
