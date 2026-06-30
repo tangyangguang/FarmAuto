@@ -4,6 +4,7 @@
 #include <Esp32Base.h>
 
 #include "fa_action_record_store.h"
+#include "fa_master_web.h"
 
 extern "C" {
 #include "fa_feed_service.h"
@@ -15,6 +16,8 @@ static FaFeedService g_feed;
 
 void farmauto_master_setup(void) {
     Esp32Base::setFirmwareInfo("farmauto-master", "0.1.0");
+    fa_master_web_register_config();
+    fa_master_web_register_routes(&g_feed);
     Esp32Base::begin();
 
     fa_rs485_master_init(&g_rs485);
