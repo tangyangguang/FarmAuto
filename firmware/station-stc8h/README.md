@@ -2,10 +2,11 @@
 
 This PlatformIO project is the first hardware-targeted station scaffold.
 
-It currently does four things:
+It currently does five things:
 
 - builds against `Stc8hBase`;
 - builds the shared FarmAuto RS485 protocol and local action controller;
+- keeps a Timer0 1ms local time base for station action timing;
 - parses protocol frames from UART1 byte stream;
 - handles PING, motor config, start action, stop action, clear fault, and status responses.
 
