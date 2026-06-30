@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <Esp32Base.h>
 
+#include "fa_action_record_store.h"
+
 extern "C" {
 #include "fa_feed_service.h"
 #include "fa_rs485_master.h"
@@ -17,6 +19,9 @@ void farmauto_master_setup(void) {
 
     fa_rs485_master_init(&g_rs485);
     fa_feed_service_init(&g_feed, 1u);
+    if (!FaActionRecordStore::begin()) {
+        ESP32BASE_LOG_W("farm", "action_record_store_unavailable");
+    }
 
     ESP32BASE_LOG_I("farm", "master boot");
 }

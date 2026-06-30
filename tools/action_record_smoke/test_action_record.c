@@ -99,6 +99,20 @@ int main(void) {
     CHECK(record.bus_address == feed_config.station_address);
     CHECK(record.device_id == 12u);
 
+    uint8_t encoded[FA_ACTION_RECORD_ENCODED_LEN];
+    size_t encoded_len = 0u;
+    FaActionRecord decoded;
+    CHECK(fa_action_record_encode(&record, encoded, sizeof(encoded), &encoded_len) == FA_STATUS_OK);
+    CHECK(encoded_len == FA_ACTION_RECORD_ENCODED_LEN);
+    CHECK(fa_action_record_decode(encoded, encoded_len, &decoded) == FA_STATUS_OK);
+    CHECK(decoded.action_id == record.action_id);
+    CHECK(decoded.device_id == record.device_id);
+    CHECK(decoded.bus_address == record.bus_address);
+    CHECK(decoded.target_pulses == record.target_pulses);
+    CHECK(decoded.completed_pulses == record.completed_pulses);
+    CHECK(decoded.stop_reason == record.stop_reason);
+    CHECK(decoded.state == record.state);
+
     printf("action record smoke tests passed\n");
     return 0;
 }

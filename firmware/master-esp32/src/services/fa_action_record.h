@@ -3,6 +3,7 @@
 
 #include "fa_rs485_master.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -59,9 +60,13 @@ typedef struct {
     uint8_t state;
 } FaActionRecord;
 
+#define FA_ACTION_RECORD_ENCODED_LEN 49u
+
 uint8_t fa_action_record_begin(FaActionRecord *record, const FaActionRecordStart *start);
 uint8_t fa_action_record_apply_status(FaActionRecord *record, const FaMasterStatusResponse *status, uint32_t now_s);
 uint8_t fa_action_record_is_terminal(const FaActionRecord *record);
+uint8_t fa_action_record_encode(const FaActionRecord *record, uint8_t *out, size_t out_cap, size_t *out_len);
+uint8_t fa_action_record_decode(const uint8_t *data, size_t data_len, FaActionRecord *record);
 
 #ifdef __cplusplus
 }

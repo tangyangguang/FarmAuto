@@ -11,6 +11,6 @@ Out of scope for this layer:
 
 - UART transport.
 - Web request handlers.
-- Persistent file/FRAM writes.
+- LittleFS/FRAM writes. The ESP32-specific LittleFS action record ring lives in `../storage`.
 - Scheduler decisions.
 - Station scan/retry loops.
