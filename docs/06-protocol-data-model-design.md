@@ -473,6 +473,7 @@ FarmAuto 按三层模型实现：
 | `0x0009` | `FAULT_WATCHDOG_RESET` | 看门狗复位后进入安全态 |
 | `0x000A` | `FAULT_RESERVED_ADDRESS` | 地址为 0 |
 | `0x000B` | `FAULT_COMMAND_REJECTED` | 分站明确拒绝命令，且响应没有更具体故障码 |
+| `0x000C` | `FAULT_COMMUNICATION` | 主控侧跟踪动作时连续通讯失败，无法确认最终分站状态 |
 
 ### 停止原因
 

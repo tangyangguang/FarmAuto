@@ -33,10 +33,17 @@ static int fa_action_target_reached(const FaActionController *controller, int32_
     return fa_action_completed_pulses(controller, position_pulses) >= fa_abs_i32_delta(controller->request.target_pulses, 0);
 }
 
-static void fa_action_finish(FaActionController *controller, uint8_t motor_state, uint8_t stop_reason, uint16_t fault_code) {
+static int fa_action_is_terminal(uint8_t motor_state) {
+    return motor_state == FA_MOTOR_COMPLETED ||
+           motor_state == FA_MOTOR_STOPPED ||
+           motor_state == FA_MOTOR_FAULT;
+}
+
+static void fa_action_finish(FaActionController *controller, uint32_t now_ms, uint8_t motor_state, uint8_t stop_reason, uint16_t fault_code) {
     controller->motor_state = motor_state;
     controller->last_stop_reason = stop_reason;
     controller->fault_code = fault_code;
+    controller->end_ms = now_ms;
     controller->over_current_active = 0u;
 }
 
@@ -116,6 +123,7 @@ uint8_t fa_action_start(FaActionController *controller, const FaActionRequest *r
     controller->fault_code = FA_FAULT_NONE;
     controller->last_stop_reason = FA_STOP_NONE;
     controller->start_ms = now_ms;
+    controller->end_ms = 0u;
     controller->start_position_pulses = request->start_position_pulses;
     controller->last_motion_position_pulses = request->start_position_pulses;
     controller->last_motion_check_ms = now_ms;
@@ -131,7 +139,7 @@ void fa_action_request_stop(FaActionController *controller, uint32_t now_ms) {
         return;
     }
     if (controller->motor_state == FA_MOTOR_RUNNING || controller->motor_state == FA_MOTOR_STOPPING) {
-        fa_action_finish(controller, FA_MOTOR_STOPPED, FA_STOP_MASTER_COMMAND, FA_FAULT_NONE);
+        fa_action_finish(controller, now_ms, FA_MOTOR_STOPPED, FA_STOP_MASTER_COMMAND, FA_FAULT_NONE);
     }
 }
 
@@ -162,7 +170,7 @@ void fa_action_tick(FaActionController *controller, const FaActionInputs *inputs
     }
 
     if (fa_action_target_reached(controller, inputs->position_pulses)) {
-        fa_action_finish(controller, FA_MOTOR_COMPLETED, FA_STOP_TARGET_REACHED, FA_FAULT_NONE);
+        fa_action_finish(controller, inputs->now_ms, FA_MOTOR_COMPLETED, FA_STOP_TARGET_REACHED, FA_FAULT_NONE);
         fa_action_fill_output(controller, output);
         return;
     }
@@ -170,7 +178,7 @@ void fa_action_tick(FaActionController *controller, const FaActionInputs *inputs
     const uint32_t completed_pulses = fa_action_completed_pulses(controller, inputs->position_pulses);
     const uint32_t max_pulses = fa_action_effective_max_pulses(controller);
     if (max_pulses != 0u && completed_pulses > max_pulses) {
-        fa_action_finish(controller, FA_MOTOR_FAULT, FA_STOP_TARGET_OVERRUN, FA_FAULT_TARGET_OVERRUN);
+        fa_action_finish(controller, inputs->now_ms, FA_MOTOR_FAULT, FA_STOP_TARGET_OVERRUN, FA_FAULT_TARGET_OVERRUN);
         fa_action_fill_output(controller, output);
         return;
     }
@@ -178,7 +186,7 @@ void fa_action_tick(FaActionController *controller, const FaActionInputs *inputs
     const uint32_t run_ms = inputs->now_ms - controller->start_ms;
     const uint32_t max_run_ms = fa_action_effective_max_run_ms(controller);
     if (max_run_ms != 0u && run_ms >= max_run_ms) {
-        fa_action_finish(controller, FA_MOTOR_FAULT, FA_STOP_TIMEOUT, FA_FAULT_RUN_TIMEOUT);
+        fa_action_finish(controller, inputs->now_ms, FA_MOTOR_FAULT, FA_STOP_TIMEOUT, FA_FAULT_RUN_TIMEOUT);
         fa_action_fill_output(controller, output);
         return;
     }
@@ -188,7 +196,7 @@ void fa_action_tick(FaActionController *controller, const FaActionInputs *inputs
             controller->over_current_active = 1u;
             controller->over_current_start_ms = inputs->now_ms;
         } else if (inputs->now_ms - controller->over_current_start_ms >= controller->config.over_current_hold_ms) {
-            fa_action_finish(controller, FA_MOTOR_FAULT, FA_STOP_OVER_CURRENT, FA_FAULT_OVER_CURRENT);
+            fa_action_finish(controller, inputs->now_ms, FA_MOTOR_FAULT, FA_STOP_OVER_CURRENT, FA_FAULT_OVER_CURRENT);
             fa_action_fill_output(controller, output);
             return;
         }
@@ -200,7 +208,7 @@ void fa_action_tick(FaActionController *controller, const FaActionInputs *inputs
         inputs->now_ms - controller->last_motion_check_ms >= controller->config.stall_detect_ms) {
         const uint32_t delta = fa_abs_i32_delta(inputs->position_pulses, controller->last_motion_position_pulses);
         if (delta < controller->config.stall_min_delta_pulses) {
-            fa_action_finish(controller, FA_MOTOR_FAULT, FA_STOP_STALL, FA_FAULT_STALL);
+            fa_action_finish(controller, inputs->now_ms, FA_MOTOR_FAULT, FA_STOP_STALL, FA_FAULT_STALL);
             fa_action_fill_output(controller, output);
             return;
         }
@@ -223,7 +231,13 @@ void fa_action_get_status(const FaActionController *controller, const FaActionIn
     status->target_pulses = controller->request.target_pulses;
     status->current_ma = inputs != NULL ? inputs->current_ma : 0u;
     status->peak_current_ma = controller->peak_current_ma;
-    status->run_ms = inputs != NULL && controller->motor_state == FA_MOTOR_RUNNING ? inputs->now_ms - controller->start_ms : 0u;
+    if (inputs != NULL && controller->motor_state == FA_MOTOR_RUNNING) {
+        status->run_ms = inputs->now_ms - controller->start_ms;
+    } else if (fa_action_is_terminal(controller->motor_state) && controller->end_ms >= controller->start_ms) {
+        status->run_ms = controller->end_ms - controller->start_ms;
+    } else {
+        status->run_ms = 0u;
+    }
     status->completed_pulses = fa_action_completed_pulses(controller, status->position_pulses);
     status->last_stop_reason = controller->last_stop_reason;
     status->fault_code = controller->fault_code;

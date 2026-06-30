@@ -18,10 +18,12 @@ constexpr const char* kSpeedPermille = "speed";
 constexpr const char* kOverCurrentMa = "oc_ma";
 constexpr const char* kMaxRunMs = "max_ms";
 constexpr const char* kMaxActionPulses = "max_p";
+constexpr uint16_t kSingleFeederDeviceId = 1u;
 
 FaFeedService* g_feed_service = nullptr;
 FaRs485Master* g_rs485_master = nullptr;
 FaRs485Transport* g_transport = nullptr;
+FaMasterActionRuntime* g_action_runtime = nullptr;
 
 uint32_t readUIntParam(const char* name, uint32_t fallback) {
     char raw[16] = "";
@@ -184,6 +186,7 @@ void sendFeedPage(void) {
     snprintf(value, sizeof(value), "%u", FaActionRecordStore::count());
     Esp32BaseWeb::sendMetric("Records", value, FaActionRecordStore::isReady() ? "LittleFS ring ready" : "Store unavailable");
     Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
+    Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
     Esp32BaseWeb::endMetricGrid();
 
     Esp32BaseWeb::beginPanel("Run");
@@ -202,7 +205,7 @@ void sendManualFeedApi(void) {
     if (!Esp32BaseWeb::checkPostAllowed("feed_manual")) {
         return;
     }
-    if (g_feed_service == nullptr || g_rs485_master == nullptr || g_transport == nullptr) {
+    if (g_feed_service == nullptr || g_rs485_master == nullptr || g_transport == nullptr || g_action_runtime == nullptr) {
         Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"service_unavailable\"}");
         return;
     }
@@ -212,6 +215,11 @@ void sendManualFeedApi(void) {
     (void)Esp32BaseWeb::getParam("mode", modeText, sizeof(modeText));
     const uint8_t amountMode = strcmp(modeText, "turns") == 0 ? FA_FEED_AMOUNT_TURNS_X1000 : FA_FEED_AMOUNT_MG;
     const uint32_t amount = readUIntParam("amount", 0u);
+
+    if (g_action_runtime->isBusy()) {
+        Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"action_busy\"}");
+        return;
+    }
 
     if (!g_transport->isReady()) {
         FaFeedService preview_service = *g_feed_service;
@@ -301,6 +309,20 @@ void sendManualFeedApi(void) {
         return;
     }
 
+    FaActionRecordStart record_start = {};
+    record_start.action_id = action.action_id;
+    record_start.device_id = kSingleFeederDeviceId;
+    record_start.bus_address = config.station_address;
+    record_start.device_type = action.device_type;
+    record_start.action_type = action.action_type;
+    record_start.source_type = FA_ACTION_RECORD_SOURCE_MANUAL;
+    record_start.source_id = 0u;
+    record_start.target_pulses = result.target_pulses;
+    record_start.amount_mode = amountMode;
+    record_start.amount_value = amount;
+    record_start.started_at_s = FaMasterActionRuntime::nowSeconds();
+    const bool tracking = g_action_runtime->trackStartedAction(record_start);
+
     Esp32BaseWeb::beginJson(200);
     Esp32BaseWeb::sendChunk("\"ok\":true,\"dryRun\":false,\"transport\":\"ready\",\"actionId\":");
     sendNumber(action.action_id);
@@ -310,6 +332,9 @@ void sendManualFeedApi(void) {
     sendNumber(result.target_pulses);
     Esp32BaseWeb::sendChunk(",\"speedPermille\":");
     sendNumber(action.speed_permille);
+    Esp32BaseWeb::sendChunk(",\"tracking\":\"");
+    Esp32BaseWeb::sendChunk(tracking ? "running" : g_action_runtime->lastError());
+    Esp32BaseWeb::sendChunk("\"");
     Esp32BaseWeb::sendChunk(",\"message\":\"action accepted by station\"");
     Esp32BaseWeb::endJson();
 }
@@ -354,10 +379,14 @@ void fa_master_web_register_config(void) {
                                 "Single request timeout.", true, nullptr});
 }
 
-void fa_master_web_register_routes(FaFeedService *feed_service, FaRs485Master *rs485_master, FaRs485Transport *transport) {
+void fa_master_web_register_routes(FaFeedService *feed_service,
+                                   FaRs485Master *rs485_master,
+                                   FaRs485Transport *transport,
+                                   FaMasterActionRuntime *action_runtime) {
     g_feed_service = feed_service;
     g_rs485_master = rs485_master;
     g_transport = transport;
+    g_action_runtime = action_runtime;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
 }

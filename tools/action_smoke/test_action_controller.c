@@ -66,6 +66,7 @@ static int test_relative_action_completes(void) {
     CHECK(status.motor_state == FA_MOTOR_COMPLETED);
     CHECK(status.last_stop_reason == FA_STOP_TARGET_REACHED);
     CHECK(status.completed_pulses == 1000u);
+    CHECK(status.run_ms == 200u);
     return 0;
 }
 
@@ -85,6 +86,7 @@ static int test_stop_command_stops(void) {
     CHECK(status.motor_state == FA_MOTOR_STOPPED);
     CHECK(status.last_stop_reason == FA_STOP_MASTER_COMMAND);
     CHECK(status.fault_code == FA_FAULT_NONE);
+    CHECK(status.run_ms == 50u);
     return 0;
 }
 
@@ -107,6 +109,7 @@ static int test_timeout_faults(void) {
     CHECK(status.motor_state == FA_MOTOR_FAULT);
     CHECK(status.last_stop_reason == FA_STOP_TIMEOUT);
     CHECK(status.fault_code == FA_FAULT_RUN_TIMEOUT);
+    CHECK(status.run_ms == 100u);
     return 0;
 }
 
@@ -128,6 +131,7 @@ static int test_stall_faults(void) {
     CHECK(status.motor_state == FA_MOTOR_FAULT);
     CHECK(status.last_stop_reason == FA_STOP_STALL);
     CHECK(status.fault_code == FA_FAULT_STALL);
+    CHECK(status.run_ms == 500u);
     return 0;
 }
 
@@ -155,6 +159,7 @@ static int test_over_current_faults_after_hold(void) {
     CHECK(status.last_stop_reason == FA_STOP_OVER_CURRENT);
     CHECK(status.fault_code == FA_FAULT_OVER_CURRENT);
     CHECK(status.peak_current_ma == 2500u);
+    CHECK(status.run_ms == 151u);
     return 0;
 }
 

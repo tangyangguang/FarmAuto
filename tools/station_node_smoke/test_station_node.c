@@ -96,6 +96,7 @@ int main(void) {
                  "status response");
     require_true(status.motor_state == FA_MOTOR_COMPLETED, "action should complete");
     require_true(status.completed_pulses == 20u, "completed pulses");
+    require_true(status.run_ms == 1000u, "completed run time");
 
     printf("station node smoke tests passed\n");
     return 0;

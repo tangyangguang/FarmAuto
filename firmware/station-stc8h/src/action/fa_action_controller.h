@@ -68,6 +68,7 @@ typedef struct {
     uint16_t fault_code;
     uint8_t last_stop_reason;
     uint32_t start_ms;
+    uint32_t end_ms;
     int32_t start_position_pulses;
     int32_t last_motion_position_pulses;
     uint32_t last_motion_check_ms;
