@@ -6,3 +6,4 @@ _pending_delete/
 __pycache__/
 *.pyc
 tools/protocol_smoke/protocol_smoke
+tools/action_smoke/action_smoke
