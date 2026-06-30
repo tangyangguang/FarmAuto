@@ -16,7 +16,7 @@ FarmAuto 是用于农场自动化的 ESP32 + RS485 分布式控制项目。
 
 主控板使用现有 ESP32 主控 PCB，只使用 ESP32、RS485、RTC、FRAM、按键和指示灯。
 
-分站板重新设计，统一使用 STC8H8K64U、RS485、4 位拨码地址、AT8236 电机驱动、编码器输入和 INA240A2 电流检测。
+分站板重新设计，统一使用 STC8H8K64U、RS485 地址输入、AT8236 电机驱动、编码器输入和 INA240A2 电流检测。
 
 ## 关键设计判断
 
@@ -34,4 +34,7 @@ FarmAuto 是用于农场自动化的 ESP32 + RS485 分布式控制项目。
 
 ## 工程文档
 
-- [工程划分与基础库归属边界](docs/09-project-layout-and-base-library-boundary.md)
+- [成品规划基线](docs/03-product-planning.md)
+- [旧项目与硬件资料只读审计](docs/04-legacy-and-hardware-audit.md)
+- [成品系统架构](docs/05-system-architecture.md)
+- [RS485 协议、数据模型与状态机设计](docs/06-protocol-data-model-design.md)
