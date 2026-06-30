@@ -41,9 +41,9 @@
 4. 主控最小调用骨架：绑定一个地址，下发配置和手动下料动作，轮询到完成。
 5. 记录最小闭环：写入动作开始、完成、停止原因和完成脉冲。
 
-当前已经补到目标固件工程骨架和分站协议节点：ESP32 主控工程、STC8H8K64U 分站工程都能引用基础库并编译；分站协议节点能在 host smoke 中响应主控 PING、配置、启动和状态查询。
+当前已经补到目标固件工程骨架、分站协议节点和记录最小闭环：ESP32 主控工程、STC8H8K64U 分站工程都能引用基础库并编译；分站协议节点能在 host smoke 中响应主控 PING、配置、启动和状态查询；主控能把一次下料动作从开始参数和分站最终状态收口成内存动作记录。
 
-记录最小闭环跑通后，再补自动计划、门控、Web 完整页面、FRAM 布局和真实板级 IO。
+下一步先接主控真实 RS485 串口事务层或最小 Web 入口；自动计划、门控、Web 完整页面、FRAM 布局和真实板级 IO 仍然后置。
 
 ## 模块边界
 
@@ -76,6 +76,7 @@ make -C tools/fake_station_smoke test
 make -C tools/master_loop_smoke test
 make -C tools/feed_service_smoke test
 make -C tools/station_node_smoke test
+make -C tools/action_record_smoke test
 ```
 
 后续新增 fake 分站和主控闭环后，也必须提供 host-side smoke test，验证：

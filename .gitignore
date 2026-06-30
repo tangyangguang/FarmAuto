@@ -11,3 +11,4 @@ tools/fake_station_smoke/fake_station_smoke
 tools/master_loop_smoke/master_loop_smoke
 tools/feed_service_smoke/feed_service_smoke
 tools/station_node_smoke/station_node_smoke
+tools/action_record_smoke/action_record_smoke
