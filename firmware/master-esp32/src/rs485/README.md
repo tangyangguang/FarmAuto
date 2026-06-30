@@ -7,6 +7,7 @@ Current hardware-independent core scope:
 - Build FarmAuto request frames.
 - Maintain request sequence numbers.
 - Parse common responses, `PING`, and `GET_STATUS`.
+- Build `STOP_ACTION` for immediate station stop requests.
 
 Current ESP32 transport scope:
 

@@ -132,6 +132,10 @@ FaFrameResult fa_rs485_master_build_start_action(FaRs485Master *master, uint8_t 
     return fa_master_encode(master, dst, FA_CMD_START_ACTION, payload, (uint8_t)fa_payload_writer_len(&writer), out, out_cap, out_len, seq_out);
 }
 
+FaFrameResult fa_rs485_master_build_stop_action(FaRs485Master *master, uint8_t dst, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out) {
+    return fa_master_encode(master, dst, FA_CMD_STOP_ACTION, NULL, 0u, out, out_cap, out_len, seq_out);
+}
+
 FaFrameResult fa_rs485_master_build_get_status(FaRs485Master *master, uint8_t dst, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out) {
     return fa_master_encode(master, dst, FA_CMD_GET_STATUS, NULL, 0u, out, out_cap, out_len, seq_out);
 }

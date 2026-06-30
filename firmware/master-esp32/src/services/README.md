@@ -5,6 +5,7 @@ This directory contains hardware-independent business services for the ESP32 mas
 Current service:
 
 - `fa_feed_service`: converts feeder business input into generic motor config/action requests and action results.
+- `fa_door_service`: converts door open/close commands into generic bounded motor actions.
 - `fa_action_record`: keeps the minimal in-memory action record from start parameters and station status.
 
 Out of scope for this layer:

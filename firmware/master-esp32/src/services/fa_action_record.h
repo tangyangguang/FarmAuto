@@ -17,6 +17,12 @@ typedef enum {
 } FaActionRecordSource;
 
 typedef enum {
+    FA_ACTION_RECORD_AMOUNT_TURNS_X1000 = 1u,
+    FA_ACTION_RECORD_AMOUNT_MG = 2u,
+    FA_ACTION_RECORD_AMOUNT_PULSES = 3u
+} FaActionRecordAmountMode;
+
+typedef enum {
     FA_ACTION_RECORD_RUNNING = 1u,
     FA_ACTION_RECORD_COMPLETED = 2u,
     FA_ACTION_RECORD_STOPPED = 3u,

@@ -81,6 +81,7 @@ void fa_rs485_master_init(FaRs485Master *master);
 FaFrameResult fa_rs485_master_build_ping(FaRs485Master *master, uint8_t dst, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out);
 FaFrameResult fa_rs485_master_build_set_motor_config(FaRs485Master *master, uint8_t dst, const FaMasterMotorConfig *config, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out);
 FaFrameResult fa_rs485_master_build_start_action(FaRs485Master *master, uint8_t dst, const FaMasterActionRequest *request, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out);
+FaFrameResult fa_rs485_master_build_stop_action(FaRs485Master *master, uint8_t dst, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out);
 FaFrameResult fa_rs485_master_build_get_status(FaRs485Master *master, uint8_t dst, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out);
 
 uint8_t fa_rs485_master_parse_common(const uint8_t *data, size_t data_len, uint8_t expected_src, uint8_t expected_seq, uint8_t expected_cmd, FaMasterCommonResponse *response);

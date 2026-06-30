@@ -9,6 +9,7 @@
 #include "fa_rs485_transport.h"
 
 extern "C" {
+#include "fa_door_service.h"
 #include "fa_feed_service.h"
 #include "fa_rs485_master.h"
 }
@@ -16,12 +17,13 @@ extern "C" {
 static FaRs485Master g_rs485;
 static FaRs485Transport g_transport;
 static FaFeedService g_feed;
+static FaDoorService g_door;
 static FaMasterActionRuntime g_action_runtime;
 
 void farmauto_master_setup(void) {
     Esp32Base::setFirmwareInfo("farmauto-master", "0.1.0");
     fa_master_web_register_config();
-    fa_master_web_register_routes(&g_feed, &g_rs485, &g_transport, &g_action_runtime);
+    fa_master_web_register_routes(&g_feed, &g_door, &g_rs485, &g_transport, &g_action_runtime);
     Esp32Base::begin();
 
     fa_rs485_master_init(&g_rs485);
@@ -30,6 +32,7 @@ void farmauto_master_setup(void) {
         ESP32BASE_LOG_W("farm", "rs485_transport_not_configured");
     }
     fa_feed_service_init(&g_feed, 1u);
+    fa_door_service_init(&g_door, 700001u);
     g_action_runtime.begin(&g_rs485, &g_transport);
     if (!FaActionRecordStore::begin()) {
         ESP32BASE_LOG_W("farm", "action_record_store_unavailable");

@@ -167,6 +167,10 @@ FaFrameResult fake_station_handle(FakeStation *station, const uint8_t *request_d
         case FA_CMD_GET_STATUS:
             write_status_payload(&writer, station);
             break;
+        case FA_CMD_STOP_ACTION:
+            fa_action_request_stop(&station->action, station->now_ms);
+            write_common_response(&writer, FA_STATUS_OK, station);
+            break;
         default:
             response.flags |= FA_FRAME_FLAG_ERROR;
             write_common_response(&writer, FA_STATUS_ERR_BAD_PARAM, station);

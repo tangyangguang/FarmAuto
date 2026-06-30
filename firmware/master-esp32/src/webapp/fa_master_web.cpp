@@ -19,9 +19,22 @@ constexpr const char* kOverCurrentMa = "oc_ma";
 constexpr const char* kMaxRunMs = "max_ms";
 constexpr const char* kMaxActionPulses = "max_p";
 constexpr uint16_t kSingleFeederDeviceId = 1u;
+constexpr uint16_t kSingleDoorDeviceId = 2u;
 constexpr uint8_t kRecentRecordLimit = 8u;
 
+constexpr const char* kDoorNs = "fa_door";
+constexpr const char* kDoorStationAddress = "addr";
+constexpr const char* kDoorPulsesPerTurn = "ppt";
+constexpr const char* kDoorTravelPulses = "travel";
+constexpr const char* kDoorOpenDirection = "open_dir";
+constexpr const char* kDoorCloseDirection = "close_dir";
+constexpr const char* kDoorSpeedPermille = "speed";
+constexpr const char* kDoorOverCurrentMa = "oc_ma";
+constexpr const char* kDoorMaxRunMs = "max_ms";
+constexpr const char* kDoorMaxActionPulses = "max_p";
+
 FaFeedService* g_feed_service = nullptr;
+FaDoorService* g_door_service = nullptr;
 FaRs485Master* g_rs485_master = nullptr;
 FaRs485Transport* g_transport = nullptr;
 FaMasterActionRuntime* g_action_runtime = nullptr;
@@ -55,6 +68,26 @@ FaFeedDeviceConfig readFeedConfig(void) {
     config.stall_min_delta_pulses = 10u;
     config.max_run_ms = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kMaxRunMs, 60000));
     config.max_action_pulses = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kMaxActionPulses, 432000));
+    return config;
+}
+
+FaDoorDeviceConfig readDoorConfig(void) {
+    FaDoorDeviceConfig config;
+    config.station_address = static_cast<uint8_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorStationAddress, 2));
+    config.config_version = 1u;
+    config.pulses_per_turn = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorPulsesPerTurn, 4320));
+    config.travel_pulses = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorTravelPulses, 20000));
+    config.open_direction = static_cast<int8_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorOpenDirection, 1));
+    config.close_direction = static_cast<int8_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorCloseDirection, -1));
+    config.speed_permille = static_cast<uint16_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorSpeedPermille, 700));
+    config.accel_ms = 0u;
+    config.decel_ms = 0u;
+    config.over_current_ma = static_cast<uint16_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorOverCurrentMa, 2500));
+    config.over_current_hold_ms = 100u;
+    config.stall_detect_ms = 500u;
+    config.stall_min_delta_pulses = 10u;
+    config.max_run_ms = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorMaxRunMs, 30000));
+    config.max_action_pulses = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorMaxActionPulses, 100000));
     return config;
 }
 
@@ -223,6 +256,8 @@ void formatAmount(const FaActionRecord& record, char* out, size_t len) {
         snprintf(out, len, "%lu mg", static_cast<unsigned long>(record.amount_value));
     } else if (record.amount_mode == FA_FEED_AMOUNT_TURNS_X1000) {
         snprintf(out, len, "%lu/1000 turn", static_cast<unsigned long>(record.amount_value));
+    } else if (record.amount_mode == FA_ACTION_RECORD_AMOUNT_PULSES) {
+        snprintf(out, len, "%lu pulses", static_cast<unsigned long>(record.amount_value));
     } else {
         snprintf(out, len, "%lu", static_cast<unsigned long>(record.amount_value));
     }
@@ -357,6 +392,182 @@ bool transactAndParseCommon(uint8_t station_address,
     return true;
 }
 
+const char* doorCommandName(uint8_t command) {
+    return command == FA_DOOR_COMMAND_CLOSE ? "close" : "open";
+}
+
+void sendManualDoorActionApi(uint8_t command) {
+    if (!Esp32BaseWeb::checkPostAllowed("door_manual")) {
+        return;
+    }
+    if (g_door_service == nullptr || g_rs485_master == nullptr || g_transport == nullptr || g_action_runtime == nullptr) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"service_unavailable\"}");
+        return;
+    }
+    if (g_action_runtime->isBusy()) {
+        Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"action_busy\"}");
+        return;
+    }
+
+    const FaDoorDeviceConfig config = readDoorConfig();
+    FaMasterActionRequest action;
+    FaDoorResult result;
+    FaDoorService preview_service = *g_door_service;
+    uint8_t status = fa_door_make_action(&preview_service, &config, command, &action, &result);
+    if (status != FA_STATUS_OK) {
+        Esp32BaseWeb::beginJson(400);
+        Esp32BaseWeb::sendChunk("\"ok\":false,\"status\":\"");
+        Esp32BaseWeb::sendChunk(statusName(status));
+        Esp32BaseWeb::sendChunk("\"");
+        Esp32BaseWeb::endJson();
+        return;
+    }
+
+    if (!g_transport->isReady()) {
+        Esp32BaseWeb::beginJson(200);
+        Esp32BaseWeb::sendChunk("\"ok\":true,\"dryRun\":true,\"transport\":\"not_configured\",\"command\":\"");
+        Esp32BaseWeb::sendChunk(doorCommandName(command));
+        Esp32BaseWeb::sendChunk("\",\"actionId\":");
+        sendNumber(action.action_id);
+        Esp32BaseWeb::sendChunk(",\"stationAddress\":");
+        sendNumber(config.station_address);
+        Esp32BaseWeb::sendChunk(",\"targetPulses\":");
+        sendNumber(result.target_pulses);
+        Esp32BaseWeb::sendChunk(",\"message\":\"RS485 pins are not configured; action was built but not sent\"");
+        Esp32BaseWeb::endJson();
+        return;
+    }
+
+    FaMasterMotorConfig motor_config;
+    status = fa_door_make_motor_config(&config, &motor_config);
+    if (status != FA_STATUS_OK) {
+        Esp32BaseWeb::beginJson(400);
+        Esp32BaseWeb::sendChunk("\"ok\":false,\"status\":\"");
+        Esp32BaseWeb::sendChunk(statusName(status));
+        Esp32BaseWeb::sendChunk("\"");
+        Esp32BaseWeb::endJson();
+        return;
+    }
+
+    uint8_t request[FA_MAX_FRAME_LEN];
+    size_t request_len = 0u;
+    uint8_t seq = 0u;
+    FaFrameResult frame_result = fa_rs485_master_build_set_motor_config(g_rs485_master,
+                                                                        config.station_address,
+                                                                        &motor_config,
+                                                                        request,
+                                                                        sizeof(request),
+                                                                        &request_len,
+                                                                        &seq);
+    if (frame_result != FA_FRAME_OK) {
+        sendFeedTransportError(500, "door_set_motor_config", "frame", frameResultName(frame_result));
+        return;
+    }
+
+    FaMasterCommonResponse common;
+    if (!transactAndParseCommon(config.station_address, seq, FA_CMD_SET_MOTOR_CONFIG, request, request_len, &common, "door_set_motor_config")) {
+        return;
+    }
+
+    status = fa_door_make_action(g_door_service, &config, command, &action, &result);
+    if (status != FA_STATUS_OK) {
+        Esp32BaseWeb::beginJson(400);
+        Esp32BaseWeb::sendChunk("\"ok\":false,\"status\":\"");
+        Esp32BaseWeb::sendChunk(statusName(status));
+        Esp32BaseWeb::sendChunk("\"");
+        Esp32BaseWeb::endJson();
+        return;
+    }
+
+    request_len = 0u;
+    seq = 0u;
+    frame_result = fa_rs485_master_build_start_action(g_rs485_master,
+                                                      config.station_address,
+                                                      &action,
+                                                      request,
+                                                      sizeof(request),
+                                                      &request_len,
+                                                      &seq);
+    if (frame_result != FA_FRAME_OK) {
+        sendFeedTransportError(500, "door_start_action", "frame", frameResultName(frame_result));
+        return;
+    }
+    if (!transactAndParseCommon(config.station_address, seq, FA_CMD_START_ACTION, request, request_len, &common, "door_start_action")) {
+        return;
+    }
+
+    FaActionRecordStart record_start = {};
+    record_start.action_id = action.action_id;
+    record_start.device_id = kSingleDoorDeviceId;
+    record_start.bus_address = config.station_address;
+    record_start.device_type = action.device_type;
+    record_start.action_type = action.action_type;
+    record_start.source_type = FA_ACTION_RECORD_SOURCE_MANUAL;
+    record_start.source_id = 0u;
+    record_start.target_pulses = result.target_pulses;
+    record_start.amount_mode = FA_ACTION_RECORD_AMOUNT_PULSES;
+    record_start.amount_value = result.target_pulses;
+    record_start.started_at_s = FaMasterActionRuntime::nowSeconds();
+    const bool tracking = g_action_runtime->trackStartedAction(record_start);
+
+    Esp32BaseWeb::beginJson(200);
+    Esp32BaseWeb::sendChunk("\"ok\":true,\"dryRun\":false,\"transport\":\"ready\",\"command\":\"");
+    Esp32BaseWeb::sendChunk(doorCommandName(command));
+    Esp32BaseWeb::sendChunk("\",\"actionId\":");
+    sendNumber(action.action_id);
+    Esp32BaseWeb::sendChunk(",\"stationAddress\":");
+    sendNumber(config.station_address);
+    Esp32BaseWeb::sendChunk(",\"targetPulses\":");
+    sendNumber(result.target_pulses);
+    Esp32BaseWeb::sendChunk(",\"tracking\":\"");
+    Esp32BaseWeb::sendChunk(tracking ? "running" : g_action_runtime->lastError());
+    Esp32BaseWeb::sendChunk("\",\"message\":\"door action accepted by station\"");
+    Esp32BaseWeb::endJson();
+}
+
+void sendDoorStopApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("door_stop")) {
+        return;
+    }
+    if (g_rs485_master == nullptr || g_transport == nullptr) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"service_unavailable\"}");
+        return;
+    }
+    const FaDoorDeviceConfig config = readDoorConfig();
+    if (!g_transport->isReady()) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"transport\":\"not_configured\"}");
+        return;
+    }
+
+    uint8_t request[FA_MAX_FRAME_LEN];
+    size_t request_len = 0u;
+    uint8_t seq = 0u;
+    const FaFrameResult frame_result = fa_rs485_master_build_stop_action(g_rs485_master,
+                                                                        config.station_address,
+                                                                        request,
+                                                                        sizeof(request),
+                                                                        &request_len,
+                                                                        &seq);
+    if (frame_result != FA_FRAME_OK) {
+        sendFeedTransportError(500, "door_stop", "frame", frameResultName(frame_result));
+        return;
+    }
+    FaMasterCommonResponse common;
+    if (!transactAndParseCommon(config.station_address, seq, FA_CMD_STOP_ACTION, request, request_len, &common, "door_stop")) {
+        return;
+    }
+
+    Esp32BaseWeb::sendJson(200, "{\"ok\":true,\"command\":\"stop\",\"message\":\"stop accepted by station\"}");
+}
+
+void sendDoorOpenApi(void) {
+    sendManualDoorActionApi(FA_DOOR_COMMAND_OPEN);
+}
+
+void sendDoorCloseApi(void) {
+    sendManualDoorActionApi(FA_DOOR_COMMAND_CLOSE);
+}
+
 void sendFeedPage(void) {
     if (!Esp32BaseWeb::checkAuth()) {
         return;
@@ -393,6 +604,43 @@ void sendFeedPage(void) {
 
     Esp32BaseWeb::sendInfoRowCompactLink("Feeder parameters", "Station address, pulses/turn, grams/turn and safety limits are stored by Esp32Base App Config.", "App Config", "/esp32base/app-config", "Edit", Esp32BaseWeb::UI_INFO);
 
+    Esp32BaseWeb::sendFooter();
+}
+
+void sendDoorPage(void) {
+    if (!Esp32BaseWeb::checkAuth()) {
+        return;
+    }
+
+    const FaDoorDeviceConfig config = readDoorConfig();
+    char value[24];
+
+    Esp32BaseWeb::sendHeader("Door");
+    Esp32BaseWeb::sendPageTitle("Manual door", "Sends one bounded motor action for open or close, and can stop the active station action.");
+
+    Esp32BaseWeb::beginMetricGrid();
+    snprintf(value, sizeof(value), "%u", config.station_address);
+    Esp32BaseWeb::sendMetric("Station", value, "RS485 address");
+    snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(config.travel_pulses));
+    Esp32BaseWeb::sendMetric("Travel", value, "pulses");
+    snprintf(value, sizeof(value), "%d / %d", config.open_direction, config.close_direction);
+    Esp32BaseWeb::sendMetric("Direction", value, "open / close");
+    Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
+    Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
+    Esp32BaseWeb::endMetricGrid();
+
+    Esp32BaseWeb::beginPanel("Run");
+    Esp32BaseWeb::sendChunk("<div class='actions'>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/open' onsubmit='return once(this)'><input type='submit' value='Open'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/close' onsubmit='return once(this)'><input type='submit' value='Close'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/stop' onsubmit='return once(this)'><input class='danger' type='submit' value='Stop'></form>");
+    Esp32BaseWeb::sendChunk("</div>");
+    Esp32BaseWeb::endPanel();
+
+    sendActiveActionPanel();
+    sendRecentRecordsPanel();
+
+    Esp32BaseWeb::sendInfoRowCompactLink("Door parameters", "Station address, travel pulses, directions and safety limits are stored by Esp32Base App Config.", "App Config", "/esp32base/app-config", "Edit", Esp32BaseWeb::UI_INFO);
     Esp32BaseWeb::sendFooter();
 }
 
@@ -543,6 +791,7 @@ void fa_master_web_register_config(void) {
     Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_SECTION);
     Esp32BaseAppConfig::setTitle("FarmAuto Config");
     Esp32BaseAppConfig::addGroup({"feeder", "Feeder"});
+    Esp32BaseAppConfig::addGroup({"door", "Door"});
     Esp32BaseAppConfig::addGroup({"rs485", "RS485"});
     Esp32BaseAppConfig::addInt({"feeder", kNs, kStationAddress, "Station address", 1, 1, 127, 1, nullptr,
                                 "RS485 address 1..127.", false, nullptr});
@@ -560,6 +809,24 @@ void fa_master_web_register_config(void) {
                                 "Single action timeout.", false, nullptr});
     Esp32BaseAppConfig::addInt({"feeder", kNs, kMaxActionPulses, "Max pulses", 432000, 1, 2000000, 1, "pulses",
                                 "Single action pulse limit.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorStationAddress, "Station address", 2, 1, 127, 1, nullptr,
+                                "RS485 address 1..127.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorPulsesPerTurn, "Pulses per turn", 4320, 1, 200000, 1, "pulses",
+                                "Output shaft encoder pulses per turn.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorTravelPulses, "Travel pulses", 20000, 1, 2000000, 1, "pulses",
+                                "Bounded travel for one open or close action.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorOpenDirection, "Open direction", 1, -1, 1, 1, nullptr,
+                                "1 forward, -1 reverse.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorCloseDirection, "Close direction", -1, -1, 1, 1, nullptr,
+                                "1 forward, -1 reverse.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorSpeedPermille, "Speed", 700, 1, 1000, 1, "permille",
+                                "Motor speed request.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorOverCurrentMa, "Over-current", 2500, 1, 10000, 1, "mA",
+                                "Station protection threshold.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorMaxRunMs, "Max run", 30000, 100, 600000, 100, "ms",
+                                "Single action timeout.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorMaxActionPulses, "Max pulses", 100000, 1, 2000000, 1, "pulses",
+                                "Single action pulse limit.", false, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_UART, "UART", 2, 1, 2, 1, nullptr,
                                 "ESP32 hardware serial port.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_RX_PIN, "RX pin", -1, -1, 39, 1, nullptr,
@@ -575,13 +842,19 @@ void fa_master_web_register_config(void) {
 }
 
 void fa_master_web_register_routes(FaFeedService *feed_service,
+                                   FaDoorService *door_service,
                                    FaRs485Master *rs485_master,
                                    FaRs485Transport *transport,
                                    FaMasterActionRuntime *action_runtime) {
     g_feed_service = feed_service;
+    g_door_service = door_service;
     g_rs485_master = rs485_master;
     g_transport = transport;
     g_action_runtime = action_runtime;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
+    Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
+    Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);
+    Esp32BaseWeb::addApi("/api/door/close", sendDoorCloseApi);
+    Esp32BaseWeb::addApi("/api/door/stop", sendDoorStopApi);
 }
