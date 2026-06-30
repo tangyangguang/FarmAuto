@@ -345,9 +345,9 @@ void fa_master_web_register_config(void) {
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_RX_PIN, "RX pin", -1, -1, 39, 1, nullptr,
                                 "-1 disables RS485 transport.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_TX_PIN, "TX pin", -1, -1, 39, 1, nullptr,
-                                "-1 disables RS485 transport.", true, nullptr});
+                                "-1 disables RS485 transport; GPIO34-39 are input-only and invalid here.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_DE_PIN, "DE pin", -1, -1, 39, 1, nullptr,
-                                "Driver enable pin.", true, nullptr});
+                                "Driver enable pin; GPIO34-39 are input-only and invalid here.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_BAUD, "Baud", 115200, 9600, 1000000, 1, "bps",
                                 "Default bus rate is 115200.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_TIMEOUT_MS, "Timeout", 80, 20, 2000, 1, "ms",

@@ -13,11 +13,15 @@ bool validPin(int8_t pin) {
     return pin >= 0 && pin <= 39;
 }
 
+bool validOutputPin(int8_t pin) {
+    return pin >= 0 && pin <= 33;
+}
+
 bool validConfig(const FaRs485TransportConfig& config) {
     return (config.uart_num == 1 || config.uart_num == 2) &&
            validPin(config.rx_pin) &&
-           validPin(config.tx_pin) &&
-           validPin(config.de_pin) &&
+           validOutputPin(config.tx_pin) &&
+           validOutputPin(config.de_pin) &&
            config.baud >= 9600u &&
            config.baud <= 1000000u &&
            config.timeout_ms >= 20u &&
