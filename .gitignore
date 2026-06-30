@@ -8,3 +8,4 @@ __pycache__/
 tools/protocol_smoke/protocol_smoke
 tools/action_smoke/action_smoke
 tools/fake_station_smoke/fake_station_smoke
+tools/master_loop_smoke/master_loop_smoke
