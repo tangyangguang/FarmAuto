@@ -2,8 +2,9 @@
 #define FA_MASTER_WEB_H
 
 #include "fa_feed_service.h"
+#include "fa_rs485_transport.h"
 
 void fa_master_web_register_config(void);
-void fa_master_web_register_routes(FaFeedService *feed_service);
+void fa_master_web_register_routes(FaFeedService *feed_service, FaRs485Master *rs485_master, FaRs485Transport *transport);
 
 #endif
