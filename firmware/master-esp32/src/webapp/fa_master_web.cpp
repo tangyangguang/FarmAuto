@@ -392,8 +392,10 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_action_runtime = action_runtime;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
     Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
+    Esp32BaseWeb::addPage("/bus", "RS485", sendBusPage);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
     Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);
     Esp32BaseWeb::addApi("/api/door/close", sendDoorCloseApi);
     Esp32BaseWeb::addApi("/api/door/stop", sendDoorStopApi);
+    Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
 }

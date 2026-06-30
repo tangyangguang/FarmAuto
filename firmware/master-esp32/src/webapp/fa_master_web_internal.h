@@ -59,5 +59,7 @@ void sendDoorPage(void);
 void sendDoorOpenApi(void);
 void sendDoorCloseApi(void);
 void sendDoorStopApi(void);
+void sendBusPage(void);
+void sendBusScanApi(void);
 
 #endif
