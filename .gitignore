@@ -5,3 +5,4 @@ _pending_delete/
 .vscode/
 __pycache__/
 *.pyc
+tools/protocol_smoke/protocol_smoke
