@@ -1836,7 +1836,7 @@
             <div class="hero-main">
               <div>
                 <div class="hero-title">2 号下料器异常</div>
-                <p class="hero-copy">门控自动计划保持启用，下料异常和设备离线已记录；通知通道配置后会发送告警。</p>
+                <p class="hero-copy">门控自动计划保持启用，下料异常和设备离线已记录；通知规则可在设置中维护，通道后续接入。</p>
               </div>
               <button class="top-temp-status" data-screen="records" data-open-record="temp" aria-label="查看温湿度历史">
                 <span>温湿度</span>
@@ -1846,9 +1846,9 @@
             </div>
             <div class="metric-grid">
               <div class="metric-tile critical-card">
-                <div class="metric-label">下料 <span class="mini-pill warn">疑似异常</span></div>
+                <div class="metric-label">下料 <span class="mini-pill warn">动作异常</span></div>
                 <div class="metric-value">2 号偏差大</div>
-                <div class="metric-note">目标 100g，估算完成 38g；按编码器完成量提示异常，不判定精确缺料</div>
+                <div class="metric-note">目标 100g，编码器完成量偏低；按动作结果提示异常，不判断料仓余量</div>
               </div>
               <div class="metric-tile critical-card">
                 <div class="metric-label">设备连接 <span class="mini-pill bad">联系不上</span></div>
@@ -1912,8 +1912,8 @@
                 <strong>已恢复执行</strong>
               </div>
               <div class="kv">
-                <span>微信通知</span>
-                <strong>恢复报告已发送</strong>
+                <span>通知规则</span>
+                <strong>已生成报告，通道待接入</strong>
               </div>
             </div>
           </div>
@@ -1926,7 +1926,7 @@
               <div class="icon-box warn">门</div>
               <div>
                 <p class="event-title">08:00 自动开门可能错过</p>
-                <p class="event-detail">恢复后检测到门位未知，未自动补跑；状态写入系统记录。</p>
+                <p class="event-detail">系统使用最后记录门位；如现场位置不符，请人工校准。错过计划不补跑。</p>
               </div>
               <span class="tag warn">不补跑</span>
             </div>
@@ -1936,7 +1936,7 @@
                 <p class="event-title">07:10 早料计划错过</p>
                 <p class="event-detail">恢复后自动下料继续启用，但错过的早料不自动补跑。</p>
               </div>
-              <span class="tag warn">需决定</span>
+              <span class="tag warn">不补跑</span>
             </div>
           </div>
 
@@ -2005,7 +2005,7 @@
                   <div class="icon-box">08</div>
                   <div>
                     <p class="plan-title">08:00 开门 · 门控 01</p>
-                    <p class="plan-detail">每天执行 · 失败时微信通知</p>
+                    <p class="plan-detail">每天执行 · 失败时写入记录</p>
                   </div>
                   <span class="tag ok">启用</span>
                 </div>
@@ -2077,7 +2077,7 @@
               <ul class="rule-list">
                 <li><span class="check">✓</span><span>计划只影响自动执行，不影响手动开门、关门、停止。</span></li>
                 <li><span class="check warn-mark">!</span><span>如果计划点在暂停期间错过，默认不补跑。</span></li>
-                <li><span class="check">✓</span><span>执行结果会写入门控记录，失败时发送微信通知。</span></li>
+                <li><span class="check">✓</span><span>执行结果会写入门控记录，失败时按通知规则标记。</span></li>
               </ul>
               <div class="button-row" style="margin-top: 12px;">
                 <button class="primary-button" data-command="保存门控 01 计划点" data-confirm-note="将为门控 01 新增一个自动计划点。">保存计划点</button>
@@ -2194,6 +2194,10 @@
                 <span class="muted">校准量</span>
                 <strong>由下料器校准维护</strong>
               </div>
+              <div class="split-line">
+                <span class="muted">启动间隔</span>
+                <strong>1 秒，避免同时启动冲击</strong>
+              </div>
               <div class="button-row" style="margin-top: 12px;">
                 <button class="danger-button" data-screen="feed-paused">暂停自动下料</button>
               </div>
@@ -2266,6 +2270,10 @@
                     <p class="event-detail">关闭后计划保留，但到点不下料。</p>
                   </div>
                   <label class="switch"><input type="checkbox" checked><span></span></label>
+                </div>
+                <div class="field">
+                  <label for="feedPlanStartDelay">下料器启动间隔（秒）</label>
+                  <input id="feedPlanStartDelay" type="number" min="0" step="1" value="1">
                 </div>
               </div>
             </div>
@@ -2822,8 +2830,8 @@
                   <div class="param-meta"><span>作用：主控与门控、下料分站通讯。</span><span>可取值：成品固定为 RS485 主控轮询，不提供其他连接方式。</span></div>
                 </div>
                 <div class="param-row">
-                  <div class="param-head"><span class="param-name">设备地址范围</span><span class="param-value">默认 1-15</span></div>
-                  <div class="param-meta"><span>作用：扫描和绑定分站通讯地址。</span><span>可取值：4 位拨码默认发现 1-15；已配置地址可手动绑定默认范围外；0 是保留地址。</span></div>
+                  <div class="param-head"><span class="param-name">设备地址范围</span><span class="param-value">1-127</span></div>
+                  <div class="param-meta"><span>作用：扫描和绑定分站通讯地址。</span><span>默认扫描 1-15；手动地址允许 1-127；0 是保留地址。</span></div>
                 </div>
                 <div class="param-row">
                   <div class="param-head"><span class="param-name">通讯速率</span><span class="param-value">9600 8N1</span></div>
@@ -2837,7 +2845,7 @@
               <div class="param-list">
                 <div class="param-row">
                   <div class="param-head"><span class="param-name">扫描地址</span><span class="param-value">默认 1-15</span></div>
-                  <div class="param-meta"><span>作用：设备管理里主动扫描哪些 RS485 地址在线。</span><span>可取值：默认扫描当前拨码范围；维护入口允许测试和绑定手动输入地址。</span></div>
+                  <div class="param-meta"><span>作用：设备管理里主动扫描哪些 RS485 地址在线。</span><span>默认扫描当前拨码范围；维护入口允许测试和绑定 1-127 内的手动地址。</span></div>
                 </div>
                 <div class="param-row">
                   <div class="param-head"><span class="param-name">正常轮询间隔</span><span class="param-value">空闲约 1000ms</span></div>
@@ -2991,18 +2999,17 @@
                     <button class="secondary-button" data-toast="已向门控 01 发送通讯测试。">测试通讯</button>
                     <button class="secondary-button" data-toast="门控 01 指示灯闪烁，用于现场确认设备。">识别设备</button>
                     <button class="danger-button" data-command="停止门控 01" data-confirm-note="只停止门控 01 当前动作，不影响其他门控或下料设备。">停止</button>
-                    <button class="danger-button" data-command="清除门控 01 故障" data-confirm-note="清除前应确认现场无卡滞、过流或接线问题。">清除故障</button>
                     <button class="secondary-button" data-screen="door-calibration">进入门控校准</button>
                     <button class="danger-button" data-command="恢复门控 01 自动计划" data-confirm-note="恢复后门控 01 会继续按已保存计划自动执行。">恢复自动计划</button>
                   </div>
-                  <p class="muted small" style="margin: 10px 0 0;">停止是立即安全动作；点动、清除故障、恢复自动计划等会改变现场状态，需要二次确认或长按 1 秒。</p>
+                  <p class="muted small" style="margin: 10px 0 0;">停止是立即安全动作；校准、恢复自动计划等会改变现场状态，需要二次确认或长按 1 秒。</p>
                 </div>
                 <div class="card">
                   <h2>安装维护参数</h2>
                   <div class="param-list">
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">RS485 地址绑定</span><span class="param-value">地址 01</span></div>
-                      <div class="param-meta"><span>作用：硬件通讯地址。</span><span>范围：1-15；地址 0 保留，不允许绑定。</span></div>
+                      <div class="param-meta"><span>作用：硬件通讯地址。</span><span>默认扫描 1-15；手动地址允许 1-127；地址 0 保留。</span></div>
                     </div>
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">每圈脉冲</span><span class="param-value">331 脉冲/圈</span></div>
@@ -3022,9 +3029,8 @@
                     </div>
                   </div>
                   <div class="button-row" style="margin-top: 12px;">
-                    <button class="secondary-button" data-screen="device-add">替换设备</button>
                     <button class="danger-button" data-command="停用门控 01" data-confirm-note="停用后不参与自动计划和手动操作，但保留记录和配置。">停用设备</button>
-                    <button class="danger-button" data-command="归档门控 01" data-confirm-note="归档会影响计划引用，应只在设备长期移除时使用。">归档设备</button>
+                    <button class="danger-button" data-command="删除门控 01" data-confirm-note="删除后该设备的自动计划不再执行，历史记录保留当时快照。">删除设备</button>
                   </div>
                 </div>
               </div>
@@ -3080,18 +3086,17 @@
                     <button class="secondary-button" data-toast="已向下料 01 发送通讯测试。">测试通讯</button>
                     <button class="secondary-button" data-toast="下料 01 指示灯闪烁，用于现场确认设备。">识别设备</button>
                     <button class="danger-button" data-command="停止下料 01" data-confirm-note="只停止下料 01 当前动作，不影响其他下料器或门控设备。">停止</button>
-                    <button class="danger-button" data-command="清除下料 01 故障" data-confirm-note="清除前应确认现场无卡料、过流或接线问题。">清除故障</button>
                     <button class="secondary-button" data-screen="feeder-calibration">进入下料器校准</button>
                     <button class="danger-button" data-command="恢复下料 01 自动计划" data-confirm-note="恢复后下料 01 会继续按已保存计划自动执行。">恢复自动计划</button>
                   </div>
-                  <p class="muted small" style="margin: 10px 0 0;">下料试运行和清除故障会影响现场设备，统一通过确认面板长按 1 秒发送。</p>
+                  <p class="muted small" style="margin: 10px 0 0;">下料试运行、停止和恢复自动计划会影响现场设备，统一通过确认面板长按 1 秒发送。</p>
                 </div>
                 <div class="card">
                   <h2>安装维护参数</h2>
                   <div class="param-list">
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">RS485 地址绑定</span><span class="param-value">地址 07</span></div>
-                      <div class="param-meta"><span>作用：硬件通讯地址。</span><span>范围：1-15；显示顺序不按地址排序。</span></div>
+                      <div class="param-meta"><span>作用：硬件通讯地址。</span><span>默认扫描 1-15；手动地址允许 1-127；显示顺序不按地址排序。</span></div>
                     </div>
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">每圈克数</span><span class="param-value">8.0g/圈</span></div>
@@ -3103,7 +3108,7 @@
                     </div>
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">保护阈值</span><span class="param-value">过流/堵转启用</span></div>
-                      <div class="param-meta"><span>作用：异常时由分站本地停止。</span><span>用于过流、堵转和异常辅助，不做精确缺料承诺。</span></div>
+                      <div class="param-meta"><span>作用：异常时由分站本地停止。</span><span>用于过流、堵转和动作异常提示，不判断料仓余量。</span></div>
                     </div>
                     <div class="param-row">
                       <div class="param-head"><span class="param-name">方向极性</span><span class="param-value">下料为正向</span></div>
@@ -3111,9 +3116,8 @@
                     </div>
                   </div>
                   <div class="button-row" style="margin-top: 12px;">
-                    <button class="secondary-button" data-screen="device-add">替换设备</button>
                     <button class="danger-button" data-command="停用下料 01" data-confirm-note="停用后不参与自动计划和手动下料，但保留记录和配置。">停用设备</button>
-                    <button class="danger-button" data-command="归档下料 01" data-confirm-note="归档会影响计划引用，应只在设备长期移除时使用。">归档设备</button>
+                    <button class="danger-button" data-command="删除下料 01" data-confirm-note="删除后该下料器不再参与计划，历史记录保留当时快照。">删除设备</button>
                   </div>
                 </div>
               </div>
@@ -3128,13 +3132,13 @@
                     <div class="kv"><span>固件版本</span><strong>未知</strong></div>
                     <div class="kv"><span>最后在线</span><strong>10:31</strong></div>
                     <div class="kv"><span>连续失败</span><strong>6 次</strong></div>
-                    <div class="kv"><span>最近异常</span><strong>疑似下料不足</strong></div>
+                    <div class="kv"><span>最近异常</span><strong>下料动作异常</strong></div>
                     <div class="kv"><span>排查项</span><strong>供电和接线</strong></div>
                   </div>
                 </div>
                 <div class="card">
                   <h2>诊断摘要</h2>
-                  <p class="muted" style="margin-bottom: 0;">10:38 下料执行中编码器脉冲不足；10:42 起通讯中断。系统只提示“疑似异常”，不判定精确缺料。</p>
+                  <p class="muted" style="margin-bottom: 0;">10:38 下料执行中编码器脉冲不足；10:42 起通讯中断。系统提示动作异常，不判断料仓余量。</p>
                 </div>
               </div>
 
@@ -3191,7 +3195,7 @@
             <div>
               <p class="screen-kicker">维护 · RS485</p>
               <h1>扫描 RS485 地址</h1>
-              <p class="muted">主控轮询 1-15 地址。地址只是硬件通讯用；绑定后才成为门控或下料设备。</p>
+              <p class="muted">主控默认扫描 1-15 地址；维护时可手动测试 1-127 地址。地址只是硬件通讯用，绑定后才成为门控或下料设备。</p>
             </div>
             <span class="status-pill warn"><span class="dot"></span>发现 1 个未绑定</span>
           </div>
@@ -3382,7 +3386,7 @@
               <div class="icon-box warn">2</div>
               <div>
                 <p class="record-title">2 号下料器疑似异常</p>
-                <p class="record-detail">目标 100g，估算偏低；不做精确缺料承诺</p>
+                <p class="record-detail">目标 100g，编码器完成量偏低；不判断料仓余量</p>
               </div>
               <span class="record-time">2026-06-23 18:00:41</span>
             </div>
@@ -3523,7 +3527,7 @@
             <div>
               <p class="screen-kicker">设置</p>
               <h1>设置与维护</h1>
-              <p class="muted">这里放系统配置、设备维护和通知设置；日常查看和操作不放在这里。</p>
+              <p class="muted">这里放系统配置、设备维护和通知规则；日常查看和操作不放在这里。</p>
             </div>
             <span class="status-pill ok"><span class="dot"></span>配置入口</span>
           </div>
@@ -3564,7 +3568,7 @@
               <span class="icon-box">扫</span>
               <span>
                 <span class="event-title">扫描 RS485 地址</span>
-                <span class="event-detail">查看 1-15 地址在线、未绑定、冲突和保留地址响应</span>
+                <span class="event-detail">默认查看 1-15，维护时可手动测试 1-127 地址</span>
               </span>
             </button>
             <button class="menu-row" data-screen="device-add">
@@ -3575,10 +3579,10 @@
               </span>
             </button>
             <button class="menu-row" data-screen="wechat">
-              <span class="icon-box info">微</span>
+              <span class="icon-box info">知</span>
               <span>
-                <span class="event-title">微信通知</span>
-                <span class="event-detail">设置通知内容；具体微信通道待工程固化</span>
+                <span class="event-title">通知规则</span>
+                <span class="event-detail">选择哪些事件需要通知；巴法云通道后续接入</span>
               </span>
             </button>
           </div>
@@ -3588,9 +3592,9 @@
         <section class="screen" id="wechat" data-top-state="warn" data-top-text="通知待确定">
           <div class="screen-header">
             <div>
-              <p class="screen-kicker">通知</p>
-              <h1>微信通知设置</h1>
-              <p class="muted">这里先验证通知内容和测试流程；具体采用哪种微信通道，当前项目文档还没有定。</p>
+              <p class="screen-kicker">通知规则</p>
+              <h1>通知规则设置</h1>
+              <p class="muted">这里只确定哪些事件需要通知；巴法云等真实通道后续接入。</p>
             </div>
             <span class="status-pill warn"><span class="dot"></span>通道待定</span>
           </div>
@@ -3601,14 +3605,14 @@
               <div class="setting-row">
                 <div>
                   <p class="event-title">严重告警</p>
-                  <p class="event-detail">设备联系不上、门控失败、堵转、过流；立即通知</p>
+                  <p class="event-detail">设备联系不上、门控失败、堵转、过流；通道接入后通知</p>
                 </div>
                 <label class="switch"><input type="checkbox" checked><span></span></label>
               </div>
               <div class="setting-row">
                 <div>
-                  <p class="event-title">疑似异常</p>
-                  <p class="event-detail">疑似下料不足、运行数据异常；提示现场检查</p>
+                  <p class="event-title">动作异常</p>
+                  <p class="event-detail">下料未达到目标、运行超时、电流异常；提示现场检查</p>
                 </div>
                 <label class="switch"><input type="checkbox" checked><span></span></label>
               </div>
@@ -3632,9 +3636,9 @@
               <h2>通知通道</h2>
               <div class="form-grid">
                 <div class="field">
-                  <label for="notifyChannel">微信通道</label>
+                  <label for="notifyChannel">通道</label>
                   <select id="notifyChannel">
-                    <option>待工程确定</option>
+                    <option>巴法云待接入</option>
                   </select>
                 </div>
                 <div class="field">
@@ -3642,11 +3646,11 @@
                   <input id="notifyReceiver" value="主要联系人" readonly>
                 </div>
                 <div class="field">
-                  <label for="notifyPreview">测试内容</label>
-                  <input id="notifyPreview" value="FarmAuto 测试通知：这是一条通知通道测试。">
+                  <label for="notifyPreview">预览内容</label>
+                  <input id="notifyPreview" value="FarmAuto 通知预览：这是一条规则生成的消息。">
                 </div>
-                <button class="secondary-button" id="testNotify">模拟测试通知</button>
-                <p class="muted small" id="notifyResult">当前只验证页面流程；真正发送需要先确定微信通知通道和密钥配置方式。</p>
+                <button class="secondary-button" id="testNotify">生成预览</button>
+                <p class="muted small" id="notifyResult">当前只保存通知规则和预览内容；真实发送待巴法云通道接入后再验证。</p>
               </div>
             </div>
           </div>
@@ -4080,8 +4084,8 @@
     });
 
     document.getElementById("testNotify").addEventListener("click", () => {
-      document.getElementById("notifyResult").textContent = "刚刚模拟：通知内容已生成。待微信通道确定后，再验证真实发送。";
-      showToast("已模拟生成测试通知。");
+      document.getElementById("notifyResult").textContent = "刚刚生成：通知规则预览已更新。真实发送待巴法云通道接入。";
+      showToast("已生成通知预览。");
     });
 
     refreshFeedConfirm();
