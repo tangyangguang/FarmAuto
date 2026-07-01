@@ -46,6 +46,7 @@ int main(void) {
 
     fa_station_node_init(&node, 7u);
     fa_station_board_init(0u);
+    require_true(fa_station_board_address_input() == 1u, "default simulated address");
     tick_station(&node, 0u);
     fa_rs485_master_init(&master);
 

@@ -19,6 +19,8 @@ extern "C" {
 void fa_station_board_init(uint32_t now_ms);
 void fa_station_board_tick(uint32_t now_ms);
 void fa_station_board_apply_output(const FaActionOutput *output);
+uint8_t fa_station_board_address_input(void);
+void fa_station_board_set_leds(uint8_t run_on, uint8_t err_on);
 int32_t fa_station_board_position_pulses(void);
 uint16_t fa_station_board_current_ma(void);
 

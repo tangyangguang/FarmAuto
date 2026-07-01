@@ -16,7 +16,9 @@ It does not yet bind RS485 direction, AT8236 pins, PWM, Hall AB encoder inputs, 
 Board backend selection is controlled by `FA_STATION_BOARD_BACKEND`:
 
 - `FA_STATION_BOARD_BACKEND_SIM` is the default. It advances simulated encoder pulses and current from the action output so the full protocol/action/status loop can be exercised before hardware arrives.
-- `FA_STATION_BOARD_BACKEND_REAL` is the future AT8236/PWM/ADC/encoder backend. It intentionally requires final pin macros and an explicit encoder implementation marker before it can compile.
+- `FA_STATION_BOARD_BACKEND_REAL` is the future AT8236/PWM/ADC/encoder/DIP/LED backend. It intentionally requires final pin macros and an explicit encoder implementation marker before it can compile.
+
+The station address is read through the board layer. In simulation it defaults to address `1` unless `FA_STATION_SIM_ADDRESS` is overridden. In the real backend it is a 7-bit DIP/GPIO value; address `0` remains reserved and will be reported as raw input while the effective protocol address falls back to the normal-address minimum.
 
 `Stc8hBase` already provides `drv_rs485_uart`, but that driver requires board-level `BOARD_RS485_TX_ENABLE()` and `BOARD_RS485_RX_ENABLE()` macros. FarmAuto does not enable that driver until the DE/RE pin is confirmed by the PCB.
 

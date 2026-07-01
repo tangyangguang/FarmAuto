@@ -25,6 +25,17 @@ static stc8h_u32 station_now_ms(void) {
     return now;
 }
 
+static void update_status_leds(void) {
+    uint8_t run_on;
+    uint8_t err_on;
+
+    err_on = (g_node.action.motor_state == FA_MOTOR_FAULT ||
+              g_node.action.fault_code != FA_FAULT_NONE ||
+              !fa_address_is_normal(g_node.raw_address_input)) ? 1u : 0u;
+    run_on = err_on == 0u ? 1u : 0u;
+    fa_station_board_set_leds(run_on, err_on);
+}
+
 void main(void) {
     stc8h_u16 i;
     size_t response_len;
@@ -40,8 +51,9 @@ void main(void) {
     stc8h_interrupt_enable_global();
     stc8h_timer_start(STC8H_TIMER0);
 
-    fa_station_node_init(&g_node, FA_ADDRESS_MIN);
     fa_station_board_init(station_now_ms());
+    fa_station_node_init(&g_node, fa_station_board_address_input());
+    update_status_leds();
 
     while (1) {
         now_ms = station_now_ms();
@@ -51,6 +63,7 @@ void main(void) {
                              fa_station_board_position_pulses(),
                              fa_station_board_current_ma());
         fa_station_board_apply_output(&g_node.output);
+        update_status_leds();
 
         if (stc8h_uart_readable(STC8H_UART1) != 0u) {
             response_len = 0u;

@@ -16,11 +16,17 @@
 #define FA_STATION_SIM_BASE_RUN_CURRENT_MA 120u
 #endif
 
+#ifndef FA_STATION_SIM_ADDRESS
+#define FA_STATION_SIM_ADDRESS 1u
+#endif
+
 typedef struct {
     int32_t position_pulses;
     uint16_t current_ma;
     uint32_t last_update_ms;
     uint32_t pulse_remainder_x1000;
+    uint8_t run_led;
+    uint8_t err_led;
     FaActionOutput output;
 } FaStationBoardSim;
 
@@ -73,6 +79,15 @@ void fa_station_board_apply_output(const FaActionOutput *output) {
     if (g_board.output.motor_enable == 0u) {
         g_board.pulse_remainder_x1000 = 0u;
     }
+}
+
+uint8_t fa_station_board_address_input(void) {
+    return (uint8_t)FA_STATION_SIM_ADDRESS;
+}
+
+void fa_station_board_set_leds(uint8_t run_on, uint8_t err_on) {
+    g_board.run_led = run_on != 0u ? 1u : 0u;
+    g_board.err_led = err_on != 0u ? 1u : 0u;
 }
 
 int32_t fa_station_board_position_pulses(void) {
