@@ -32,6 +32,7 @@ static FaBoardIoService g_board_io;
 
 void farmauto_master_setup(void) {
     Esp32Base::setFirmwareInfo("farmauto-master", "0.1.0");
+    Esp32BaseWeb::setDefaultAuth("admin", "admin");
     fa_master_web_register_config();
     fa_master_web_register_routes(&g_feed,
                                   &g_door,

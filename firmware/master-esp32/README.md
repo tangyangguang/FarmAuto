@@ -23,6 +23,8 @@ It currently does these things:
 - scans RS485 addresses `1..127` and records discovered stations;
 - starts the Esp32Base runtime loop.
 
+Initial Web auth defaults to `admin` / `admin`. Change it from `/esp32base/auth` after first login.
+
 It does not yet bind local button presses to door actions, RTC, FRAM, Bafa/WeChat sending, station OTA, missing-feed detection or final PCB pin-specific board IO.
 
 The current action record file is `/farmauto/action-records.bin`. It is a small FarmAuto business ring file built on `Esp32BaseFs`; it is not the FRAM pending-action journal.
@@ -39,4 +41,10 @@ Build:
 
 ```sh
 pio run
+```
+
+First-time board filesystem initialization:
+
+```sh
+pio run -t uploadfs --upload-port <serial-port>
 ```
