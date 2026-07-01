@@ -26,6 +26,7 @@ const char* V3_JS = R"JS(
 var faPendingForm=null;
 var faHoldTimer=null;
 var faHoldProgressTimer=null;
+var faSubmitSerial=0;
 function faToast(t){
   var e=document.getElementById('toast');
   if(!e)return;
@@ -34,17 +35,58 @@ function faToast(t){
   clearTimeout(faToast.timer);
   faToast.timer=setTimeout(function(){e.classList.remove('show')},2600);
 }
+function faPct(n){
+  var h='0123456789ABCDEF';
+  return '%'+h.charAt((n>>4)&15)+h.charAt(n&15);
+}
+function faUrlEnc(v){
+  var s=String(v||''),out='',i=0,c=0,n=0;
+  for(i=0;i<s.length;i++){
+    c=s.charCodeAt(i);
+    if((c>=48&&c<=57)||(c>=65&&c<=90)||(c>=97&&c<=122)||c===45||c===46||c===95||c===126){out+=s.charAt(i);continue;}
+    if(c===32){out+='+';continue;}
+    if(c>=55296&&c<=56319&&i+1<s.length){
+      n=65536+((c-55296)<<10)+(s.charCodeAt(++i)-56320);
+      out+=faPct(240|((n>>18)&7))+faPct(128|((n>>12)&63))+faPct(128|((n>>6)&63))+faPct(128|(n&63));
+    }else if(c<128){
+      out+=faPct(c);
+    }else if(c<2048){
+      out+=faPct(192|((c>>6)&31))+faPct(128|(c&63));
+    }else{
+      out+=faPct(224|((c>>12)&15))+faPct(128|((c>>6)&63))+faPct(128|(c&63));
+    }
+  }
+  return out;
+}
+function faEncodeForm(f){
+  var pairs=[];
+  Array.prototype.forEach.call(f.elements,function(e){
+    if(!e.name||e.disabled)return;
+    if((e.type==='checkbox'||e.type==='radio')&&!e.checked)return;
+    pairs.push(faUrlEnc(e.name)+'='+faUrlEnc(e.value||''));
+  });
+  return pairs.join('&');
+}
 function faPostNow(f){
-  if(!window.fetch)return true;
   if(f.dataset.busy)return false;
   f.dataset.busy='1';
   var b=f.querySelector('[type=submit]');
   if(b)b.disabled=true;
-  fetch(f.action,{method:'POST',body:new URLSearchParams(new FormData(f)).toString(),headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},credentials:'same-origin'})
-    .then(function(r){return r.json().catch(function(){return {ok:false,error:'返回不是 JSON'}})})
-    .then(function(j){faToast(j.ok?(f.dataset.success||'动作已发送'):('失败：'+(j.error||j.status||j.transport||'未知错误')))})
-    .catch(function(){faToast('请求失败')})
-    .finally(function(){delete f.dataset.busy;if(b)b.disabled=false});
+  var frame=document.getElementById('faSubmitFrame');
+  if(!frame)return true;
+  var serial=++faSubmitSerial;
+  frame.onload=function(){
+    if(serial!==faSubmitSerial)return;
+    delete f.dataset.busy;
+    if(b)b.disabled=false;
+    frame.onload=null;
+    faToast(f.dataset.success||'动作已发送');
+    if(f.dataset.reload==='1')setTimeout(function(){location.reload()},650);
+  };
+  f.target='faSubmitFrame';
+  setTimeout(function(){
+    try{f.submit()}catch(e){delete f.dataset.busy;if(b)b.disabled=false;frame.onload=null;faToast('请求失败');}
+  },0);
   return false;
 }
 function faPost(f){
@@ -105,6 +147,11 @@ function faRecordTab(name){
 document.addEventListener('click',function(ev){
   var t=ev.target.closest('[data-record-tab]');
   if(t){ev.preventDefault();faRecordTab(t.dataset.recordTab);}
+  var s=ev.target.closest('input[type=submit]');
+  if(s&&s.form&&s.form.getAttribute('onsubmit')&&s.form.getAttribute('onsubmit').indexOf('faPost')>=0){
+    ev.preventDefault();
+    faPost(s.form);
+  }
 });
 )JS";
 
@@ -114,6 +161,65 @@ void sendEsc(const char* text) {
 
 void sendU32(uint32_t value) {
     sendNumber(value);
+}
+
+void sendI32(int32_t value) {
+    char buf[18];
+    snprintf(buf, sizeof(buf), "%ld", static_cast<long>(value));
+    Esp32BaseWeb::sendChunk(buf);
+}
+
+void sendNumberField(const char* label,
+                     const char* name,
+                     int32_t value,
+                     int32_t min_value,
+                     int32_t max_value,
+                     int32_t step = 1) {
+    Esp32BaseWeb::sendChunk("<div class='field'><label>");
+    sendEsc(label);
+    Esp32BaseWeb::sendChunk("</label><input type='number' name='");
+    Esp32BaseWeb::sendChunk(name);
+    Esp32BaseWeb::sendChunk("' min='");
+    sendI32(min_value);
+    Esp32BaseWeb::sendChunk("' max='");
+    sendI32(max_value);
+    Esp32BaseWeb::sendChunk("' step='");
+    sendI32(step);
+    Esp32BaseWeb::sendChunk("' value='");
+    sendI32(value);
+    Esp32BaseWeb::sendChunk("'></div>");
+}
+
+void sendBoolSelect(const char* label, const char* name, bool enabled) {
+    Esp32BaseWeb::sendChunk("<div class='field'><label>");
+    sendEsc(label);
+    Esp32BaseWeb::sendChunk("</label><select name='");
+    Esp32BaseWeb::sendChunk(name);
+    Esp32BaseWeb::sendChunk("'><option value='1'");
+    if (enabled) {
+        Esp32BaseWeb::sendChunk(" selected");
+    }
+    Esp32BaseWeb::sendChunk(">启用</option><option value='0'");
+    if (!enabled) {
+        Esp32BaseWeb::sendChunk(" selected");
+    }
+    Esp32BaseWeb::sendChunk(">停用</option></select></div>");
+}
+
+void sendDirectionSelect(const char* label, const char* name, int8_t value) {
+    Esp32BaseWeb::sendChunk("<div class='field'><label>");
+    sendEsc(label);
+    Esp32BaseWeb::sendChunk("</label><select name='");
+    Esp32BaseWeb::sendChunk(name);
+    Esp32BaseWeb::sendChunk("'><option value='1'");
+    if (value >= 0) {
+        Esp32BaseWeb::sendChunk(" selected");
+    }
+    Esp32BaseWeb::sendChunk(">正转</option><option value='-1'");
+    if (value < 0) {
+        Esp32BaseWeb::sendChunk(" selected");
+    }
+    Esp32BaseWeb::sendChunk(">反转</option></select></div>");
 }
 
 void formatMinuteText(uint16_t minute, char* out, size_t len) {
@@ -248,7 +354,7 @@ void sendV3Footer(V3Page active) {
     sendBottomNavLink(V3Page::Manual, active);
     sendBottomNavLink(V3Page::Records, active);
     sendBottomNavLink(V3Page::Settings, active);
-    Esp32BaseWeb::sendChunk("</nav><div class='confirm-sheet' id='globalConfirm'><div><p class='event-title' id='globalConfirmTitle'>确认动作</p><p class='event-detail' id='globalConfirmNote'></p></div><button class='hold-button' id='globalHold' onmousedown='faHoldStart(event)' ontouchstart='faHoldStart(event)' onmouseup='faHoldCancel()' onmouseleave='faHoldCancel()' ontouchend='faHoldCancel()' ontouchcancel='faHoldCancel()' oncontextmenu='return false'><span>长按 1 秒发送</span></button><button class='secondary-button' type='button' onclick='faCancelConfirm()'>取消</button></div><div class='toast' id='toast'></div></body></html>");
+    Esp32BaseWeb::sendChunk("</nav><iframe id='faSubmitFrame' name='faSubmitFrame' style='display:none;width:0;height:0;border:0'></iframe><div class='confirm-sheet' id='globalConfirm'><div><p class='event-title' id='globalConfirmTitle'>确认动作</p><p class='event-detail' id='globalConfirmNote'></p></div><button class='hold-button' id='globalHold' onmousedown='faHoldStart(event)' ontouchstart='faHoldStart(event)' onmouseup='faHoldCancel()' onmouseleave='faHoldCancel()' ontouchend='faHoldCancel()' ontouchcancel='faHoldCancel()' oncontextmenu='return false'><span>长按 1 秒发送</span></button><button class='secondary-button' type='button' onclick='faCancelConfirm()'>取消</button></div><div class='toast' id='toast'></div></body></html>");
     Esp32BaseWeb::endResponse();
 }
 
@@ -471,7 +577,17 @@ void sendV3AutoPage(void) {
     Esp32BaseWeb::sendChunk(" 晚料</p><p class='plan-detail'>");
     sendU32(state.feed_2_amount_mg);
     Esp32BaseWeb::sendChunk(" mg · 按标定值换算圈数</p></div><span class='tag ok'>启用</span></div></div><div class='button-row' style='margin-top:12px'><form method='post' action='/api/auto/feed-pause' data-confirm-title='暂停自动下料' data-confirm-note='确认后只暂停自动下料；手动下料仍可单独执行。' data-success='自动下料已暂停' onsubmit='return faPost(this)'><input type='hidden' name='durationMin' value='360'><input class='danger-button' type='submit' value='暂停自动下料'></form><form method='post' action='/api/auto/feed-resume' data-confirm-title='恢复自动下料' data-confirm-note='恢复后下料设备会继续按已保存计划自动执行。' data-success='自动下料已恢复' onsubmit='return faPost(this)'><input class='secondary-button' type='submit' value='恢复下料'></form></div></div></div>");
-    Esp32BaseWeb::sendChunk("<div class='section-title'><h2>计划参数</h2><a class='secondary-button' href='/esp32base/app-config'>修改配置</a></div>");
+    Esp32BaseWeb::sendChunk("<div class='section-title'><h2>计划参数</h2></div><div class='card'><form method='post' action='/api/auto/schedule' data-success='自动计划已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
+    sendBoolSelect("总开关", "enabled", state.enabled);
+    sendBoolSelect("下料计划", "feedEnabled", state.feed_enabled);
+    sendBoolSelect("门控计划", "doorEnabled", state.door_enabled);
+    sendNumberField("早料分钟", "feed1Min", state.feed_1_minute, 0, 1439);
+    sendNumberField("早料 mg", "feed1AmountMg", static_cast<int32_t>(state.feed_1_amount_mg), 1, 5000000);
+    sendNumberField("晚料分钟", "feed2Min", state.feed_2_minute, 0, 1439);
+    sendNumberField("晚料 mg", "feed2AmountMg", static_cast<int32_t>(state.feed_2_amount_mg), 1, 5000000);
+    sendNumberField("开门分钟", "doorOpenMin", state.door_open_minute, 0, 1439);
+    sendNumberField("关门分钟", "doorCloseMin", state.door_close_minute, 0, 1439);
+    Esp32BaseWeb::sendChunk("</div><p class='muted small'>分钟数为当天 0-1439，例如 08:00 为 480，17:30 为 1050。</p><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存自动计划'><a class='secondary-button' href='/esp32base/app-config'>高级配置</a></div></form></div>");
     sendV3Footer(V3Page::Auto);
 }
 
@@ -526,8 +642,31 @@ void sendV3RecordsPage(void) {
 }
 
 void sendV3SettingsPage(void) {
+    FaFeedDeviceConfig feedConfig = fa_master_read_feed_config();
+    FaDoorDeviceConfig doorConfig = fa_master_read_door_config();
     sendV3Header(V3Page::Settings, "设置与维护", "这里放系统配置、设备维护和通知规则；日常查看和操作不放在这里。", "配置入口", "ok");
     Esp32BaseWeb::sendChunk("<div class='section-title'><h2>系统配置</h2></div><div class='menu-grid'><a class='menu-row' href='/esp32base/app-config'><span class='icon-box'>参</span><span><span class='event-title'>系统设置</span><span class='event-detail'>RS485 通讯、温湿度记录、自动运行和主控板 IO</span></span></a><a class='menu-row' href='/settings#devices'><span class='icon-box'>设</span><span><span class='event-title'>设备管理</span><span class='event-detail'>按类型查看设备、绑定地址和启用状态</span></span></a><a class='menu-row' href='/settings#scan'><span class='icon-box'>扫</span><span><span class='event-title'>扫描 RS485 地址</span><span class='event-detail'>默认扫描 1-127 地址，在线未绑定地址可用于绑定</span></span></a><a class='menu-row' href='/settings#notify'><span class='icon-box info'>知</span><span><span class='event-title'>通知规则</span><span class='event-detail'>只保存规则，真实发送通道后续接入</span></span></a></div>");
+    Esp32BaseWeb::sendChunk("<div class='section-title'><h2>下料器校准</h2></div><div class='card'><form method='post' action='/api/config/feed' data-success='下料参数已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
+    sendNumberField("分站地址", "stationAddress", feedConfig.station_address, 1, 127);
+    sendNumberField("每圈脉冲", "pulsesPerTurn", static_cast<int32_t>(feedConfig.pulses_per_turn), 1, 200000);
+    sendNumberField("每圈毫克", "gramsPerTurnMg", static_cast<int32_t>(feedConfig.grams_per_turn_mg), 1, 1000000);
+    sendDirectionSelect("下料方向", "direction", feedConfig.feed_direction);
+    sendNumberField("速度", "speedPermille", feedConfig.speed_permille, 1, 1000);
+    sendNumberField("过流 mA", "overCurrentMa", feedConfig.over_current_ma, 1, 10000);
+    sendNumberField("最长运行 ms", "maxRunMs", static_cast<int32_t>(feedConfig.max_run_ms), 100, 600000, 100);
+    sendNumberField("最大脉冲", "maxActionPulses", static_cast<int32_t>(feedConfig.max_action_pulses), 1, 2000000);
+    Esp32BaseWeb::sendChunk("</div><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存下料参数'></div></form></div>");
+    Esp32BaseWeb::sendChunk("<div class='section-title'><h2>门控校准</h2></div><div class='card'><form method='post' action='/api/config/door' data-success='门控参数已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
+    sendNumberField("分站地址", "stationAddress", doorConfig.station_address, 1, 127);
+    sendNumberField("每圈脉冲", "pulsesPerTurn", static_cast<int32_t>(doorConfig.pulses_per_turn), 1, 200000);
+    sendNumberField("行程脉冲", "travelPulses", static_cast<int32_t>(doorConfig.travel_pulses), 1, 2000000);
+    sendDirectionSelect("开门方向", "openDirection", doorConfig.open_direction);
+    sendDirectionSelect("关门方向", "closeDirection", doorConfig.close_direction);
+    sendNumberField("速度", "speedPermille", doorConfig.speed_permille, 1, 1000);
+    sendNumberField("过流 mA", "overCurrentMa", doorConfig.over_current_ma, 1, 10000);
+    sendNumberField("最长运行 ms", "maxRunMs", static_cast<int32_t>(doorConfig.max_run_ms), 100, 600000, 100);
+    sendNumberField("最大脉冲", "maxActionPulses", static_cast<int32_t>(doorConfig.max_action_pulses), 1, 2000000);
+    Esp32BaseWeb::sendChunk("</div><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存门控参数'></div></form></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title' id='devices'><h2>设备管理</h2></div><div class='grid desktop-two'>");
     if (g_device_registry != nullptr && g_device_registry->isReady()) {
         for (uint8_t i = 0u; i < g_device_registry->deviceCount(); ++i) {
@@ -553,7 +692,35 @@ void sendV3SettingsPage(void) {
             }
             Esp32BaseWeb::sendChunk("</strong></div><div class='split-line'><span class='muted'>在线状态</span><strong>");
             Esp32BaseWeb::sendChunk(hasStation ? uiStationOnlineState(station.online_state) : "未绑定");
-            Esp32BaseWeb::sendChunk("</strong></div></div>");
+            Esp32BaseWeb::sendChunk("</strong></div><div class='form-grid' style='margin-top:12px'>");
+            Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/name' data-success='设备名称已保存' data-reload='1' onsubmit='return faPost(this)'><input type='hidden' name='deviceId' value='");
+            sendU32(device.device_id);
+            Esp32BaseWeb::sendChunk("'><div class='field'><label>设备名称</label><input name='name' maxlength='23' value='");
+            sendEsc(device.name);
+            Esp32BaseWeb::sendChunk("'></div><div class='actions'><input class='secondary-button' type='submit' value='保存名称'></div></form>");
+            Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/display-order' data-success='显示顺序已保存' data-reload='1' onsubmit='return faPost(this)'><input type='hidden' name='deviceId' value='");
+            sendU32(device.device_id);
+            Esp32BaseWeb::sendChunk("'><div class='fieldgrid'>");
+            sendNumberField("显示编号", "displayNo", device.display_no, 1, 9999);
+            sendNumberField("排序", "sortOrder", device.sort_order, 0, 65535);
+            Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='secondary-button' type='submit' value='保存排序'></div></form>");
+            Esp32BaseWeb::sendChunk("<div class='button-row'><form method='post' action='/api/devices/enabled' data-confirm-title='切换设备启用状态' data-confirm-note='停用后该业务设备不会参与计划和手动动作。' data-success='设备启用状态已保存' data-reload='1' onsubmit='return faPost(this)'><input type='hidden' name='deviceId' value='");
+            sendU32(device.device_id);
+            Esp32BaseWeb::sendChunk("'><input type='hidden' name='enabled' value='");
+            Esp32BaseWeb::sendChunk(device.enabled != 0u ? "0" : "1");
+            Esp32BaseWeb::sendChunk("'><input class='");
+            Esp32BaseWeb::sendChunk(device.enabled != 0u ? "danger-button" : "primary-button");
+            Esp32BaseWeb::sendChunk("' type='submit' value='");
+            Esp32BaseWeb::sendChunk(device.enabled != 0u ? "停用设备" : "启用设备");
+            Esp32BaseWeb::sendChunk("'></form><form method='post' action='/api/devices/bind-station' data-confirm-title='绑定 RS485 分站' data-confirm-note='绑定后该业务设备会使用新的分站地址执行动作。' data-success='设备绑定已保存' data-reload='1' onsubmit='return faPost(this)'><input type='hidden' name='deviceId' value='");
+            sendU32(device.device_id);
+            Esp32BaseWeb::sendChunk("'><div class='field'><label>绑定地址</label><input type='number' name='address' min='1' max='127' value='");
+            if (hasStation) {
+                sendU32(station.bus_address);
+            } else {
+                Esp32BaseWeb::sendChunk("1");
+            }
+            Esp32BaseWeb::sendChunk("'></div><input class='secondary-button' type='submit' value='绑定地址'></form></div></div></div>");
         }
     } else {
         Esp32BaseWeb::sendChunk("<div class='card'><h2>设备表不可用</h2><p class='muted'>LittleFS 设备表未就绪。</p></div>");

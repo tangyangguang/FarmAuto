@@ -902,6 +902,9 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addApi("/api/auto/feed-resume", sendAutoFeedResumeApi);
     Esp32BaseWeb::addApi("/api/auto/door-pause", sendAutoDoorPauseApi);
     Esp32BaseWeb::addApi("/api/auto/door-resume", sendAutoDoorResumeApi);
+    Esp32BaseWeb::addApi("/api/auto/schedule", sendAutoScheduleSaveApi);
+    Esp32BaseWeb::addApi("/api/config/feed", sendFeedConfigSaveApi);
+    Esp32BaseWeb::addApi("/api/config/door", sendDoorConfigSaveApi);
     Esp32BaseWeb::addApi("/api/env/read-now", sendEnvReadNowApi);
     Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
     Esp32BaseWeb::addApi("/api/action/stop-active", sendStopActiveActionApi);
