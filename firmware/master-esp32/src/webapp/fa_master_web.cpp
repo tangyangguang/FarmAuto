@@ -58,6 +58,20 @@ void sendNumber(uint32_t value) {
     Esp32BaseWeb::sendChunk(buf);
 }
 
+void formatDeviceLabel(uint16_t device_id, char* out, size_t len) {
+    if (out == nullptr || len == 0u) {
+        return;
+    }
+    FaDeviceRecord device;
+    if (g_device_registry != nullptr &&
+        g_device_registry->isReady() &&
+        g_device_registry->deviceById(device_id, device)) {
+        snprintf(out, len, "%s (#%u)", device.name, device.device_id);
+        return;
+    }
+    snprintf(out, len, "#%u", device_id);
+}
+
 const char* frameResultName(FaFrameResult result) {
     switch (result) {
     case FA_FRAME_OK:
@@ -199,12 +213,16 @@ void sendRecordTableRow(const FaActionRecord& record) {
     char started[24];
     char duration[20];
     char amount[28];
+    char device[36];
     formatTimeValue(record.started_at_s, started, sizeof(started));
     formatDurationMs(record.run_ms, duration, sizeof(duration));
     formatAmount(record, amount, sizeof(amount));
+    formatDeviceLabel(record.device_id, device, sizeof(device));
 
     Esp32BaseWeb::sendChunk("<tr><td>");
     sendNumber(record.action_id);
+    Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(device);
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::writeHtmlEscaped(recordStateName(record.state));
     Esp32BaseWeb::sendChunk("</td><td>");
@@ -237,9 +255,12 @@ void sendActiveActionPanel(void) {
     }
 
     char amount[28];
+    char device[36];
     formatAmount(*active, amount, sizeof(amount));
+    formatDeviceLabel(active->device_id, device, sizeof(device));
     Esp32BaseWeb::beginPanel("Active action");
     Esp32BaseWeb::sendInfoRowCompact("Action", "Currently tracked by master polling.", recordStateName(active->state));
+    Esp32BaseWeb::sendInfoRowCompact("Device", "Business device that started this action.", device);
     Esp32BaseWeb::sendInfoRowCompact("Amount", "Original manual request.", amount);
     char progress[36];
     snprintf(progress, sizeof(progress), "%lu / %lu pulses",
@@ -266,7 +287,7 @@ void sendRecentRecordsPanel(void) {
     }
 
     const uint16_t limit = count < kRecentRecordLimit ? count : kRecentRecordLimit;
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>State</th><th>Started</th><th>Amount</th><th>Pulses</th><th>Run</th><th>Addr</th><th>Stop</th><th>Fault</th></tr></thead><tbody>");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Device</th><th>State</th><th>Started</th><th>Amount</th><th>Pulses</th><th>Run</th><th>Addr</th><th>Stop</th><th>Fault</th></tr></thead><tbody>");
     for (uint16_t i = 0u; i < limit; ++i) {
         FaActionRecord record;
         if (FaActionRecordStore::readLatest(i, record)) {

@@ -42,6 +42,7 @@ extern FaMasterActionRuntime* g_action_runtime;
 uint32_t readUIntParam(const char* name, uint32_t fallback);
 const char* statusName(uint8_t status);
 void sendNumber(uint32_t value);
+void formatDeviceLabel(uint16_t device_id, char* out, size_t len);
 const char* frameResultName(FaFrameResult result);
 void sendActiveActionPanel(void);
 void sendRecentRecordsPanel(void);

@@ -245,7 +245,8 @@ void sendDoorPage(void) {
     uint16_t deviceId = kSingleDoorDeviceId;
     bool deviceDisabled = false;
     (void)applyDoorDeviceRegistry(config, deviceId, deviceDisabled);
-    (void)deviceId;
+    char deviceLabel[36];
+    formatDeviceLabel(deviceId, deviceLabel, sizeof(deviceLabel));
     char value[24];
 
     Esp32BaseWeb::sendHeader("Door");
@@ -259,7 +260,7 @@ void sendDoorPage(void) {
     snprintf(value, sizeof(value), "%d / %d", config.open_direction, config.close_direction);
     Esp32BaseWeb::sendMetric("Direction", value, "open / close");
     Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
-    Esp32BaseWeb::sendMetric("Device", deviceDisabled ? "disabled" : "enabled");
+    Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceDisabled ? "disabled" : "enabled");
     Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
     Esp32BaseWeb::endMetricGrid();
 

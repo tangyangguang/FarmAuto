@@ -58,6 +58,8 @@ void sendFeedPage(void) {
     uint16_t deviceId = kSingleFeederDeviceId;
     bool deviceDisabled = false;
     (void)applyFeedDeviceRegistry(config, deviceId, deviceDisabled);
+    char deviceLabel[36];
+    formatDeviceLabel(deviceId, deviceLabel, sizeof(deviceLabel));
     char value[24];
 
     Esp32BaseWeb::sendHeader("Feed");
@@ -73,7 +75,7 @@ void sendFeedPage(void) {
     snprintf(value, sizeof(value), "%u", FaActionRecordStore::count());
     Esp32BaseWeb::sendMetric("Records", value, FaActionRecordStore::isReady() ? "LittleFS ring ready" : "Store unavailable");
     Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
-    Esp32BaseWeb::sendMetric("Device", deviceDisabled ? "disabled" : "enabled");
+    Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceDisabled ? "disabled" : "enabled");
     Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
     Esp32BaseWeb::endMetricGrid();
 
