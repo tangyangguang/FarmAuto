@@ -524,6 +524,22 @@ bool FaDeviceRegistry::setDeviceStationByAddress(uint16_t device_id, uint8_t bus
     return persistDevice(static_cast<uint8_t>(device_index));
 }
 
+bool FaDeviceRegistry::setDeviceDisplayOrder(uint16_t device_id, uint16_t display_no, uint16_t sort_order) {
+    if (!isReady() || display_no == 0u) {
+        return false;
+    }
+    const int index = findDeviceIndexById(device_id);
+    if (index < 0) {
+        return false;
+    }
+    if (g_devices[index].display_no == display_no && g_devices[index].sort_order == sort_order) {
+        return true;
+    }
+    g_devices[index].display_no = display_no;
+    g_devices[index].sort_order = sort_order;
+    return persistDevice(static_cast<uint8_t>(index));
+}
+
 bool FaDeviceRegistry::updateStationFromPing(uint8_t bus_address, const FaMasterPingResponse& ping, uint32_t seen_at) {
     if (!isReady() || !fa_address_is_normal(bus_address)) {
         return false;

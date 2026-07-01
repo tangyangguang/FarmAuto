@@ -78,12 +78,19 @@ int main() {
     expect_u32(feeder.station_id, 5u, "feeder station updated in memory");
     expect_true(!registry.setDeviceStationByAddress(feeder.device_id, 0u), "reject reserved address binding");
     expect_true(!registry.setDeviceStationByAddress(feeder.device_id, 99u), "reject missing station binding");
+    expect_true(registry.setDeviceDisplayOrder(feeder.device_id, 3u, 30u), "update feeder display order");
+    expect_true(registry.deviceById(feeder.device_id, feeder), "read reordered feeder");
+    expect_u32(feeder.display_no, 3u, "feeder display no updated");
+    expect_u32(feeder.sort_order, 30u, "feeder sort order updated");
+    expect_true(!registry.setDeviceDisplayOrder(feeder.device_id, 0u, 30u), "reject zero display no");
 
     FaDeviceRegistry reloaded;
     expect_true(reloaded.begin(), "registry reloads existing file");
     expect_true(reloaded.deviceById(1u, feeder), "reloaded feeder exists");
     expect_u32(feeder.enabled, 0u, "feeder disabled persisted after reload");
     expect_u32(feeder.station_id, 5u, "feeder binding persisted after reload");
+    expect_u32(feeder.display_no, 3u, "feeder display no persisted after reload");
+    expect_u32(feeder.sort_order, 30u, "feeder sort order persisted after reload");
     expect_true(reloaded.stationByAddress(5u, station), "reloaded station 5 exists");
     expect_u32(station.firmware_version, 7u, "station firmware persisted after reload");
     expect_u32(station.last_seen_at, 2233u, "station online state persisted after reload");

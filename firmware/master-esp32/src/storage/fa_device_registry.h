@@ -59,6 +59,7 @@ public:
 
     bool setDeviceEnabled(uint16_t device_id, bool enabled);
     bool setDeviceStationByAddress(uint16_t device_id, uint8_t bus_address);
+    bool setDeviceDisplayOrder(uint16_t device_id, uint16_t display_no, uint16_t sort_order);
     bool updateStationFromPing(uint8_t bus_address, const FaMasterPingResponse& ping, uint32_t seen_at);
     bool markStationOnline(uint8_t bus_address, uint32_t seen_at);
     bool markStationOffline(uint8_t bus_address, uint16_t error_code);

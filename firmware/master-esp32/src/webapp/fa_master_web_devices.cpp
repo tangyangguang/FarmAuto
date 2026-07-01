@@ -33,6 +33,8 @@ void sendDeviceRow(const FaDeviceRecord& device) {
     Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(device.display_no);
     Esp32BaseWeb::sendChunk("</td><td>");
+    sendNumber(device.sort_order);
+    Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(device.station_id);
     Esp32BaseWeb::sendChunk(" / ");
     if (hasStation) {
@@ -44,7 +46,15 @@ void sendDeviceRow(const FaDeviceRecord& device) {
     Esp32BaseWeb::writeHtmlEscaped(hasStation ? stationOnlineStateName(station.online_state) : "station_missing");
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::writeHtmlEscaped(device.enabled != 0u ? "enabled" : "disabled");
-    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/devices/enabled' onsubmit='return once(this)'>");
+    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/devices/display-order' onsubmit='return once(this)'>");
+    Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
+    sendNumber(device.device_id);
+    Esp32BaseWeb::sendChunk("'><input type='number' name='displayNo' min='1' max='9999' value='");
+    sendNumber(device.display_no);
+    Esp32BaseWeb::sendChunk("'><input type='number' name='sortOrder' min='0' max='65535' value='");
+    sendNumber(device.sort_order);
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='Order'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/enabled' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
     sendNumber(device.device_id);
     Esp32BaseWeb::sendChunk("'><input type='hidden' name='enabled' value='");
@@ -117,7 +127,7 @@ void sendDevicesPage(void) {
     }
 
     Esp32BaseWeb::beginPanel("Business devices");
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>No.</th><th>Station / Addr</th><th>Station state</th><th>Device state</th><th>Action</th></tr></thead><tbody>");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>No.</th><th>Sort</th><th>Station / Addr</th><th>Station state</th><th>Device state</th><th>Action</th></tr></thead><tbody>");
     bool sent[FaDeviceRegistry::kMaxDevices] = {};
     const uint8_t deviceCount = g_device_registry->deviceCount();
     for (uint8_t emitted = 0u; emitted < deviceCount; ++emitted) {
@@ -183,6 +193,46 @@ void sendDeviceSetEnabledApi(void) {
     Esp32BaseWeb::sendChunk(",\"enabled\":");
     Esp32BaseWeb::sendChunk(enabled ? "true" : "false");
     Esp32BaseWeb::sendChunk(",\"message\":\"device state updated\"");
+    Esp32BaseWeb::endJson();
+}
+
+void sendDeviceDisplayOrderApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("device_display_order")) {
+        return;
+    }
+    if (g_device_registry == nullptr || !g_device_registry->isReady()) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"registry_unavailable\"}");
+        return;
+    }
+
+    const uint16_t deviceId = static_cast<uint16_t>(readUIntParam("deviceId", 0u));
+    const uint16_t displayNo = static_cast<uint16_t>(readUIntParam("displayNo", 0u));
+    const uint16_t sortOrder = static_cast<uint16_t>(readUIntParam("sortOrder", 0u));
+    if (deviceId == 0u) {
+        Esp32BaseWeb::sendJson(400, "{\"ok\":false,\"error\":\"bad_device_id\"}");
+        return;
+    }
+    if (displayNo == 0u) {
+        Esp32BaseWeb::sendJson(400, "{\"ok\":false,\"error\":\"bad_display_no\"}");
+        return;
+    }
+    if (!g_device_registry->setDeviceDisplayOrder(deviceId, displayNo, sortOrder)) {
+        Esp32BaseWeb::sendJson(404, "{\"ok\":false,\"error\":\"device_not_found\"}");
+        return;
+    }
+
+    ESP32BASE_LOG_I("farm", "device_display_order_updated device_id=%u display_no=%u sort_order=%u",
+                    deviceId,
+                    displayNo,
+                    sortOrder);
+    Esp32BaseWeb::beginJson(200);
+    Esp32BaseWeb::sendChunk("\"ok\":true,\"deviceId\":");
+    sendNumber(deviceId);
+    Esp32BaseWeb::sendChunk(",\"displayNo\":");
+    sendNumber(displayNo);
+    Esp32BaseWeb::sendChunk(",\"sortOrder\":");
+    sendNumber(sortOrder);
+    Esp32BaseWeb::sendChunk(",\"message\":\"device display order updated\"");
     Esp32BaseWeb::endJson();
 }
 
