@@ -66,7 +66,10 @@ void sendStationRow(const FaStationRecord& station) {
     sendNumber(station.last_seen_at);
     Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(station.last_error);
-    Esp32BaseWeb::sendChunk("</td></tr>");
+    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/stations/clear-fault' onsubmit='return once(this)'>");
+    Esp32BaseWeb::sendChunk("<input type='hidden' name='address' value='");
+    sendNumber(station.bus_address);
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='Clear fault'></form></td></tr>");
 }
 
 }  // namespace
@@ -108,7 +111,7 @@ void sendDevicesPage(void) {
     Esp32BaseWeb::endPanel();
 
     Esp32BaseWeb::beginPanel("Stations");
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Addr</th><th>Enabled</th><th>Online</th><th>Proto</th><th>FW</th><th>Caps</th><th>Seen</th><th>Error</th></tr></thead><tbody>");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Addr</th><th>Enabled</th><th>Online</th><th>Proto</th><th>FW</th><th>Caps</th><th>Seen</th><th>Error</th><th>Action</th></tr></thead><tbody>");
     for (uint8_t i = 0u; i < g_device_registry->stationCount(); ++i) {
         FaStationRecord station;
         if (g_device_registry->stationAt(i, station)) {
@@ -148,5 +151,70 @@ void sendDeviceSetEnabledApi(void) {
     Esp32BaseWeb::sendChunk(",\"enabled\":");
     Esp32BaseWeb::sendChunk(enabled ? "true" : "false");
     Esp32BaseWeb::sendChunk(",\"message\":\"device state updated\"");
+    Esp32BaseWeb::endJson();
+}
+
+void sendStationClearFaultApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("station_clear_fault")) {
+        return;
+    }
+    if (g_rs485_master == nullptr || g_transport == nullptr) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"service_unavailable\"}");
+        return;
+    }
+    if (g_action_runtime != nullptr && g_action_runtime->isBusy()) {
+        Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"action_busy\"}");
+        return;
+    }
+    if (!g_transport->isReady()) {
+        ESP32BASE_LOG_W("farm", "station_clear_fault_blocked transport_not_configured");
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"transport\":\"not_configured\"}");
+        return;
+    }
+
+    const uint8_t address = static_cast<uint8_t>(readUIntParam("address", 0u));
+    if (!fa_address_is_normal(address)) {
+        Esp32BaseWeb::sendJson(400, "{\"ok\":false,\"error\":\"bad_address\"}");
+        return;
+    }
+
+    uint8_t request[FA_MAX_FRAME_LEN];
+    size_t request_len = 0u;
+    uint8_t seq = 0u;
+    const FaFrameResult frame_result = fa_rs485_master_build_clear_fault(g_rs485_master,
+                                                                         address,
+                                                                         request,
+                                                                         sizeof(request),
+                                                                         &request_len,
+                                                                         &seq);
+    if (frame_result != FA_FRAME_OK) {
+        sendFeedTransportError(500, "clear_fault", "frame", frameResultName(frame_result));
+        return;
+    }
+
+    FaMasterCommonResponse common;
+    if (!transactAndParseCommon(address, seq, FA_CMD_CLEAR_FAULT, request, request_len, &common, "clear_fault")) {
+        return;
+    }
+    if (g_device_registry != nullptr && g_device_registry->isReady()) {
+        if (common.fault_code == FA_FAULT_NONE) {
+            (void)g_device_registry->markStationOnline(address, FaMasterActionRuntime::nowSeconds());
+        } else {
+            (void)g_device_registry->markStationError(address, common.fault_code);
+        }
+    }
+
+    ESP32BASE_LOG_I("farm", "station_clear_fault_accepted addr=%u state=%u fault=%u",
+                    address,
+                    common.station_state,
+                    common.fault_code);
+    Esp32BaseWeb::beginJson(200);
+    Esp32BaseWeb::sendChunk("\"ok\":true,\"command\":\"clear_fault\",\"stationAddress\":");
+    sendNumber(address);
+    Esp32BaseWeb::sendChunk(",\"stationState\":");
+    sendNumber(common.station_state);
+    Esp32BaseWeb::sendChunk(",\"faultCode\":");
+    sendNumber(common.fault_code);
+    Esp32BaseWeb::sendChunk(",\"message\":\"clear fault accepted by station\"");
     Esp32BaseWeb::endJson();
 }

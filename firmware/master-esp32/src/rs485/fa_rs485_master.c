@@ -140,6 +140,10 @@ FaFrameResult fa_rs485_master_build_get_status(FaRs485Master *master, uint8_t ds
     return fa_master_encode(master, dst, FA_CMD_GET_STATUS, NULL, 0u, out, out_cap, out_len, seq_out);
 }
 
+FaFrameResult fa_rs485_master_build_clear_fault(FaRs485Master *master, uint8_t dst, uint8_t *out, size_t out_cap, size_t *out_len, uint8_t *seq_out) {
+    return fa_master_encode(master, dst, FA_CMD_CLEAR_FAULT, NULL, 0u, out, out_cap, out_len, seq_out);
+}
+
 uint8_t fa_rs485_master_parse_common(const uint8_t *data, size_t data_len, uint8_t expected_src, uint8_t expected_seq, uint8_t expected_cmd, FaMasterCommonResponse *response) {
     FaFrame frame;
     FaPayloadReader reader;

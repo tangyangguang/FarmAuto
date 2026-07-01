@@ -35,6 +35,7 @@ int main(void) {
     CHECK(fa_rs485_master_parse_ping(response, response_len, 7u, seq, &ping) == FA_STATUS_OK);
     CHECK(ping.device_class == FA_DEVICE_CLASS_MOTOR_ACTUATOR);
     CHECK((ping.capability_flags & FA_CAP_MOTOR_BIDIRECTIONAL) != 0u);
+    CHECK((ping.capability_flags & FA_CAP_CLEAR_FAULT_SUPPORTED) != 0u);
     CHECK(ping.max_payload_len == FA_MAX_PAYLOAD_LEN);
 
     FaMasterMotorConfig config;
@@ -90,6 +91,12 @@ int main(void) {
     CHECK(status.active_action_id == 9001u);
     CHECK(status.completed_pulses >= 1200u);
     CHECK(status.last_stop_reason == FA_STOP_TARGET_REACHED);
+
+    CHECK(fa_rs485_master_build_clear_fault(&master, 7u, request, sizeof(request), &request_len, &seq) == FA_FRAME_OK);
+    CHECK(transact(&station, request, request_len, response, sizeof(response), &response_len) == 0);
+    CHECK(fa_rs485_master_parse_common(response, response_len, 7u, seq, FA_CMD_CLEAR_FAULT, &common) == FA_STATUS_OK);
+    CHECK(common.status_code == FA_STATUS_OK);
+
     printf("master loop smoke tests passed\n");
     return 0;
 }

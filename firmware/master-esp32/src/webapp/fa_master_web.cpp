@@ -594,4 +594,5 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
     Esp32BaseWeb::addApi("/api/action/stop-active", sendStopActiveActionApi);
     Esp32BaseWeb::addApi("/api/devices/enabled", sendDeviceSetEnabledApi);
+    Esp32BaseWeb::addApi("/api/stations/clear-fault", sendStationClearFaultApi);
 }

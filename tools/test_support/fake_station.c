@@ -102,7 +102,8 @@ static void write_ping_payload(FaPayloadWriter *writer, const FakeStation *stati
                                       FA_CAP_HALL_AB_ENCODER |
                                       FA_CAP_CURRENT_SENSE |
                                       FA_CAP_BRAKE_SUPPORTED |
-                                      FA_CAP_CONFIG_REQUIRED_AFTER_BOOT);
+                                      FA_CAP_CONFIG_REQUIRED_AFTER_BOOT |
+                                      FA_CAP_CLEAR_FAULT_SUPPORTED);
     (void)fa_payload_write_u8(writer, FA_MAX_PAYLOAD_LEN);
 }
 
@@ -169,6 +170,10 @@ FaFrameResult fake_station_handle(FakeStation *station, const uint8_t *request_d
             break;
         case FA_CMD_STOP_ACTION:
             fa_action_request_stop(&station->action, station->now_ms);
+            write_common_response(&writer, FA_STATUS_OK, station);
+            break;
+        case FA_CMD_CLEAR_FAULT:
+            fa_action_clear_fault(&station->action);
             write_common_response(&writer, FA_STATUS_OK, station);
             break;
         default:
