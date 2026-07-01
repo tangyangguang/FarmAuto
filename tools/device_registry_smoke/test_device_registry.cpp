@@ -3,6 +3,7 @@
 #include "Esp32Base.h"
 
 #include <stdio.h>
+#include <string.h>
 
 static int failures;
 
@@ -19,6 +20,13 @@ static void expect_u32(uint32_t actual, uint32_t expected, const char* message) 
                message,
                static_cast<unsigned long>(actual),
                static_cast<unsigned long>(expected));
+        ++failures;
+    }
+}
+
+static void expect_string(const char* actual, const char* expected, const char* message) {
+    if (strcmp(actual, expected) != 0) {
+        printf("FAIL: %s: got %s expected %s\n", message, actual, expected);
         ++failures;
     }
 }
@@ -83,6 +91,10 @@ int main() {
     expect_u32(feeder.display_no, 3u, "feeder display no updated");
     expect_u32(feeder.sort_order, 30u, "feeder sort order updated");
     expect_true(!registry.setDeviceDisplayOrder(feeder.device_id, 0u, 30u), "reject zero display no");
+    expect_true(registry.setDeviceName(feeder.device_id, "Feeder A"), "rename feeder");
+    expect_true(registry.deviceById(feeder.device_id, feeder), "read renamed feeder");
+    expect_string(feeder.name, "Feeder A", "feeder name updated");
+    expect_true(!registry.setDeviceName(feeder.device_id, ""), "reject empty device name");
 
     FaDeviceRegistry reloaded;
     expect_true(reloaded.begin(), "registry reloads existing file");
@@ -91,6 +103,7 @@ int main() {
     expect_u32(feeder.station_id, 5u, "feeder binding persisted after reload");
     expect_u32(feeder.display_no, 3u, "feeder display no persisted after reload");
     expect_u32(feeder.sort_order, 30u, "feeder sort order persisted after reload");
+    expect_string(feeder.name, "Feeder A", "feeder name persisted after reload");
     expect_true(reloaded.stationByAddress(5u, station), "reloaded station 5 exists");
     expect_u32(station.firmware_version, 7u, "station firmware persisted after reload");
     expect_u32(station.last_seen_at, 2233u, "station online state persisted after reload");

@@ -46,7 +46,13 @@ void sendDeviceRow(const FaDeviceRecord& device) {
     Esp32BaseWeb::writeHtmlEscaped(hasStation ? stationOnlineStateName(station.online_state) : "station_missing");
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::writeHtmlEscaped(device.enabled != 0u ? "enabled" : "disabled");
-    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/devices/display-order' onsubmit='return once(this)'>");
+    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/devices/name' onsubmit='return once(this)'>");
+    Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
+    sendNumber(device.device_id);
+    Esp32BaseWeb::sendChunk("'><input name='name' maxlength='23' value='");
+    Esp32BaseWeb::writeHtmlEscaped(device.name);
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='Name'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/display-order' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
     sendNumber(device.device_id);
     Esp32BaseWeb::sendChunk("'><input type='number' name='displayNo' min='1' max='9999' value='");
@@ -193,6 +199,39 @@ void sendDeviceSetEnabledApi(void) {
     Esp32BaseWeb::sendChunk(",\"enabled\":");
     Esp32BaseWeb::sendChunk(enabled ? "true" : "false");
     Esp32BaseWeb::sendChunk(",\"message\":\"device state updated\"");
+    Esp32BaseWeb::endJson();
+}
+
+void sendDeviceNameApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("device_name")) {
+        return;
+    }
+    if (g_device_registry == nullptr || !g_device_registry->isReady()) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"registry_unavailable\"}");
+        return;
+    }
+
+    const uint16_t deviceId = static_cast<uint16_t>(readUIntParam("deviceId", 0u));
+    char name[sizeof(FaDeviceRecord().name)] = "";
+    (void)Esp32BaseWeb::getParam("name", name, sizeof(name));
+    if (deviceId == 0u) {
+        Esp32BaseWeb::sendJson(400, "{\"ok\":false,\"error\":\"bad_device_id\"}");
+        return;
+    }
+    if (name[0] == '\0') {
+        Esp32BaseWeb::sendJson(400, "{\"ok\":false,\"error\":\"bad_name\"}");
+        return;
+    }
+    if (!g_device_registry->setDeviceName(deviceId, name)) {
+        Esp32BaseWeb::sendJson(404, "{\"ok\":false,\"error\":\"device_not_found\"}");
+        return;
+    }
+
+    ESP32BASE_LOG_I("farm", "device_name_updated device_id=%u name=%s", deviceId, name);
+    Esp32BaseWeb::beginJson(200);
+    Esp32BaseWeb::sendChunk("\"ok\":true,\"deviceId\":");
+    sendNumber(deviceId);
+    Esp32BaseWeb::sendChunk(",\"message\":\"device name updated\"");
     Esp32BaseWeb::endJson();
 }
 

@@ -508,6 +508,21 @@ bool FaDeviceRegistry::setDeviceEnabled(uint16_t device_id, bool enabled) {
     return persistDevice(static_cast<uint8_t>(index));
 }
 
+bool FaDeviceRegistry::setDeviceName(uint16_t device_id, const char* name) {
+    if (!isReady() || name == nullptr || name[0] == '\0') {
+        return false;
+    }
+    const int index = findDeviceIndexById(device_id);
+    if (index < 0) {
+        return false;
+    }
+    if (strncmp(g_devices[index].name, name, sizeof(g_devices[index].name)) == 0) {
+        return true;
+    }
+    copyName(g_devices[index].name, sizeof(g_devices[index].name), name);
+    return persistDevice(static_cast<uint8_t>(index));
+}
+
 bool FaDeviceRegistry::setDeviceStationByAddress(uint16_t device_id, uint8_t bus_address) {
     if (!isReady() || !fa_address_is_normal(bus_address)) {
         return false;

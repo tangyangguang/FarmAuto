@@ -88,6 +88,7 @@ void sendBusPage(void);
 void sendBusScanApi(void);
 void sendDevicesPage(void);
 void sendDeviceSetEnabledApi(void);
+void sendDeviceNameApi(void);
 void sendDeviceDisplayOrderApi(void);
 void sendDeviceBindStationApi(void);
 void sendStationClearFaultApi(void);

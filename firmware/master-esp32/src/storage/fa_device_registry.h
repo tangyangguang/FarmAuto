@@ -58,6 +58,7 @@ public:
     bool stationByAddress(uint8_t bus_address, FaStationRecord& out) const;
 
     bool setDeviceEnabled(uint16_t device_id, bool enabled);
+    bool setDeviceName(uint16_t device_id, const char* name);
     bool setDeviceStationByAddress(uint16_t device_id, uint8_t bus_address);
     bool setDeviceDisplayOrder(uint16_t device_id, uint16_t display_no, uint16_t sort_order);
     bool updateStationFromPing(uint8_t bus_address, const FaMasterPingResponse& ping, uint32_t seen_at);
