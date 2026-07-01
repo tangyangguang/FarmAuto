@@ -66,6 +66,7 @@ void sendDoorCloseApi(void);
 void sendDoorStopApi(void);
 void sendRecordsPage(void);
 void sendAutoPage(void);
+void sendNotifyPage(void);
 void sendAutoFeedPauseApi(void);
 void sendAutoFeedResumeApi(void);
 void sendAutoDoorPauseApi(void);

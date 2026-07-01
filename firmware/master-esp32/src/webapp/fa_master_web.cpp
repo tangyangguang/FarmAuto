@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "fa_auto_scheduler.h"
+#include "fa_notification_rules.h"
 
 FaFeedService* g_feed_service = nullptr;
 FaDoorService* g_door_service = nullptr;
@@ -573,6 +574,7 @@ void fa_master_web_register_config(void) {
     Esp32BaseAppConfig::addGroup({"feeder", "Feeder"});
     Esp32BaseAppConfig::addGroup({"door", "Door"});
     Esp32BaseAppConfig::addGroup({"auto", "Auto"});
+    Esp32BaseAppConfig::addGroup({"notify", "Notify"});
     Esp32BaseAppConfig::addGroup({"rs485", "RS485"});
     Esp32BaseAppConfig::addInt({"feeder", kNs, kStationAddress, "Station address", 1, 1, 127, 1, nullptr,
                                 "RS485 address 1..127.", false, nullptr});
@@ -632,6 +634,20 @@ void fa_master_web_register_config(void) {
                                 "0 means not paused; epoch seconds pauses automatic feed.", false, nullptr});
     Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_PAUSE_UNTIL, "Door pause until", 0, 0, 2147483647, 1, "epoch",
                                 "0 means not paused; epoch seconds pauses automatic door.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ENABLED, "Notifications", true,
+                                 "Only stores rules; no external sender is connected yet.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_DONE, "Action completed", false,
+                                 "Notify when a feed or door action completes.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_FAILED, "Action failed", true,
+                                 "Notify when an action fails or is locally protected.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_FAULT, "Station fault", true,
+                                 "Notify when a station reports a fault.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_OFFLINE, "Station offline", true,
+                                 "Notify when a configured station is offline.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_SCHEDULE_SKIPPED, "Schedule skipped", true,
+                                 "Notify when an automatic plan is skipped.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_POWER_RESTORED, "Power restored", true,
+                                 "Notify after restart or power recovery.", false, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_UART, "UART", 2, 1, 2, 1, nullptr,
                                 "ESP32 hardware serial port.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_RX_PIN, "RX pin", -1, -1, 39, 1, nullptr,
@@ -665,6 +681,7 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addPage("/auto", "Auto", sendAutoPage);
     Esp32BaseWeb::addPage("/records", "Records", sendRecordsPage);
     Esp32BaseWeb::addPage("/devices", "Devices", sendDevicesPage);
+    Esp32BaseWeb::addPage("/notify", "Notify", sendNotifyPage);
     Esp32BaseWeb::addPage("/bus", "RS485", sendBusPage);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
     Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);

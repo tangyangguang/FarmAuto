@@ -9,7 +9,7 @@ It currently does these things:
 - explicitly compiles shared protocol sources into the ESP32 target;
 - initializes a LittleFS-backed action record ring via `Esp32BaseFs`;
 - registers FarmAuto feeder, door, automatic schedule and RS485 parameters through `Esp32BaseAppConfig`;
-- exposes `/feed`, `/door`, `/auto`, `/records`, `/devices` and `/bus` pages;
+- exposes `/feed`, `/door`, `/auto`, `/records`, `/devices`, `/notify` and `/bus` pages;
 - sends bounded manual and scheduled actions over RS485 when transport pins are configured;
 - previews manual feed/door actions when RS485 is not configured;
 - tracks active actions to terminal state and writes action records;
