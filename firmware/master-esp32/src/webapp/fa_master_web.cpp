@@ -373,6 +373,14 @@ void sendActiveActionPanel(void) {
              static_cast<unsigned long>(active->completed_pulses),
              static_cast<unsigned long>(active->target_pulses));
     Esp32BaseWeb::sendInfoRowCompact("Progress", "Last status returned by station.", progress);
+    char run[20];
+    char current[28];
+    formatDurationMs(active->run_ms, run, sizeof(run));
+    snprintf(current, sizeof(current), "%u / %u mA", active->current_ma, active->peak_current_ma);
+    Esp32BaseWeb::sendInfoRowCompact("Run", "Runtime reported by station.", run);
+    Esp32BaseWeb::sendInfoRowCompact("Current", "Current / peak current.", current);
+    Esp32BaseWeb::sendInfoRowCompact("Stop", "Last station stop reason.", stopReasonName(active->stop_reason));
+    Esp32BaseWeb::sendInfoRowCompact("Fault", "Last station fault code.", faultName(active->fault_code));
     Esp32BaseWeb::sendInfoRowCompact("Last error", "Last master-side polling error.", g_action_runtime->lastError());
     Esp32BaseWeb::sendChunk("<div class='actions'><form method='post' action='/api/action/stop-active' onsubmit='return once(this)'><input class='danger' type='submit' value='Stop active'></form></div>");
     Esp32BaseWeb::endPanel();
