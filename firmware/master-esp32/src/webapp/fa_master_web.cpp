@@ -537,6 +537,30 @@ void sendStopActiveActionApi(void) {
     Esp32BaseWeb::endJson();
 }
 
+void sendRecordsPage(void) {
+    if (!Esp32BaseWeb::checkAuth()) {
+        return;
+    }
+
+    char value[24];
+    Esp32BaseWeb::sendHeader("Records");
+    Esp32BaseWeb::sendPageTitle("Records", "Recent FarmAuto action records and the currently tracked action.");
+
+    Esp32BaseWeb::beginMetricGrid();
+    snprintf(value, sizeof(value), "%u", FaActionRecordStore::count());
+    Esp32BaseWeb::sendMetric("Records", value, FaActionRecordStore::isReady() ? "ready" : "unavailable");
+    snprintf(value, sizeof(value), "%u", FaActionRecordStore::capacity());
+    Esp32BaseWeb::sendMetric("Capacity", value);
+    snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(FaActionRecordStore::sequence()));
+    Esp32BaseWeb::sendMetric("Sequence", value);
+    Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
+    Esp32BaseWeb::endMetricGrid();
+
+    sendActiveActionPanel();
+    sendRecentRecordsPanel();
+    Esp32BaseWeb::sendFooter();
+}
+
 void fa_master_web_register_config(void) {
     Esp32BaseWeb::setDeviceName("FarmAuto");
     Esp32BaseWeb::setHomePath("/feed");
@@ -608,6 +632,7 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_action_runtime = action_runtime;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
     Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
+    Esp32BaseWeb::addPage("/records", "Records", sendRecordsPage);
     Esp32BaseWeb::addPage("/devices", "Devices", sendDevicesPage);
     Esp32BaseWeb::addPage("/bus", "RS485", sendBusPage);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
