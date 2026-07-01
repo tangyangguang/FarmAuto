@@ -162,6 +162,11 @@ void formatStationStatusLabel(const FaWebDeviceStatus& status, char* out, size_t
 }
 
 void sendDeviceStatusBlockedJson(const FaWebDeviceStatus& status) {
+    ESP32BASE_LOG_W("farm", "action_blocked station_not_ready device_id=%u addr=%u state=%s last_error=%u",
+                    status.device_id,
+                    status.station_address,
+                    stationOnlineStateName(status.station_online_state),
+                    status.last_error);
     Esp32BaseWeb::beginJson(409);
     Esp32BaseWeb::sendChunk("\"ok\":false,\"error\":\"station_not_ready\",\"stationAddress\":");
     sendNumber(status.station_address);
@@ -400,6 +405,11 @@ void sendRecentRecordsPanel(void) {
 }
 
 void sendFeedTransportError(uint16_t http_code, const char* stage, const char* error_key, const char* error_value) {
+    ESP32BASE_LOG_W("farm", "transport_error stage=%s %s=%s http=%u",
+                    stage != nullptr ? stage : "-",
+                    error_key != nullptr ? error_key : "error",
+                    error_value != nullptr ? error_value : "-",
+                    http_code);
     Esp32BaseWeb::beginJson(http_code);
     Esp32BaseWeb::sendChunk("\"ok\":false,\"stage\":\"");
     Esp32BaseWeb::sendChunk(stage);
@@ -484,6 +494,9 @@ void sendStopActiveActionApi(void) {
         return;
     }
 
+    ESP32BASE_LOG_I("farm", "stop_active_accepted action_id=%lu addr=%u",
+                    static_cast<unsigned long>(active->action_id),
+                    station_address);
     Esp32BaseWeb::beginJson(200);
     Esp32BaseWeb::sendChunk("\"ok\":true,\"command\":\"stop_active\",\"actionId\":");
     sendNumber(active->action_id);

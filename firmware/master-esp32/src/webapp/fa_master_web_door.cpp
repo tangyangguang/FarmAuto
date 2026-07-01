@@ -35,6 +35,7 @@ void sendManualDoorActionApi(uint8_t command) {
         return;
     }
     if (g_action_runtime->isBusy()) {
+        ESP32BASE_LOG_W("farm", "door_manual_blocked action_busy command=%s", doorCommandName(command));
         Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"action_busy\"}");
         return;
     }
@@ -44,6 +45,10 @@ void sendManualDoorActionApi(uint8_t command) {
     (void)readDeviceStatus(FA_DEVICE_TYPE_DOOR, kSingleDoorDeviceId, config.station_address, deviceStatus);
     config.station_address = deviceStatus.station_address;
     if (!deviceStatus.device_enabled) {
+        ESP32BASE_LOG_W("farm", "door_manual_blocked device_disabled command=%s device_id=%u addr=%u",
+                        doorCommandName(command),
+                        deviceStatus.device_id,
+                        config.station_address);
         Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"device_disabled\"}");
         return;
     }
@@ -61,6 +66,12 @@ void sendManualDoorActionApi(uint8_t command) {
     }
 
     if (!g_transport->isReady()) {
+        ESP32BASE_LOG_I("farm", "door_manual_preview command=%s action_id=%lu device_id=%u addr=%u target=%lu",
+                        doorCommandName(command),
+                        static_cast<unsigned long>(action.action_id),
+                        deviceStatus.device_id,
+                        config.station_address,
+                        static_cast<unsigned long>(result.target_pulses));
         Esp32BaseWeb::beginJson(200);
         Esp32BaseWeb::sendChunk("\"ok\":true,\"dryRun\":true,\"transport\":\"not_configured\",\"command\":\"");
         Esp32BaseWeb::sendChunk(doorCommandName(command));
@@ -152,6 +163,13 @@ void sendManualDoorActionApi(uint8_t command) {
     record_start.started_at_s = FaMasterActionRuntime::nowSeconds();
     const bool tracking = g_action_runtime->trackStartedAction(record_start);
 
+    ESP32BASE_LOG_I("farm", "door_manual_sent command=%s action_id=%lu device_id=%u addr=%u target=%lu tracking=%s",
+                    doorCommandName(command),
+                    static_cast<unsigned long>(action.action_id),
+                    deviceStatus.device_id,
+                    config.station_address,
+                    static_cast<unsigned long>(result.target_pulses),
+                    tracking ? "running" : g_action_runtime->lastError());
     Esp32BaseWeb::beginJson(200);
     Esp32BaseWeb::sendChunk("\"ok\":true,\"dryRun\":false,\"transport\":\"ready\",\"command\":\"");
     Esp32BaseWeb::sendChunk(doorCommandName(command));
@@ -204,6 +222,7 @@ void sendDoorStopApi(void) {
         return;
     }
 
+    ESP32BASE_LOG_I("farm", "door_stop_accepted addr=%u", config.station_address);
     Esp32BaseWeb::sendJson(200, "{\"ok\":true,\"command\":\"stop\",\"message\":\"stop accepted by station\"}");
 }
 

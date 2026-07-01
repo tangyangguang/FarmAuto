@@ -87,6 +87,9 @@ void sendManualFeedApi(void) {
     (void)readDeviceStatus(FA_DEVICE_TYPE_FEEDER, kSingleFeederDeviceId, config.station_address, deviceStatus);
     config.station_address = deviceStatus.station_address;
     if (!deviceStatus.device_enabled) {
+        ESP32BASE_LOG_W("farm", "feed_manual_blocked device_disabled device_id=%u addr=%u",
+                        deviceStatus.device_id,
+                        config.station_address);
         Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"device_disabled\"}");
         return;
     }
@@ -96,6 +99,10 @@ void sendManualFeedApi(void) {
     const uint32_t amount = readUIntParam("amount", 0u);
 
     if (g_action_runtime->isBusy()) {
+        ESP32BASE_LOG_W("farm", "feed_manual_blocked action_busy addr=%u amount=%lu mode=%u",
+                        config.station_address,
+                        static_cast<unsigned long>(amount),
+                        amountMode);
         Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"action_busy\"}");
         return;
     }
@@ -114,6 +121,14 @@ void sendManualFeedApi(void) {
             return;
         }
 
+        ESP32BASE_LOG_I("farm", "feed_manual_preview action_id=%lu device_id=%u addr=%u amount=%lu mode=%u target=%lu speed=%u",
+                        static_cast<unsigned long>(action.action_id),
+                        deviceStatus.device_id,
+                        config.station_address,
+                        static_cast<unsigned long>(amount),
+                        amountMode,
+                        static_cast<unsigned long>(result.target_pulses),
+                        action.speed_permille);
         Esp32BaseWeb::beginJson(200);
         Esp32BaseWeb::sendChunk("\"ok\":true,\"dryRun\":true,\"transport\":\"not_configured\",\"actionId\":");
         sendNumber(action.action_id);
@@ -207,6 +222,15 @@ void sendManualFeedApi(void) {
     record_start.started_at_s = FaMasterActionRuntime::nowSeconds();
     const bool tracking = g_action_runtime->trackStartedAction(record_start);
 
+    ESP32BASE_LOG_I("farm", "feed_manual_sent action_id=%lu device_id=%u addr=%u amount=%lu mode=%u target=%lu speed=%u tracking=%s",
+                    static_cast<unsigned long>(action.action_id),
+                    deviceStatus.device_id,
+                    config.station_address,
+                    static_cast<unsigned long>(amount),
+                    amountMode,
+                    static_cast<unsigned long>(result.target_pulses),
+                    action.speed_permille,
+                    tracking ? "running" : g_action_runtime->lastError());
     Esp32BaseWeb::beginJson(200);
     Esp32BaseWeb::sendChunk("\"ok\":true,\"dryRun\":false,\"transport\":\"ready\",\"actionId\":");
     sendNumber(action.action_id);
