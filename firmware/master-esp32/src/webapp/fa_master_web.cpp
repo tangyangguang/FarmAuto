@@ -72,6 +72,20 @@ void formatDeviceLabel(uint16_t device_id, char* out, size_t len) {
     snprintf(out, len, "#%u", device_id);
 }
 
+void copyActionRecordDeviceName(FaActionRecordStart& start, const FaWebDeviceStatus& status) {
+    memset(start.device_name, 0, sizeof(start.device_name));
+    if (status.device_name[0] != '\0') {
+        strncpy(start.device_name, status.device_name, sizeof(start.device_name) - 1u);
+        return;
+    }
+    FaDeviceRecord device;
+    if (g_device_registry != nullptr &&
+        g_device_registry->isReady() &&
+        g_device_registry->deviceById(status.device_id, device)) {
+        strncpy(start.device_name, device.name, sizeof(start.device_name) - 1u);
+    }
+}
+
 const char* stationOnlineStateName(uint8_t state) {
     switch (state) {
     case FA_STATION_ONLINE_UNKNOWN:
@@ -113,6 +127,7 @@ bool readDeviceStatus(uint8_t device_type,
     out.has_device = true;
     out.device_id = device.device_id;
     out.device_enabled = device.enabled != 0u;
+    strncpy(out.device_name, device.name, sizeof(out.device_name) - 1u);
 
     FaStationRecord station;
     if (g_device_registry->stationById(device.station_id, station)) {
@@ -323,7 +338,11 @@ void sendRecordTableRow(const FaActionRecord& record) {
     formatTimeValue(record.started_at_s, started, sizeof(started));
     formatDurationMs(record.run_ms, duration, sizeof(duration));
     formatAmount(record, amount, sizeof(amount));
-    formatDeviceLabel(record.device_id, device, sizeof(device));
+    if (record.device_name[0] != '\0') {
+        snprintf(device, sizeof(device), "%s (#%u)", record.device_name, record.device_id);
+    } else {
+        formatDeviceLabel(record.device_id, device, sizeof(device));
+    }
 
     Esp32BaseWeb::sendChunk("<tr><td>");
     sendNumber(record.action_id);
@@ -363,7 +382,11 @@ void sendActiveActionPanel(void) {
     char amount[28];
     char device[36];
     formatAmount(*active, amount, sizeof(amount));
-    formatDeviceLabel(active->device_id, device, sizeof(device));
+    if (active->device_name[0] != '\0') {
+        snprintf(device, sizeof(device), "%s (#%u)", active->device_name, active->device_id);
+    } else {
+        formatDeviceLabel(active->device_id, device, sizeof(device));
+    }
     Esp32BaseWeb::beginPanel("Active action");
     Esp32BaseWeb::sendInfoRowCompact("Action", "Currently tracked by master polling.", recordStateName(active->state));
     Esp32BaseWeb::sendInfoRowCompact("Device", "Business device that started this action.", device);

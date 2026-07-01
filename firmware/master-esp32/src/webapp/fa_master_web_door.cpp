@@ -161,6 +161,7 @@ void sendManualDoorActionApi(uint8_t command) {
     record_start.amount_mode = FA_ACTION_RECORD_AMOUNT_PULSES;
     record_start.amount_value = result.target_pulses;
     record_start.started_at_s = FaMasterActionRuntime::nowSeconds();
+    copyActionRecordDeviceName(record_start, deviceStatus);
     const bool tracking = g_action_runtime->trackStartedAction(record_start);
 
     ESP32BASE_LOG_I("farm", "door_manual_sent command=%s action_id=%lu device_id=%u addr=%u target=%lu tracking=%s",

@@ -12,7 +12,7 @@ extern "C" {
 namespace {
 
 constexpr uint32_t kMagic = 0x46524131ul;
-constexpr uint16_t kSchema = 1u;
+constexpr uint16_t kSchema = 2u;
 constexpr uint16_t kHeaderLen = 32u;
 constexpr uint16_t kSlotLen = FA_ACTION_RECORD_ENCODED_LEN + 2u;
 constexpr uint16_t kMaxCapacity = 128u;

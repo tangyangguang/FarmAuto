@@ -41,6 +41,7 @@ extern FaMasterActionRuntime* g_action_runtime;
 
 struct FaWebDeviceStatus {
     uint16_t device_id = 0u;
+    char device_name[FA_ACTION_RECORD_DEVICE_NAME_LEN] = {};
     uint8_t station_address = 0u;
     bool registry_ready = false;
     bool has_device = false;
@@ -55,6 +56,7 @@ uint32_t readUIntParam(const char* name, uint32_t fallback);
 const char* statusName(uint8_t status);
 void sendNumber(uint32_t value);
 void formatDeviceLabel(uint16_t device_id, char* out, size_t len);
+void copyActionRecordDeviceName(FaActionRecordStart& start, const FaWebDeviceStatus& status);
 const char* stationOnlineStateName(uint8_t state);
 bool readDeviceStatus(uint8_t device_type,
                       uint16_t fallback_device_id,

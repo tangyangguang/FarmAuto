@@ -29,9 +29,12 @@ typedef enum {
     FA_ACTION_RECORD_FAILED = 4u
 } FaActionRecordState;
 
+#define FA_ACTION_RECORD_DEVICE_NAME_LEN 24u
+
 typedef struct {
     uint32_t action_id;
     uint16_t device_id;
+    char device_name[FA_ACTION_RECORD_DEVICE_NAME_LEN];
     uint8_t bus_address;
     uint8_t device_type;
     uint8_t action_type;
@@ -46,6 +49,7 @@ typedef struct {
 typedef struct {
     uint32_t action_id;
     uint16_t device_id;
+    char device_name[FA_ACTION_RECORD_DEVICE_NAME_LEN];
     uint8_t bus_address;
     uint8_t device_type;
     uint8_t action_type;
@@ -66,7 +70,7 @@ typedef struct {
     uint8_t state;
 } FaActionRecord;
 
-#define FA_ACTION_RECORD_ENCODED_LEN 49u
+#define FA_ACTION_RECORD_ENCODED_LEN 73u
 
 uint8_t fa_action_record_begin(FaActionRecord *record, const FaActionRecordStart *start);
 uint8_t fa_action_record_apply_status(FaActionRecord *record, const FaMasterStatusResponse *status, uint32_t now_s);

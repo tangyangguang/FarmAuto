@@ -220,6 +220,7 @@ void sendManualFeedApi(void) {
     record_start.amount_mode = amountMode;
     record_start.amount_value = amount;
     record_start.started_at_s = FaMasterActionRuntime::nowSeconds();
+    copyActionRecordDeviceName(record_start, deviceStatus);
     const bool tracking = g_action_runtime->trackStartedAction(record_start);
 
     ESP32BASE_LOG_I("farm", "feed_manual_sent action_id=%lu device_id=%u addr=%u amount=%lu mode=%u target=%lu speed=%u tracking=%s",

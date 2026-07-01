@@ -3,6 +3,7 @@
 #include "fake_station.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #define CHECK(expr)                                                       \
     do {                                                                  \
@@ -60,21 +61,23 @@ int main(void) {
     CHECK(transact(&station, request, request_len, response, sizeof(response), &response_len) == 0);
 
     CHECK(fa_feed_make_manual_action(&feed, &feed_config, FA_FEED_AMOUNT_MG, 4000u, &action, &feed_result) == FA_STATUS_OK);
-    FaActionRecordStart start = {
-        action.action_id,
-        12u,
-        feed_config.station_address,
-        action.device_type,
-        action.action_type,
-        FA_ACTION_RECORD_SOURCE_MANUAL,
-        0u,
-        feed_result.target_pulses,
-        FA_FEED_AMOUNT_MG,
-        4000u,
-        100u
-    };
+    FaActionRecordStart start;
+    memset(&start, 0, sizeof(start));
+    start.action_id = action.action_id;
+    start.device_id = 12u;
+    strncpy(start.device_name, "Feeder Test", sizeof(start.device_name) - 1u);
+    start.bus_address = feed_config.station_address;
+    start.device_type = action.device_type;
+    start.action_type = action.action_type;
+    start.source_type = FA_ACTION_RECORD_SOURCE_MANUAL;
+    start.source_id = 0u;
+    start.target_pulses = feed_result.target_pulses;
+    start.amount_mode = FA_FEED_AMOUNT_MG;
+    start.amount_value = 4000u;
+    start.started_at_s = 100u;
     CHECK(fa_action_record_begin(&record, &start) == FA_STATUS_OK);
     CHECK(record.state == FA_ACTION_RECORD_RUNNING);
+    CHECK(strcmp(record.device_name, "Feeder Test") == 0);
 
     CHECK(fa_rs485_master_build_start_action(&master, feed_config.station_address, &action, request, sizeof(request), &request_len, &seq) == FA_FRAME_OK);
     CHECK(transact(&station, request, request_len, response, sizeof(response), &response_len) == 0);
@@ -107,6 +110,7 @@ int main(void) {
     CHECK(fa_action_record_decode(encoded, encoded_len, &decoded) == FA_STATUS_OK);
     CHECK(decoded.action_id == record.action_id);
     CHECK(decoded.device_id == record.device_id);
+    CHECK(strcmp(decoded.device_name, "Feeder Test") == 0);
     CHECK(decoded.bus_address == record.bus_address);
     CHECK(decoded.target_pulses == record.target_pulses);
     CHECK(decoded.completed_pulses == record.completed_pulses);

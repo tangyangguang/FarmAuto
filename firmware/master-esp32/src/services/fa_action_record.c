@@ -13,6 +13,8 @@ uint8_t fa_action_record_begin(FaActionRecord *record, const FaActionRecordStart
     memset(record, 0, sizeof(*record));
     record->action_id = start->action_id;
     record->device_id = start->device_id;
+    memcpy(record->device_name, start->device_name, sizeof(record->device_name));
+    record->device_name[sizeof(record->device_name) - 1u] = '\0';
     record->bus_address = start->bus_address;
     record->device_type = start->device_type;
     record->action_type = start->action_type;
@@ -77,7 +79,15 @@ uint8_t fa_action_record_encode(const FaActionRecord *record, uint8_t *out, size
 
     fa_payload_writer_init(&writer, out, out_cap);
     if (fa_payload_write_u32(&writer, record->action_id) != FA_PAYLOAD_OK ||
-        fa_payload_write_u16(&writer, record->device_id) != FA_PAYLOAD_OK ||
+        fa_payload_write_u16(&writer, record->device_id) != FA_PAYLOAD_OK) {
+        return FA_STATUS_ERR_BAD_LENGTH;
+    }
+    for (uint8_t i = 0u; i < sizeof(record->device_name); ++i) {
+        if (fa_payload_write_u8(&writer, (uint8_t)record->device_name[i]) != FA_PAYLOAD_OK) {
+            return FA_STATUS_ERR_BAD_LENGTH;
+        }
+    }
+    if (
         fa_payload_write_u8(&writer, record->bus_address) != FA_PAYLOAD_OK ||
         fa_payload_write_u8(&writer, record->device_type) != FA_PAYLOAD_OK ||
         fa_payload_write_u8(&writer, record->action_type) != FA_PAYLOAD_OK ||
@@ -118,7 +128,18 @@ uint8_t fa_action_record_decode(const uint8_t *data, size_t data_len, FaActionRe
     memset(record, 0, sizeof(*record));
     fa_payload_reader_init(&reader, data, data_len);
     if (fa_payload_read_u32(&reader, &record->action_id) != FA_PAYLOAD_OK ||
-        fa_payload_read_u16(&reader, &record->device_id) != FA_PAYLOAD_OK ||
+        fa_payload_read_u16(&reader, &record->device_id) != FA_PAYLOAD_OK) {
+        return FA_STATUS_ERR_BAD_LENGTH;
+    }
+    for (uint8_t i = 0u; i < sizeof(record->device_name); ++i) {
+        uint8_t ch = 0u;
+        if (fa_payload_read_u8(&reader, &ch) != FA_PAYLOAD_OK) {
+            return FA_STATUS_ERR_BAD_LENGTH;
+        }
+        record->device_name[i] = (char)ch;
+    }
+    record->device_name[sizeof(record->device_name) - 1u] = '\0';
+    if (
         fa_payload_read_u8(&reader, &record->bus_address) != FA_PAYLOAD_OK ||
         fa_payload_read_u8(&reader, &record->device_type) != FA_PAYLOAD_OK ||
         fa_payload_read_u8(&reader, &record->action_type) != FA_PAYLOAD_OK ||
