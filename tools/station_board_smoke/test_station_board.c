@@ -112,6 +112,13 @@ int main(void) {
     require_true(status.position_pulses >= 1200, "position should advance");
     require_true(status.completed_pulses >= 1200u, "completed pulses should advance");
 
+    require_true(fa_rs485_master_build_clear_fault(&master, 7u, request, sizeof(request), &request_len, &seq) == FA_FRAME_OK,
+                 "build clear fault");
+    response_len = exchange(&node, request, request_len, response, sizeof(response));
+    require_true(fa_rs485_master_parse_common(response, response_len, 7u, seq, FA_CMD_CLEAR_FAULT, &common) == FA_STATUS_OK,
+                 "clear fault response");
+    require_true(common.status_code == FA_STATUS_OK, "clear fault accepted");
+
     printf("station board smoke tests passed\n");
     return 0;
 }
