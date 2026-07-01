@@ -9,12 +9,12 @@ Current scope:
 - Poll the active station with `GET_STATUS` every `250 ms`.
 - Append the terminal action record to the LittleFS action record ring.
 - Mark an active action as communication failed after 5 consecutive status poll failures.
+- Keep the first LittleFS-backed device registry for business devices and scanned stations.
 
 Out of scope:
 
 - Multi-action queue.
 - Automatic schedule dispatch.
-- Address scan and device registry.
 - FRAM pending-action journal.
 
 The current runtime intentionally tracks only one active action. That keeps the visible manual-feed vertical loop complete without introducing the scheduler and queue machinery early.

@@ -5,6 +5,7 @@
 
 #include "fa_master_action_runtime.h"
 #include "fa_action_record_store.h"
+#include "fa_device_registry.h"
 #include "fa_master_web.h"
 #include "fa_rs485_transport.h"
 
@@ -18,12 +19,13 @@ static FaRs485Master g_rs485;
 static FaRs485Transport g_transport;
 static FaFeedService g_feed;
 static FaDoorService g_door;
+static FaDeviceRegistry g_device_registry;
 static FaMasterActionRuntime g_action_runtime;
 
 void farmauto_master_setup(void) {
     Esp32Base::setFirmwareInfo("farmauto-master", "0.1.0");
     fa_master_web_register_config();
-    fa_master_web_register_routes(&g_feed, &g_door, &g_rs485, &g_transport, &g_action_runtime);
+    fa_master_web_register_routes(&g_feed, &g_door, &g_device_registry, &g_rs485, &g_transport, &g_action_runtime);
     Esp32Base::begin();
 
     fa_rs485_master_init(&g_rs485);
@@ -36,6 +38,9 @@ void farmauto_master_setup(void) {
     g_action_runtime.begin(&g_rs485, &g_transport);
     if (!FaActionRecordStore::begin()) {
         ESP32BASE_LOG_W("farm", "action_record_store_unavailable");
+    }
+    if (!g_device_registry.begin()) {
+        ESP32BASE_LOG_W("farm", "device_registry_unavailable");
     }
 
     ESP32BASE_LOG_I("farm", "master boot");

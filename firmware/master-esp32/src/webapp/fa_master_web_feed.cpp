@@ -23,6 +23,30 @@ FaFeedDeviceConfig readFeedConfig(void) {
     return config;
 }
 
+bool applyFeedDeviceRegistry(FaFeedDeviceConfig& config, uint16_t& device_id, bool& disabled) {
+    disabled = false;
+    device_id = kSingleFeederDeviceId;
+    if (g_device_registry == nullptr || !g_device_registry->isReady()) {
+        return true;
+    }
+
+    FaDeviceRecord device;
+    if (!g_device_registry->deviceByType(FA_DEVICE_TYPE_FEEDER, device)) {
+        return true;
+    }
+    device_id = device.device_id;
+
+    FaStationRecord station;
+    if (g_device_registry->stationById(device.station_id, station) && fa_address_is_normal(station.bus_address)) {
+        config.station_address = station.bus_address;
+    }
+    if (device.enabled == 0u) {
+        disabled = true;
+        return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 void sendFeedPage(void) {
@@ -30,7 +54,10 @@ void sendFeedPage(void) {
         return;
     }
 
-    const FaFeedDeviceConfig config = readFeedConfig();
+    FaFeedDeviceConfig config = readFeedConfig();
+    uint16_t deviceId = kSingleFeederDeviceId;
+    bool deviceDisabled = false;
+    (void)applyFeedDeviceRegistry(config, deviceId, deviceDisabled);
     char value[24];
 
     Esp32BaseWeb::sendHeader("Feed");
@@ -46,6 +73,7 @@ void sendFeedPage(void) {
     snprintf(value, sizeof(value), "%u", FaActionRecordStore::count());
     Esp32BaseWeb::sendMetric("Records", value, FaActionRecordStore::isReady() ? "LittleFS ring ready" : "Store unavailable");
     Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
+    Esp32BaseWeb::sendMetric("Device", deviceDisabled ? "disabled" : "enabled");
     Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
     Esp32BaseWeb::endMetricGrid();
 
@@ -73,7 +101,14 @@ void sendManualFeedApi(void) {
         return;
     }
 
-    const FaFeedDeviceConfig config = readFeedConfig();
+    FaFeedDeviceConfig config = readFeedConfig();
+    uint16_t deviceId = kSingleFeederDeviceId;
+    bool deviceDisabled = false;
+    (void)applyFeedDeviceRegistry(config, deviceId, deviceDisabled);
+    if (deviceDisabled) {
+        Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"device_disabled\"}");
+        return;
+    }
     char modeText[12] = "";
     (void)Esp32BaseWeb::getParam("mode", modeText, sizeof(modeText));
     const uint8_t amountMode = strcmp(modeText, "turns") == 0 ? FA_FEED_AMOUNT_TURNS_X1000 : FA_FEED_AMOUNT_MG;
@@ -174,7 +209,7 @@ void sendManualFeedApi(void) {
 
     FaActionRecordStart record_start = {};
     record_start.action_id = action.action_id;
-    record_start.device_id = kSingleFeederDeviceId;
+    record_start.device_id = deviceId;
     record_start.bus_address = config.station_address;
     record_start.device_type = action.device_type;
     record_start.action_type = action.action_type;

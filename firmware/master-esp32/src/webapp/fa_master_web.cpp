@@ -5,6 +5,7 @@
 
 FaFeedService* g_feed_service = nullptr;
 FaDoorService* g_door_service = nullptr;
+FaDeviceRegistry* g_device_registry = nullptr;
 FaRs485Master* g_rs485_master = nullptr;
 FaRs485Transport* g_transport = nullptr;
 FaMasterActionRuntime* g_action_runtime = nullptr;
@@ -429,16 +430,19 @@ void fa_master_web_register_config(void) {
 
 void fa_master_web_register_routes(FaFeedService *feed_service,
                                    FaDoorService *door_service,
+                                   FaDeviceRegistry *device_registry,
                                    FaRs485Master *rs485_master,
                                    FaRs485Transport *transport,
                                    FaMasterActionRuntime *action_runtime) {
     g_feed_service = feed_service;
     g_door_service = door_service;
+    g_device_registry = device_registry;
     g_rs485_master = rs485_master;
     g_transport = transport;
     g_action_runtime = action_runtime;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
     Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
+    Esp32BaseWeb::addPage("/devices", "Devices", sendDevicesPage);
     Esp32BaseWeb::addPage("/bus", "RS485", sendBusPage);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
     Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);
@@ -446,4 +450,5 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addApi("/api/door/stop", sendDoorStopApi);
     Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
     Esp32BaseWeb::addApi("/api/action/stop-active", sendStopActiveActionApi);
+    Esp32BaseWeb::addApi("/api/devices/enabled", sendDeviceSetEnabledApi);
 }

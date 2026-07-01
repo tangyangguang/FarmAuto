@@ -34,6 +34,7 @@ constexpr const char* kDoorMaxActionPulses = "max_p";
 
 extern FaFeedService* g_feed_service;
 extern FaDoorService* g_door_service;
+extern FaDeviceRegistry* g_device_registry;
 extern FaRs485Master* g_rs485_master;
 extern FaRs485Transport* g_transport;
 extern FaMasterActionRuntime* g_action_runtime;
@@ -62,5 +63,7 @@ void sendDoorCloseApi(void);
 void sendDoorStopApi(void);
 void sendBusPage(void);
 void sendBusScanApi(void);
+void sendDevicesPage(void);
+void sendDeviceSetEnabledApi(void);
 
 #endif

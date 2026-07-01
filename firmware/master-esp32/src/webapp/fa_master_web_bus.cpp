@@ -149,6 +149,9 @@ void sendBusScanApi(void) {
                 FaMasterPingResponse ping;
                 const uint8_t status = fa_rs485_master_parse_ping(response, response_len, address, seq, &ping);
                 if (status == FA_STATUS_OK && found < FA_ADDRESS_MAX) {
+                    if (g_device_registry != nullptr && g_device_registry->isReady()) {
+                        (void)g_device_registry->updateStationFromPing(address, ping, FaMasterActionRuntime::nowSeconds());
+                    }
                     nodes[found].address = address;
                     nodes[found].effective_address = ping.effective_bus_address;
                     nodes[found].raw_address = ping.raw_address_input;
