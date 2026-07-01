@@ -14,7 +14,7 @@ void formatPauseUntil(uint32_t epoch, char* out, size_t len) {
         return;
     }
     if (epoch == 0u) {
-        snprintf(out, len, "not paused");
+        snprintf(out, len, "未暂停");
         return;
     }
     if (!Esp32BaseTime::formatEpoch(epoch, out, len)) {
@@ -108,42 +108,42 @@ void sendAutoPage(void) {
     formatPauseUntil(state.door_pause_until, doorPause, sizeof(doorPause));
     formatMinute(state.local_minute, localTime, sizeof(localTime));
 
-    Esp32BaseWeb::sendHeader("Auto");
-    Esp32BaseWeb::sendPageTitle("Automatic schedules", "Daily feed and door actions run only when real time is synced.");
+    Esp32BaseWeb::sendHeader("自动");
+    Esp32BaseWeb::sendPageTitle("自动计划", "只有真实时间已同步时，才会执行每日下料和门控计划。");
 
     Esp32BaseWeb::beginMetricGrid();
-    Esp32BaseWeb::sendMetric("Time", state.time_synced ? "synced" : "not synced");
-    Esp32BaseWeb::sendMetric("Local minute", state.time_synced ? localTime : "-");
-    Esp32BaseWeb::sendMetric("Auto", state.enabled ? "enabled" : "disabled");
-    Esp32BaseWeb::sendMetric("Feed", state.feed_enabled ? "enabled" : "disabled", feedPause);
-    Esp32BaseWeb::sendMetric("Door", state.door_enabled ? "enabled" : "disabled", doorPause);
-    Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
+    Esp32BaseWeb::sendMetric("时间", state.time_synced ? "已同步" : "未同步");
+    Esp32BaseWeb::sendMetric("本地时间", state.time_synced ? localTime : "-");
+    Esp32BaseWeb::sendMetric("自动", uiEnabled(state.enabled));
+    Esp32BaseWeb::sendMetric("下料", uiEnabled(state.feed_enabled), feedPause);
+    Esp32BaseWeb::sendMetric("门控", uiEnabled(state.door_enabled), doorPause);
+    Esp32BaseWeb::sendMetric("动作", uiActionState(g_action_runtime != nullptr && g_action_runtime->isBusy()));
     Esp32BaseWeb::endMetricGrid();
 
-    Esp32BaseWeb::beginPanel("Daily plan");
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>Item</th><th>State</th><th>Time</th><th>Amount</th></tr></thead><tbody>");
-    sendScheduleRow("Feed 1", state.feed_enabled ? "enabled" : "disabled", state.feed_1_minute, state.feed_1_amount_mg, "mg");
-    sendScheduleRow("Feed 2", state.feed_enabled ? "enabled" : "disabled", state.feed_2_minute, state.feed_2_amount_mg, "mg");
-    sendScheduleRow("Door open", state.door_enabled ? "enabled" : "disabled", state.door_open_minute, 0u, "pulses");
-    sendScheduleRow("Door close", state.door_enabled ? "enabled" : "disabled", state.door_close_minute, 0u, "pulses");
+    Esp32BaseWeb::beginPanel("每日计划");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>项目</th><th>状态</th><th>时间</th><th>数量</th></tr></thead><tbody>");
+    sendScheduleRow("下料 1", uiEnabled(state.feed_enabled), state.feed_1_minute, state.feed_1_amount_mg, "mg");
+    sendScheduleRow("下料 2", uiEnabled(state.feed_enabled), state.feed_2_minute, state.feed_2_amount_mg, "mg");
+    sendScheduleRow("开门", uiEnabled(state.door_enabled), state.door_open_minute, 0u, "脉冲");
+    sendScheduleRow("关门", uiEnabled(state.door_enabled), state.door_close_minute, 0u, "脉冲");
     Esp32BaseWeb::sendChunk("</tbody></table></div>");
     Esp32BaseWeb::endPanel();
 
-    Esp32BaseWeb::beginPanel("Pause automatic execution");
+    Esp32BaseWeb::beginPanel("暂停自动执行");
     Esp32BaseWeb::sendChunk("<div class='fieldgrid'>");
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/feed-pause' onsubmit='return once(this)' class='field med'><label>Feed pause</label><input type='number' name='durationMin' min='1' max='43200' value='360'><small>Minutes from now.</small><div class='actions'><input type='submit' value='Pause feed'></div></form>");
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/door-pause' onsubmit='return once(this)' class='field med'><label>Door pause</label><input type='number' name='durationMin' min='1' max='43200' value='360'><small>Minutes from now.</small><div class='actions'><input type='submit' value='Pause door'></div></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/feed-pause' onsubmit='return once(this)' class='field med'><label>暂停下料</label><input type='number' name='durationMin' min='1' max='43200' value='360'><small>从现在开始的分钟数。</small><div class='actions'><input type='submit' value='暂停下料'></div></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/door-pause' onsubmit='return once(this)' class='field med'><label>暂停门控</label><input type='number' name='durationMin' min='1' max='43200' value='360'><small>从现在开始的分钟数。</small><div class='actions'><input type='submit' value='暂停门控'></div></form>");
     Esp32BaseWeb::sendChunk("</div><div class='actions'>");
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/feed-resume' onsubmit='return once(this)'><input type='submit' value='Resume feed'></form>");
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/door-resume' onsubmit='return once(this)'><input type='submit' value='Resume door'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/feed-resume' onsubmit='return once(this)'><input type='submit' value='恢复下料'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/auto/door-resume' onsubmit='return once(this)'><input type='submit' value='恢复门控'></form>");
     Esp32BaseWeb::sendChunk("</div>");
     Esp32BaseWeb::endPanel();
 
     sendActiveActionPanel();
     sendRecentRecordsPanel();
 
-    snprintf(value, sizeof(value), "day %ld", static_cast<long>(state.local_day));
-    Esp32BaseWeb::sendInfoRowCompactLink("Schedule settings", value, "App Config", "/esp32base/app-config", "Edit", Esp32BaseWeb::UI_INFO);
+    snprintf(value, sizeof(value), "第 %ld 天", static_cast<long>(state.local_day));
+    Esp32BaseWeb::sendInfoRowCompactLink("计划设置", value, "配置", "/esp32base/app-config", "修改", Esp32BaseWeb::UI_INFO);
     Esp32BaseWeb::sendFooter();
 }
 

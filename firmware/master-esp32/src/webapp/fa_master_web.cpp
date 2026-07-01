@@ -64,6 +64,31 @@ void sendNumber(uint32_t value) {
     Esp32BaseWeb::sendChunk(buf);
 }
 
+const char* uiEnabled(bool value) {
+    return value ? "启用" : "停用";
+}
+
+const char* uiReady(bool value) {
+    return value ? "就绪" : "未就绪";
+}
+
+const char* uiActionState(bool busy) {
+    return busy ? "执行中" : "空闲";
+}
+
+const char* uiTransportMode(uint8_t mode) {
+    switch (mode) {
+    case FA_RS485_MODE_DISABLED:
+        return "停用";
+    case FA_RS485_MODE_REAL_UART:
+        return "真实串口";
+    case FA_RS485_MODE_SIMULATED:
+        return "模拟分站";
+    default:
+        return "未知";
+    }
+}
+
 void formatDeviceLabel(uint16_t device_id, char* out, size_t len) {
     if (out == nullptr || len == 0u) {
         return;
@@ -108,6 +133,25 @@ const char* stationOnlineStateName(uint8_t state) {
         return "reserved_address";
     default:
         return "unknown";
+    }
+}
+
+const char* uiStationOnlineState(uint8_t state) {
+    switch (state) {
+    case FA_STATION_ONLINE_UNKNOWN:
+        return "未知";
+    case FA_STATION_ONLINE_ONLINE:
+        return "在线";
+    case FA_STATION_ONLINE_OFFLINE:
+        return "离线";
+    case FA_STATION_ONLINE_ERROR:
+        return "异常";
+    case FA_STATION_ONLINE_CONFLICT_SUSPECTED:
+        return "疑似地址冲突";
+    case FA_STATION_ONLINE_RESERVED_ADDRESS:
+        return "保留地址";
+    default:
+        return "未知";
     }
 }
 
@@ -164,22 +208,22 @@ void formatStationStatusLabel(const FaWebDeviceStatus& status, char* out, size_t
         return;
     }
     if (!status.registry_ready) {
-        snprintf(out, len, "registry unavailable");
+        snprintf(out, len, "设备表不可用");
         return;
     }
     if (!status.has_device) {
-        snprintf(out, len, "config fallback");
+        snprintf(out, len, "使用配置默认值");
         return;
     }
     if (!status.has_station) {
-        snprintf(out, len, "station missing");
+        snprintf(out, len, "未绑定分站");
         return;
     }
     if (status.last_error != 0u) {
-        snprintf(out, len, "%s, err %u", stationOnlineStateName(status.station_online_state), status.last_error);
+        snprintf(out, len, "%s，错误 %u", uiStationOnlineState(status.station_online_state), status.last_error);
         return;
     }
-    snprintf(out, len, "%s", stationOnlineStateName(status.station_online_state));
+    snprintf(out, len, "%s", uiStationOnlineState(status.station_online_state));
 }
 
 void sendDeviceStatusBlockedJson(const FaWebDeviceStatus& status) {
@@ -239,6 +283,21 @@ const char* recordStateName(uint8_t state) {
     }
 }
 
+const char* uiRecordState(uint8_t state) {
+    switch (state) {
+    case FA_ACTION_RECORD_RUNNING:
+        return "执行中";
+    case FA_ACTION_RECORD_COMPLETED:
+        return "已完成";
+    case FA_ACTION_RECORD_STOPPED:
+        return "已停止";
+    case FA_ACTION_RECORD_FAILED:
+        return "失败";
+    default:
+        return "未知";
+    }
+}
+
 const char* stopReasonName(uint8_t reason) {
     switch (reason) {
     case FA_STOP_NONE:
@@ -261,6 +320,31 @@ const char* stopReasonName(uint8_t reason) {
         return "local_fault";
     default:
         return "unknown";
+    }
+}
+
+const char* uiStopReason(uint8_t reason) {
+    switch (reason) {
+    case FA_STOP_NONE:
+        return "无";
+    case FA_STOP_TARGET_REACHED:
+        return "到达目标";
+    case FA_STOP_MASTER_COMMAND:
+        return "主控停止";
+    case FA_STOP_OVER_CURRENT:
+        return "过流";
+    case FA_STOP_STALL:
+        return "堵转";
+    case FA_STOP_TIMEOUT:
+        return "超时";
+    case FA_STOP_TARGET_OVERRUN:
+        return "超过目标";
+    case FA_STOP_WATCHDOG:
+        return "看门狗";
+    case FA_STOP_LOCAL_FAULT:
+        return "本地故障";
+    default:
+        return "未知";
     }
 }
 
@@ -297,6 +381,73 @@ const char* faultName(uint16_t fault) {
     }
 }
 
+const char* uiFaultName(uint16_t fault) {
+    switch (fault) {
+    case FA_FAULT_NONE:
+        return "无";
+    case FA_FAULT_OVER_CURRENT:
+        return "过流";
+    case FA_FAULT_STALL:
+        return "堵转";
+    case FA_FAULT_ENCODER_LOST:
+        return "编码器丢失";
+    case FA_FAULT_RUN_TIMEOUT:
+        return "运行超时";
+    case FA_FAULT_TARGET_OVERRUN:
+        return "超过目标";
+    case FA_FAULT_CONFIG_INVALID:
+        return "配置无效";
+    case FA_FAULT_DRIVER_ABNORMAL:
+        return "驱动异常";
+    case FA_FAULT_CURRENT_SENSOR:
+        return "电流采样异常";
+    case FA_FAULT_WATCHDOG_RESET:
+        return "看门狗复位";
+    case FA_FAULT_RESERVED_ADDRESS:
+        return "保留地址";
+    case FA_FAULT_COMMAND_REJECTED:
+        return "命令拒绝";
+    case FA_FAULT_COMMUNICATION:
+        return "通讯异常";
+    default:
+        return "未知";
+    }
+}
+
+const char* uiRuntimeError(const char* error) {
+    if (error == nullptr || error[0] == '\0' || strcmp(error, "none") == 0 || strcmp(error, "ok") == 0) {
+        return "无";
+    }
+    if (strcmp(error, "busy") == 0) {
+        return "忙";
+    }
+    if (strcmp(error, "bad_start") == 0) {
+        return "动作启动参数异常";
+    }
+    if (strcmp(error, "transport_unavailable") == 0 || strcmp(error, "not_configured") == 0) {
+        return "通讯未配置";
+    }
+    if (strcmp(error, "build_status") == 0) {
+        return "状态请求构建失败";
+    }
+    if (strcmp(error, "bad_status") == 0) {
+        return "分站状态异常";
+    }
+    if (strcmp(error, "record_status") == 0) {
+        return "记录状态失败";
+    }
+    if (strcmp(error, "record_append") == 0) {
+        return "记录写入失败";
+    }
+    if (strcmp(error, "timeout") == 0) {
+        return "通讯超时";
+    }
+    if (strcmp(error, "bad_frame") == 0) {
+        return "通讯帧异常";
+    }
+    return "未知错误";
+}
+
 void formatDurationMs(uint32_t ms, char* out, size_t len) {
     if (out == nullptr || len == 0u) {
         return;
@@ -328,9 +479,9 @@ void formatAmount(const FaActionRecord& record, char* out, size_t len) {
     if (record.amount_mode == FA_FEED_AMOUNT_MG) {
         snprintf(out, len, "%lu mg", static_cast<unsigned long>(record.amount_value));
     } else if (record.amount_mode == FA_FEED_AMOUNT_TURNS_X1000) {
-        snprintf(out, len, "%lu/1000 turn", static_cast<unsigned long>(record.amount_value));
+        snprintf(out, len, "%lu/1000 圈", static_cast<unsigned long>(record.amount_value));
     } else if (record.amount_mode == FA_ACTION_RECORD_AMOUNT_PULSES) {
-        snprintf(out, len, "%lu pulses", static_cast<unsigned long>(record.amount_value));
+        snprintf(out, len, "%lu 脉冲", static_cast<unsigned long>(record.amount_value));
     } else {
         snprintf(out, len, "%lu", static_cast<unsigned long>(record.amount_value));
     }
@@ -355,7 +506,7 @@ void sendRecordTableRow(const FaActionRecord& record) {
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::writeHtmlEscaped(device);
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(recordStateName(record.state));
+    Esp32BaseWeb::writeHtmlEscaped(uiRecordState(record.state));
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::writeHtmlEscaped(started);
     Esp32BaseWeb::sendChunk("</td><td>");
@@ -369,9 +520,9 @@ void sendRecordTableRow(const FaActionRecord& record) {
     Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(record.bus_address);
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(stopReasonName(record.stop_reason));
+    Esp32BaseWeb::writeHtmlEscaped(uiStopReason(record.stop_reason));
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(faultName(record.fault_code));
+    Esp32BaseWeb::writeHtmlEscaped(uiFaultName(record.fault_code));
     Esp32BaseWeb::sendChunk("</td></tr>");
 }
 
@@ -393,44 +544,44 @@ void sendActiveActionPanel(void) {
     } else {
         formatDeviceLabel(active->device_id, device, sizeof(device));
     }
-    Esp32BaseWeb::beginPanel("Active action");
-    Esp32BaseWeb::sendInfoRowCompact("Action", "Currently tracked by master polling.", recordStateName(active->state));
-    Esp32BaseWeb::sendInfoRowCompact("Device", "Business device that started this action.", device);
-    Esp32BaseWeb::sendInfoRowCompact("Amount", "Original manual request.", amount);
+    Esp32BaseWeb::beginPanel("当前动作");
+    Esp32BaseWeb::sendInfoRowCompact("动作", "主控正在轮询跟踪的动作。", uiRecordState(active->state));
+    Esp32BaseWeb::sendInfoRowCompact("设备", "发起该动作的业务设备。", device);
+    Esp32BaseWeb::sendInfoRowCompact("数量", "原始手动请求。", amount);
     char progress[36];
-    snprintf(progress, sizeof(progress), "%lu / %lu pulses",
+    snprintf(progress, sizeof(progress), "%lu / %lu 脉冲",
              static_cast<unsigned long>(active->completed_pulses),
              static_cast<unsigned long>(active->target_pulses));
-    Esp32BaseWeb::sendInfoRowCompact("Progress", "Last status returned by station.", progress);
+    Esp32BaseWeb::sendInfoRowCompact("进度", "分站最近一次回报的状态。", progress);
     char run[20];
     char current[28];
     formatDurationMs(active->run_ms, run, sizeof(run));
     snprintf(current, sizeof(current), "%u / %u mA", active->current_ma, active->peak_current_ma);
-    Esp32BaseWeb::sendInfoRowCompact("Run", "Runtime reported by station.", run);
-    Esp32BaseWeb::sendInfoRowCompact("Current", "Current / peak current.", current);
-    Esp32BaseWeb::sendInfoRowCompact("Stop", "Last station stop reason.", stopReasonName(active->stop_reason));
-    Esp32BaseWeb::sendInfoRowCompact("Fault", "Last station fault code.", faultName(active->fault_code));
-    Esp32BaseWeb::sendInfoRowCompact("Last error", "Last master-side polling error.", g_action_runtime->lastError());
-    Esp32BaseWeb::sendChunk("<div class='actions'><form method='post' action='/api/action/stop-active' onsubmit='return once(this)'><input class='danger' type='submit' value='Stop active'></form></div>");
+    Esp32BaseWeb::sendInfoRowCompact("运行", "分站回报的运行时间。", run);
+    Esp32BaseWeb::sendInfoRowCompact("电流", "当前电流 / 峰值电流。", current);
+    Esp32BaseWeb::sendInfoRowCompact("停止原因", "分站最近一次停止原因。", uiStopReason(active->stop_reason));
+    Esp32BaseWeb::sendInfoRowCompact("故障", "分站最近一次故障码。", uiFaultName(active->fault_code));
+    Esp32BaseWeb::sendInfoRowCompact("最近错误", "主控侧最近一次轮询错误。", uiRuntimeError(g_action_runtime->lastError()));
+    Esp32BaseWeb::sendChunk("<div class='actions'><form method='post' action='/api/action/stop-active' onsubmit='return once(this)'><input class='danger' type='submit' value='停止当前动作'></form></div>");
     Esp32BaseWeb::endPanel();
 }
 
 void sendRecentRecordsPanel(void) {
-    Esp32BaseWeb::beginPanel("Recent records");
+    Esp32BaseWeb::beginPanel("最近记录");
     if (!FaActionRecordStore::isReady()) {
-        Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN, "Records unavailable", "LittleFS action record store is not ready.");
+        Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN, "记录不可用", "LittleFS 动作记录存储未就绪。");
         Esp32BaseWeb::endPanel();
         return;
     }
     const uint16_t count = FaActionRecordStore::count();
     if (count == 0u) {
-        Esp32BaseWeb::sendInfoRowCompact("No records", "Completed or failed actions will appear here.");
+        Esp32BaseWeb::sendInfoRowCompact("暂无记录", "完成或失败的动作会显示在这里。");
         Esp32BaseWeb::endPanel();
         return;
     }
 
     const uint16_t limit = count < kRecentRecordLimit ? count : kRecentRecordLimit;
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Device</th><th>State</th><th>Started</th><th>Amount</th><th>Pulses</th><th>Run</th><th>Addr</th><th>Stop</th><th>Fault</th></tr></thead><tbody>");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>设备</th><th>状态</th><th>开始时间</th><th>数量</th><th>脉冲</th><th>运行</th><th>地址</th><th>停止</th><th>故障</th></tr></thead><tbody>");
     for (uint16_t i = 0u; i < limit; ++i) {
         FaActionRecord record;
         if (FaActionRecordStore::readLatest(i, record)) {
@@ -549,17 +700,17 @@ void sendRecordsPage(void) {
     }
 
     char value[24];
-    Esp32BaseWeb::sendHeader("Records");
-    Esp32BaseWeb::sendPageTitle("Records", "Recent FarmAuto action records and the currently tracked action.");
+    Esp32BaseWeb::sendHeader("记录");
+    Esp32BaseWeb::sendPageTitle("动作记录", "查看最近的 FarmAuto 动作记录，以及当前正在跟踪的动作。");
 
     Esp32BaseWeb::beginMetricGrid();
     snprintf(value, sizeof(value), "%u", FaActionRecordStore::count());
-    Esp32BaseWeb::sendMetric("Records", value, FaActionRecordStore::isReady() ? "ready" : "unavailable");
+    Esp32BaseWeb::sendMetric("记录数", value, FaActionRecordStore::isReady() ? "就绪" : "不可用");
     snprintf(value, sizeof(value), "%u", FaActionRecordStore::capacity());
-    Esp32BaseWeb::sendMetric("Capacity", value);
+    Esp32BaseWeb::sendMetric("容量", value);
     snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(FaActionRecordStore::sequence()));
-    Esp32BaseWeb::sendMetric("Sequence", value);
-    Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
+    Esp32BaseWeb::sendMetric("序号", value);
+    Esp32BaseWeb::sendMetric("动作", uiActionState(g_action_runtime != nullptr && g_action_runtime->isBusy()));
     Esp32BaseWeb::endMetricGrid();
 
     sendActiveActionPanel();
@@ -572,136 +723,144 @@ void fa_master_web_register_config(void) {
     Esp32BaseWeb::setHomePath("/feed");
     Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_COMBINED);
     Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_SECTION);
-    Esp32BaseAppConfig::setTitle("FarmAuto Config");
-    Esp32BaseAppConfig::addGroup({"feeder", "Feeder"});
-    Esp32BaseAppConfig::addGroup({"door", "Door"});
-    Esp32BaseAppConfig::addGroup({"auto", "Auto"});
-    Esp32BaseAppConfig::addGroup({"env", "Environment"});
-    Esp32BaseAppConfig::addGroup({"board", "Board IO"});
-    Esp32BaseAppConfig::addGroup({"notify", "Notify"});
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_HOME, "状态");
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_WIFI, "网络");
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_OTA, "固件升级");
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_LOGS, "系统日志");
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_APP_EVENTS, "应用事件");
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_TOOLS, "系统工具");
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_SYSTEM, "系统");
+    Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_AUTH, "登录密码");
+    Esp32BaseAppConfig::setTitle("FarmAuto 配置");
+    Esp32BaseAppConfig::addGroup({"feeder", "下料"});
+    Esp32BaseAppConfig::addGroup({"door", "门控"});
+    Esp32BaseAppConfig::addGroup({"auto", "自动"});
+    Esp32BaseAppConfig::addGroup({"env", "温湿度"});
+    Esp32BaseAppConfig::addGroup({"board", "主控板"});
+    Esp32BaseAppConfig::addGroup({"notify", "通知"});
     Esp32BaseAppConfig::addGroup({"rs485", "RS485"});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kStationAddress, "Station address", 1, 1, 127, 1, nullptr,
-                                "RS485 address 1..127.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kPulsesPerTurn, "Pulses per turn", 4320, 1, 200000, 1, "pulses",
-                                "Output shaft encoder pulses per turn.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kGramsPerTurnMg, "mg per turn", 8000, 1, 1000000, 1, "mg",
-                                "Calibration for mg based feeding.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kDirection, "Direction", 1, -1, 1, 1, nullptr,
-                                "1 forward, -1 reverse.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kSpeedPermille, "Speed", 800, 1, 1000, 1, "permille",
-                                "Motor speed request.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kOverCurrentMa, "Over-current", 2000, 1, 10000, 1, "mA",
-                                "Station protection threshold.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kMaxRunMs, "Max run", 60000, 100, 600000, 100, "ms",
-                                "Single action timeout.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"feeder", kNs, kMaxActionPulses, "Max pulses", 432000, 1, 2000000, 1, "pulses",
-                                "Single action pulse limit.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorStationAddress, "Station address", 2, 1, 127, 1, nullptr,
-                                "RS485 address 1..127.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorPulsesPerTurn, "Pulses per turn", 4320, 1, 200000, 1, "pulses",
-                                "Output shaft encoder pulses per turn.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorTravelPulses, "Travel pulses", 20000, 1, 2000000, 1, "pulses",
-                                "Bounded travel for one open or close action.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorOpenDirection, "Open direction", 1, -1, 1, 1, nullptr,
-                                "1 forward, -1 reverse.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorCloseDirection, "Close direction", -1, -1, 1, 1, nullptr,
-                                "1 forward, -1 reverse.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorSpeedPermille, "Speed", 700, 1, 1000, 1, "permille",
-                                "Motor speed request.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorOverCurrentMa, "Over-current", 2500, 1, 10000, 1, "mA",
-                                "Station protection threshold.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorMaxRunMs, "Max run", 30000, 100, 600000, 100, "ms",
-                                "Single action timeout.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorMaxActionPulses, "Max pulses", 100000, 1, 2000000, 1, "pulses",
-                                "Single action pulse limit.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_ENABLED, "Auto enabled", 1, 0, 1, 1, nullptr,
-                                "1 enables daily automatic schedules.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_TZ_OFFSET_MIN, "Timezone offset", 480, -720, 840, 1, "min",
-                                "Local time offset from UTC; China is 480.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_ENABLED, "Feed schedule", 1, 0, 1, 1, nullptr,
-                                "1 enables daily feed points.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_1_MIN, "Feed 1 minute", 430, 0, 1439, 1, "min",
-                                "Minute of local day, e.g. 430 is 07:10.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_1_AMOUNT_MG, "Feed 1 amount", 100000, 1, 5000000, 1, "mg",
-                                "Scheduled feed amount.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_2_MIN, "Feed 2 minute", 1090, 0, 1439, 1, "min",
-                                "Minute of local day, e.g. 1090 is 18:10.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_2_AMOUNT_MG, "Feed 2 amount", 100000, 1, 5000000, 1, "mg",
-                                "Scheduled feed amount.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_ENABLED, "Door schedule", 1, 0, 1, 1, nullptr,
-                                "1 enables daily door open/close.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_OPEN_MIN, "Door open minute", 480, 0, 1439, 1, "min",
-                                "Minute of local day, e.g. 480 is 08:00.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_CLOSE_MIN, "Door close minute", 1050, 0, 1439, 1, "min",
-                                "Minute of local day, e.g. 1050 is 17:30.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_PAUSE_UNTIL, "Feed pause until", 0, 0, 2147483647, 1, "epoch",
-                                "0 means not paused; epoch seconds pauses automatic feed.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_PAUSE_UNTIL, "Door pause until", 0, 0, 2147483647, 1, "epoch",
-                                "0 means not paused; epoch seconds pauses automatic door.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, "SHT30 enabled", true,
-                                 "Read outdoor temperature and humidity from SHT30.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, "SDA pin", 21, -1, 39, 1, nullptr,
-                                "-1 disables SHT30 I2C.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, "SCL pin", 22, -1, 39, 1, nullptr,
-                                "-1 disables SHT30 I2C.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, "I2C address", 68, 8, 119, 1, nullptr,
-                                "SHT30 7-bit address, usually 68 decimal for 0x44.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, "Sample interval", 5000, 1000, 600000, 1000, "ms",
-                                "Background sampling interval.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, "Record interval", 300, 10, 86400, 10, "s",
-                                "Minimum interval for app event records.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_ENABLED, "Board IO enabled", true,
-                                 "Drive master RUN/ERR LEDs and read local buttons.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_RUN_LED_PIN, "RUN LED pin", 27, -1, 39, 1, nullptr,
-                                "-1 disables RUN LED output.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_ERR_LED_PIN, "ERR LED pin", 14, -1, 39, 1, nullptr,
-                                "-1 disables ERR LED output.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_LED_ACTIVE_LOW, "LED active low", false,
-                                 "Enable when board LED turns on at LOW output.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BOOT_PIN, "BOOT button pin", 0, -1, 39, 1, nullptr,
-                                "GPIO0 BOOT button input; -1 disables.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_1_PIN, "Button 1 pin", -1, -1, 39, 1, nullptr,
-                                "Reserved local button; -1 disables.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_2_PIN, "Button 2 pin", -1, -1, 39, 1, nullptr,
-                                "Door open button input; action binding is added after shared door executor.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_3_PIN, "Button 3 pin", -1, -1, 39, 1, nullptr,
-                                "Door close button input; action binding is added after shared door executor.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_4_PIN, "Button 4 pin", -1, -1, 39, 1, nullptr,
-                                "Door stop button input; action binding is added after shared door executor.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_ACTIVE_LOW, "Buttons active low", true,
-                                 "Enable for pull-up buttons that connect to ground when pressed.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_DEBOUNCE_MS, "Debounce", 50, 10, 1000, 10, "ms",
-                                "Button debounce interval.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_LONG_PRESS_MS, "Long press", 1000, 200, 10000, 100, "ms",
-                                "Long press detection interval.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ENABLED, "Notifications", true,
-                                 "Only stores rules; no external sender is connected yet.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_DONE, "Action completed", false,
-                                 "Notify when a feed or door action completes.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_FAILED, "Action failed", true,
-                                 "Notify when an action fails or is locally protected.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_FAULT, "Station fault", true,
-                                 "Notify when a station reports a fault.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_OFFLINE, "Station offline", true,
-                                 "Notify when a configured station is offline.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_SCHEDULE_SKIPPED, "Schedule skipped", true,
-                                 "Notify when an automatic plan is skipped.", false, nullptr});
-    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_POWER_RESTORED, "Power restored", true,
-                                 "Notify after restart or power recovery.", false, nullptr});
-    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_MODE, "Mode", FA_RS485_MODE_SIMULATED, 0, 2, 1, nullptr,
-                                "0 disabled, 1 real UART, 2 simulated stations 1 and 2.", true, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kStationAddress, "分站地址", 1, 1, 127, 1, nullptr,
+                                "RS485 地址范围 1..127。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kPulsesPerTurn, "每圈脉冲", 4320, 1, 200000, 1, "脉冲",
+                                "输出轴转一圈对应的编码器脉冲数。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kGramsPerTurnMg, "每圈毫克", 8000, 1, 1000000, 1, "mg",
+                                "按重量下料时使用的标定值。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kDirection, "方向", 1, -1, 1, 1, nullptr,
+                                "1 为正转，-1 为反转。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kSpeedPermille, "速度", 800, 1, 1000, 1, "千分比",
+                                "下发给分站的电机速度请求。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kOverCurrentMa, "过流阈值", 2000, 1, 10000, 1, "mA",
+                                "分站本地保护阈值。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kMaxRunMs, "最长运行", 60000, 100, 600000, 100, "ms",
+                                "单次动作超时时间。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"feeder", kNs, kMaxActionPulses, "最大脉冲", 432000, 1, 2000000, 1, "脉冲",
+                                "单次动作脉冲上限。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorStationAddress, "分站地址", 2, 1, 127, 1, nullptr,
+                                "RS485 地址范围 1..127。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorPulsesPerTurn, "每圈脉冲", 4320, 1, 200000, 1, "脉冲",
+                                "输出轴转一圈对应的编码器脉冲数。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorTravelPulses, "门行程脉冲", 20000, 1, 2000000, 1, "脉冲",
+                                "开门或关门一次有界动作的目标脉冲。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorOpenDirection, "开门方向", 1, -1, 1, 1, nullptr,
+                                "1 为正转，-1 为反转。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorCloseDirection, "关门方向", -1, -1, 1, 1, nullptr,
+                                "1 为正转，-1 为反转。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorSpeedPermille, "速度", 700, 1, 1000, 1, "千分比",
+                                "下发给分站的电机速度请求。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorOverCurrentMa, "过流阈值", 2500, 1, 10000, 1, "mA",
+                                "分站本地保护阈值。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorMaxRunMs, "最长运行", 30000, 100, 600000, 100, "ms",
+                                "单次动作超时时间。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorMaxActionPulses, "最大脉冲", 100000, 1, 2000000, 1, "脉冲",
+                                "单次动作脉冲上限。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_ENABLED, "自动启用", 1, 0, 1, 1, nullptr,
+                                "1 表示启用每日自动计划。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_TZ_OFFSET_MIN, "时区偏移", 480, -720, 840, 1, "分钟",
+                                "本地时间相对 UTC 的偏移，中国为 480。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_ENABLED, "下料计划", 1, 0, 1, 1, nullptr,
+                                "1 表示启用每日下料时间点。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_1_MIN, "下料 1 分钟", 430, 0, 1439, 1, "分钟",
+                                "当天分钟数，例如 430 表示 07:10。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_1_AMOUNT_MG, "下料 1 数量", 100000, 1, 5000000, 1, "mg",
+                                "计划下料数量。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_2_MIN, "下料 2 分钟", 1090, 0, 1439, 1, "分钟",
+                                "当天分钟数，例如 1090 表示 18:10。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_2_AMOUNT_MG, "下料 2 数量", 100000, 1, 5000000, 1, "mg",
+                                "计划下料数量。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_ENABLED, "门控计划", 1, 0, 1, 1, nullptr,
+                                "1 表示启用每日开门/关门。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_OPEN_MIN, "开门分钟", 480, 0, 1439, 1, "分钟",
+                                "当天分钟数，例如 480 表示 08:00。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_CLOSE_MIN, "关门分钟", 1050, 0, 1439, 1, "分钟",
+                                "当天分钟数，例如 1050 表示 17:30。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_PAUSE_UNTIL, "下料暂停到", 0, 0, 2147483647, 1, "epoch",
+                                "0 表示未暂停；epoch 秒表示暂停自动下料到该时间。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_PAUSE_UNTIL, "门控暂停到", 0, 0, 2147483647, 1, "epoch",
+                                "0 表示未暂停；epoch 秒表示暂停自动门控到该时间。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, "启用 SHT30", true,
+                                 "读取室外温湿度。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, "SDA 引脚", 21, -1, 39, 1, nullptr,
+                                "-1 表示停用 SHT30 I2C。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, "SCL 引脚", 22, -1, 39, 1, nullptr,
+                                "-1 表示停用 SHT30 I2C。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, "I2C 地址", 68, 8, 119, 1, nullptr,
+                                "SHT30 7 位地址，常见 68 即 0x44。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, "采样间隔", 5000, 1000, 600000, 1000, "ms",
+                                "后台采样间隔。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, "记录间隔", 300, 10, 86400, 10, "s",
+                                "写入应用事件的最小间隔。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_ENABLED, "启用主控板 IO", true,
+                                 "驱动主控 RUN/ERR 灯，并读取本地按钮。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_RUN_LED_PIN, "RUN 灯引脚", 27, -1, 39, 1, nullptr,
+                                "-1 表示停用 RUN 灯输出。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_ERR_LED_PIN, "ERR 灯引脚", 14, -1, 39, 1, nullptr,
+                                "-1 表示停用 ERR 灯输出。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_LED_ACTIVE_LOW, "LED 低电平点亮", false,
+                                 "如果板载 LED 输出 LOW 时点亮，则启用。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BOOT_PIN, "BOOT 按钮引脚", 0, -1, 39, 1, nullptr,
+                                "GPIO0 BOOT 按钮输入；-1 表示停用。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_1_PIN, "按钮 1 引脚", -1, -1, 39, 1, nullptr,
+                                "预留本地按钮；-1 表示停用。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_2_PIN, "按钮 2 引脚", -1, -1, 39, 1, nullptr,
+                                "开门按钮输入；动作绑定在共享门控执行器完成后接入。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_3_PIN, "按钮 3 引脚", -1, -1, 39, 1, nullptr,
+                                "关门按钮输入；动作绑定在共享门控执行器完成后接入。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_4_PIN, "按钮 4 引脚", -1, -1, 39, 1, nullptr,
+                                "停止按钮输入；动作绑定在共享门控执行器完成后接入。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_ACTIVE_LOW, "按钮低电平按下", true,
+                                 "上拉按钮按下接地时启用。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_DEBOUNCE_MS, "消抖时间", 50, 10, 1000, 10, "ms",
+                                "按钮消抖间隔。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_LONG_PRESS_MS, "长按时间", 1000, 200, 10000, 100, "ms",
+                                "长按判定时间。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ENABLED, "启用通知规则", true,
+                                 "当前只保存规则，尚未接入外部发送通道。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_DONE, "动作完成", false,
+                                 "下料或门控动作完成时通知。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_FAILED, "动作失败", true,
+                                 "动作失败或被本地保护停止时通知。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_FAULT, "分站故障", true,
+                                 "分站回报故障时通知。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_OFFLINE, "分站离线", true,
+                                 "已配置分站离线时通知。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_SCHEDULE_SKIPPED, "计划跳过", true,
+                                 "自动计划被跳过时通知。", false, nullptr});
+    Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_POWER_RESTORED, "上电恢复", true,
+                                 "重启或断电恢复后通知。", false, nullptr});
+    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_MODE, "模式", FA_RS485_MODE_SIMULATED, 0, 2, 1, nullptr,
+                                "0 停用，1 真实串口，2 模拟地址 1 和 2 的分站。", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_UART, "UART", 2, 1, 2, 1, nullptr,
-                                "ESP32 hardware serial port for real UART mode.", true, nullptr});
-    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_RX_PIN, "RX pin", -1, -1, 39, 1, nullptr,
-                                "-1 disables RS485 transport.", true, nullptr});
-    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_TX_PIN, "TX pin", -1, -1, 39, 1, nullptr,
-                                "-1 disables RS485 transport; GPIO34-39 are input-only and invalid here.", true, nullptr});
-    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_DE_PIN, "DE pin", -1, -1, 39, 1, nullptr,
-                                "Driver enable pin; GPIO34-39 are input-only and invalid here.", true, nullptr});
-    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_BAUD, "Baud", 115200, 9600, 1000000, 1, "bps",
-                                "Default bus rate is 115200.", true, nullptr});
-    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_TIMEOUT_MS, "Timeout", 80, 20, 2000, 1, "ms",
-                                "Single request timeout.", true, nullptr});
+                                "真实串口模式使用的 ESP32 硬件串口。", true, nullptr});
+    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_RX_PIN, "RX 引脚", -1, -1, 39, 1, nullptr,
+                                "-1 表示停用 RS485 通讯。", true, nullptr});
+    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_TX_PIN, "TX 引脚", -1, -1, 39, 1, nullptr,
+                                "-1 表示停用 RS485 通讯；GPIO34-39 只能输入，不能作为 TX。", true, nullptr});
+    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_DE_PIN, "DE 引脚", -1, -1, 39, 1, nullptr,
+                                "485 方向控制引脚；GPIO34-39 只能输入，不能作为 DE。", true, nullptr});
+    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_BAUD, "波特率", 115200, 9600, 1000000, 1, "bps",
+                                "默认总线速率为 115200。", true, nullptr});
+    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_TIMEOUT_MS, "超时", 80, 20, 2000, 1, "ms",
+                                "单次请求超时时间。", true, nullptr});
 }
 
 void fa_master_web_register_routes(FaFeedService *feed_service,
@@ -722,14 +881,14 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_auto_scheduler = auto_scheduler;
     g_env_sensor = env_sensor;
     g_board_io = board_io;
-    Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
-    Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
-    Esp32BaseWeb::addPage("/auto", "Auto", sendAutoPage);
-    Esp32BaseWeb::addPage("/env", "Env", sendEnvPage);
-    Esp32BaseWeb::addPage("/board", "Board", sendBoardPage);
-    Esp32BaseWeb::addPage("/records", "Records", sendRecordsPage);
-    Esp32BaseWeb::addPage("/devices", "Devices", sendDevicesPage);
-    Esp32BaseWeb::addPage("/notify", "Notify", sendNotifyPage);
+    Esp32BaseWeb::addPage("/feed", "下料", sendFeedPage);
+    Esp32BaseWeb::addPage("/door", "门控", sendDoorPage);
+    Esp32BaseWeb::addPage("/auto", "自动", sendAutoPage);
+    Esp32BaseWeb::addPage("/env", "温湿度", sendEnvPage);
+    Esp32BaseWeb::addPage("/board", "主控板", sendBoardPage);
+    Esp32BaseWeb::addPage("/records", "记录", sendRecordsPage);
+    Esp32BaseWeb::addPage("/devices", "设备", sendDevicesPage);
+    Esp32BaseWeb::addPage("/notify", "通知", sendNotifyPage);
     Esp32BaseWeb::addPage("/bus", "RS485", sendBusPage);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
     Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);

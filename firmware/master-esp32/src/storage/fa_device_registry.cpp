@@ -287,7 +287,7 @@ void makeDefaultRecords(void) {
     g_devices[0].sort_order = 20u;
     g_devices[0].station_id = 1u;
     g_devices[0].config_version = 1u;
-    copyName(g_devices[0].name, sizeof(g_devices[0].name), "Feeder 01");
+    copyName(g_devices[0].name, sizeof(g_devices[0].name), "下料 01");
 
     g_devices[1].device_id = 2u;
     g_devices[1].type = FA_DEVICE_TYPE_DOOR;
@@ -296,7 +296,22 @@ void makeDefaultRecords(void) {
     g_devices[1].sort_order = 10u;
     g_devices[1].station_id = 2u;
     g_devices[1].config_version = 1u;
-    copyName(g_devices[1].name, sizeof(g_devices[1].name), "Door 01");
+    copyName(g_devices[1].name, sizeof(g_devices[1].name), "门控 01");
+}
+
+bool migrateLegacyDefaultNames(void) {
+    bool changed = false;
+    for (uint8_t i = 0u; i < g_header.device_count; ++i) {
+        FaDeviceRecord& device = g_devices[i];
+        if (device.device_id == 1u && strcmp(device.name, "Feeder 01") == 0) {
+            copyName(device.name, sizeof(device.name), "下料 01");
+            changed = true;
+        } else if (device.device_id == 2u && strcmp(device.name, "Door 01") == 0) {
+            copyName(device.name, sizeof(device.name), "门控 01");
+            changed = true;
+        }
+    }
+    return changed;
 }
 
 bool flushAll(void) {
@@ -406,6 +421,10 @@ bool FaDeviceRegistry::begin() {
     const int64_t size = Esp32BaseFs::fileSize(kPath);
     if (!Esp32BaseFs::exists(kPath) || size != static_cast<int64_t>(registryFileSize()) || !loadAll()) {
         makeDefaultRecords();
+        if (!flushAll()) {
+            return false;
+        }
+    } else if (migrateLegacyDefaultNames()) {
         if (!flushAll()) {
             return false;
         }

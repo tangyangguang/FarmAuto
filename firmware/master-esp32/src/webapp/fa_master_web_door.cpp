@@ -230,34 +230,34 @@ void sendDoorPage(void) {
     formatStationStatusLabel(deviceStatus, stationStatus, sizeof(stationStatus));
     char value[24];
 
-    Esp32BaseWeb::sendHeader("Door");
-    Esp32BaseWeb::sendPageTitle("Manual door", "Sends one bounded motor action for open or close, and can stop the active station action.");
+    Esp32BaseWeb::sendHeader("门控");
+    Esp32BaseWeb::sendPageTitle("手动门控", "下发一次有界开门或关门动作，也可以停止当前分站动作。");
 
     Esp32BaseWeb::beginMetricGrid();
     snprintf(value, sizeof(value), "%u", config.station_address);
-    Esp32BaseWeb::sendMetric("Station", value, "RS485 address");
+    Esp32BaseWeb::sendMetric("分站", value, "RS485 地址");
     snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(config.travel_pulses));
-    Esp32BaseWeb::sendMetric("Travel", value, "pulses");
+    Esp32BaseWeb::sendMetric("行程", value, "脉冲");
     snprintf(value, sizeof(value), "%d / %d", config.open_direction, config.close_direction);
-    Esp32BaseWeb::sendMetric("Direction", value, "open / close");
+    Esp32BaseWeb::sendMetric("方向", value, "开门 / 关门");
     Esp32BaseWeb::sendMetric("RS485",
-                             g_transport != nullptr && g_transport->isReady() ? FaRs485Transport::modeName(g_transport->config().mode) : "not configured");
-    Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceStatus.device_enabled ? "enabled" : "disabled");
-    Esp32BaseWeb::sendMetric("Station state", stationStatus);
-    Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
+                             g_transport != nullptr && g_transport->isReady() ? uiTransportMode(g_transport->config().mode) : "未配置");
+    Esp32BaseWeb::sendMetric("设备", deviceLabel, uiEnabled(deviceStatus.device_enabled));
+    Esp32BaseWeb::sendMetric("分站状态", stationStatus);
+    Esp32BaseWeb::sendMetric("动作", uiActionState(g_action_runtime != nullptr && g_action_runtime->isBusy()));
     Esp32BaseWeb::endMetricGrid();
 
-    Esp32BaseWeb::beginPanel("Run");
+    Esp32BaseWeb::beginPanel("执行");
     Esp32BaseWeb::sendChunk("<div class='actions'>");
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/open' onsubmit='return once(this)'><input type='submit' value='Open'></form>");
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/close' onsubmit='return once(this)'><input type='submit' value='Close'></form>");
-    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/stop' onsubmit='return once(this)'><input class='danger' type='submit' value='Stop'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/open' onsubmit='return once(this)'><input type='submit' value='开门'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/close' onsubmit='return once(this)'><input type='submit' value='关门'></form>");
+    Esp32BaseWeb::sendChunk("<form method='post' action='/api/door/stop' onsubmit='return once(this)'><input class='danger' type='submit' value='停止'></form>");
     Esp32BaseWeb::sendChunk("</div>");
     Esp32BaseWeb::endPanel();
 
     sendActiveActionPanel();
     sendRecentRecordsPanel();
 
-    Esp32BaseWeb::sendInfoRowCompactLink("Door parameters", "Station address, travel pulses, directions and safety limits are stored by Esp32Base App Config.", "App Config", "/esp32base/app-config", "Edit", Esp32BaseWeb::UI_INFO);
+    Esp32BaseWeb::sendInfoRowCompactLink("门控参数", "分站地址、行程脉冲、方向和保护阈值保存在配置页。", "配置", "/esp32base/app-config", "修改", Esp32BaseWeb::UI_INFO);
     Esp32BaseWeb::sendFooter();
 }

@@ -34,12 +34,12 @@ uint16_t clampScanTimeout(uint32_t value) {
 void sendBusMetricPins(void) {
     char pins[40];
     if (g_transport == nullptr) {
-        Esp32BaseWeb::sendMetric("Pins", "-");
+        Esp32BaseWeb::sendMetric("引脚", "-");
         return;
     }
     const FaRs485TransportConfig& config = g_transport->config();
     snprintf(pins, sizeof(pins), "RX %d / TX %d / DE %d", config.rx_pin, config.tx_pin, config.de_pin);
-    Esp32BaseWeb::sendMetric("Pins", pins);
+    Esp32BaseWeb::sendMetric("引脚", pins);
 }
 
 void sendBusNodeJson(const FaBusScanNode& node) {
@@ -70,27 +70,27 @@ void sendBusPage(void) {
     char value[24];
     const FaRs485TransportConfig config = g_transport != nullptr ? g_transport->config() : FaRs485Transport::defaultConfig();
 
-    Esp32BaseWeb::sendHeader("RS485 Bus");
-    Esp32BaseWeb::sendPageTitle("Bus scan", "Pings station addresses and reports nodes that answer.");
+    Esp32BaseWeb::sendHeader("RS485 总线");
+    Esp32BaseWeb::sendPageTitle("总线扫描", "向分站地址发送 PING，并显示有响应的节点。");
 
     Esp32BaseWeb::beginMetricGrid();
-    Esp32BaseWeb::sendMetric("State", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
+    Esp32BaseWeb::sendMetric("状态", g_transport != nullptr && g_transport->isReady() ? "就绪" : "未配置");
     snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(config.baud));
-    Esp32BaseWeb::sendMetric("Baud", value, "bps");
+    Esp32BaseWeb::sendMetric("波特率", value, "bps");
     snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(config.timeout_ms));
-    Esp32BaseWeb::sendMetric("Default timeout", value, "ms");
+    Esp32BaseWeb::sendMetric("默认超时", value, "ms");
     sendBusMetricPins();
     Esp32BaseWeb::endMetricGrid();
 
-    Esp32BaseWeb::beginPanel("Scan");
+    Esp32BaseWeb::beginPanel("扫描");
     Esp32BaseWeb::sendChunk("<form method='post' action='/api/bus/scan' onsubmit='return once(this)'><div class='fieldgrid'>");
-    Esp32BaseWeb::sendChunk("<div class='field med'><label>Start address</label><input type='number' name='start' min='1' max='127' value='1'></div>");
-    Esp32BaseWeb::sendChunk("<div class='field med'><label>End address</label><input type='number' name='end' min='1' max='127' value='127'></div>");
-    Esp32BaseWeb::sendChunk("<div class='field med'><label>Timeout</label><input type='number' name='timeout' min='20' max='2000' value='25'><small>Per address, ms.</small></div>");
-    Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='Scan'></div></form>");
+    Esp32BaseWeb::sendChunk("<div class='field med'><label>起始地址</label><input type='number' name='start' min='1' max='127' value='1'></div>");
+    Esp32BaseWeb::sendChunk("<div class='field med'><label>结束地址</label><input type='number' name='end' min='1' max='127' value='127'></div>");
+    Esp32BaseWeb::sendChunk("<div class='field med'><label>超时</label><input type='number' name='timeout' min='20' max='2000' value='25'><small>每个地址，单位 ms。</small></div>");
+    Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='扫描'></div></form>");
     Esp32BaseWeb::endPanel();
 
-    Esp32BaseWeb::sendInfoRowCompactLink("RS485 parameters", "UART, pins, baud and default timeout are stored by Esp32Base App Config.", "App Config", "/esp32base/app-config", "Edit", Esp32BaseWeb::UI_INFO);
+    Esp32BaseWeb::sendInfoRowCompactLink("RS485 参数", "UART、引脚、波特率和默认超时保存在配置页。", "配置", "/esp32base/app-config", "修改", Esp32BaseWeb::UI_INFO);
     Esp32BaseWeb::sendFooter();
 }
 

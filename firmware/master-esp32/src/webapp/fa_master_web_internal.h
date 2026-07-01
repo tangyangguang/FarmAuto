@@ -37,6 +37,15 @@ struct FaWebDeviceStatus {
 uint32_t readUIntParam(const char* name, uint32_t fallback);
 const char* statusName(uint8_t status);
 void sendNumber(uint32_t value);
+const char* uiEnabled(bool value);
+const char* uiReady(bool value);
+const char* uiActionState(bool busy);
+const char* uiTransportMode(uint8_t mode);
+const char* uiStationOnlineState(uint8_t state);
+const char* uiRecordState(uint8_t state);
+const char* uiStopReason(uint8_t reason);
+const char* uiFaultName(uint16_t fault);
+const char* uiRuntimeError(const char* error);
 void formatDeviceLabel(uint16_t device_id, char* out, size_t len);
 void copyActionRecordDeviceName(FaActionRecordStart& start, const FaWebDeviceStatus& status);
 const char* stationOnlineStateName(uint8_t state);

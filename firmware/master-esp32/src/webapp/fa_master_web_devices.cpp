@@ -5,11 +5,11 @@ namespace {
 const char* deviceTypeName(uint8_t type) {
     switch (type) {
     case FA_DEVICE_TYPE_DOOR:
-        return "door";
+        return "门控";
     case FA_DEVICE_TYPE_FEEDER:
-        return "feeder";
+        return "下料";
     default:
-        return "unknown";
+        return "未知";
     }
 }
 
@@ -43,15 +43,15 @@ void sendDeviceRow(const FaDeviceRecord& device) {
         Esp32BaseWeb::sendChunk("-");
     }
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(hasStation ? stationOnlineStateName(station.online_state) : "station_missing");
+    Esp32BaseWeb::writeHtmlEscaped(hasStation ? uiStationOnlineState(station.online_state) : "未绑定分站");
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(device.enabled != 0u ? "enabled" : "disabled");
+    Esp32BaseWeb::writeHtmlEscaped(uiEnabled(device.enabled != 0u));
     Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/devices/name' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
     sendNumber(device.device_id);
     Esp32BaseWeb::sendChunk("'><input name='name' maxlength='23' value='");
     Esp32BaseWeb::writeHtmlEscaped(device.name);
-    Esp32BaseWeb::sendChunk("'><input type='submit' value='Name'></form>");
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='改名'></form>");
     Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/display-order' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
     sendNumber(device.device_id);
@@ -59,14 +59,14 @@ void sendDeviceRow(const FaDeviceRecord& device) {
     sendNumber(device.display_no);
     Esp32BaseWeb::sendChunk("'><input type='number' name='sortOrder' min='0' max='65535' value='");
     sendNumber(device.sort_order);
-    Esp32BaseWeb::sendChunk("'><input type='submit' value='Order'></form>");
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='排序'></form>");
     Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/enabled' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
     sendNumber(device.device_id);
     Esp32BaseWeb::sendChunk("'><input type='hidden' name='enabled' value='");
     Esp32BaseWeb::sendChunk(device.enabled != 0u ? "0" : "1");
     Esp32BaseWeb::sendChunk("'><input type='submit' value='");
-    Esp32BaseWeb::sendChunk(device.enabled != 0u ? "Disable" : "Enable");
+    Esp32BaseWeb::sendChunk(device.enabled != 0u ? "停用" : "启用");
     Esp32BaseWeb::sendChunk("'></form>");
     Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/bind-station' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
@@ -77,7 +77,7 @@ void sendDeviceRow(const FaDeviceRecord& device) {
     } else {
         Esp32BaseWeb::sendChunk("1");
     }
-    Esp32BaseWeb::sendChunk("'><input type='submit' value='Bind'></form></td></tr>");
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='绑定'></form></td></tr>");
 }
 
 void sendStationRow(const FaStationRecord& station) {
@@ -86,9 +86,9 @@ void sendStationRow(const FaStationRecord& station) {
     Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(station.bus_address);
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(station.enabled != 0u ? "enabled" : "disabled");
+    Esp32BaseWeb::writeHtmlEscaped(uiEnabled(station.enabled != 0u));
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(stationOnlineStateName(station.online_state));
+    Esp32BaseWeb::writeHtmlEscaped(uiStationOnlineState(station.online_state));
     Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(station.protocol_version);
     Esp32BaseWeb::sendChunk("</td><td>");
@@ -105,11 +105,11 @@ void sendStationRow(const FaStationRecord& station) {
     Esp32BaseWeb::sendChunk("'><input type='hidden' name='enabled' value='");
     Esp32BaseWeb::sendChunk(station.enabled != 0u ? "0" : "1");
     Esp32BaseWeb::sendChunk("'><input type='submit' value='");
-    Esp32BaseWeb::sendChunk(station.enabled != 0u ? "Disable" : "Enable");
+    Esp32BaseWeb::sendChunk(station.enabled != 0u ? "停用" : "启用");
     Esp32BaseWeb::sendChunk("'></form><form method='post' action='/api/stations/clear-fault' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='address' value='");
     sendNumber(station.bus_address);
-    Esp32BaseWeb::sendChunk("'><input type='submit' value='Clear fault'></form></td></tr>");
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='清故障'></form></td></tr>");
 }
 
 }  // namespace
@@ -120,27 +120,27 @@ void sendDevicesPage(void) {
     }
 
     char value[24];
-    Esp32BaseWeb::sendHeader("Devices");
-    Esp32BaseWeb::sendPageTitle("Devices", "Business devices and their bound RS485 stations.");
+    Esp32BaseWeb::sendHeader("设备");
+    Esp32BaseWeb::sendPageTitle("设备管理", "管理业务设备及其绑定的 RS485 分站。");
 
     Esp32BaseWeb::beginMetricGrid();
-    Esp32BaseWeb::sendMetric("Registry", g_device_registry != nullptr && g_device_registry->isReady() ? "ready" : "unavailable");
+    Esp32BaseWeb::sendMetric("设备表", g_device_registry != nullptr && g_device_registry->isReady() ? "就绪" : "不可用");
     snprintf(value, sizeof(value), "%u", g_device_registry != nullptr ? g_device_registry->deviceCount() : 0u);
-    Esp32BaseWeb::sendMetric("Devices", value);
+    Esp32BaseWeb::sendMetric("设备数", value);
     snprintf(value, sizeof(value), "%u", g_device_registry != nullptr ? g_device_registry->stationCount() : 0u);
-    Esp32BaseWeb::sendMetric("Stations", value);
+    Esp32BaseWeb::sendMetric("分站数", value);
     snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(g_device_registry != nullptr ? g_device_registry->sequence() : 0u));
-    Esp32BaseWeb::sendMetric("Sequence", value);
+    Esp32BaseWeb::sendMetric("序号", value);
     Esp32BaseWeb::endMetricGrid();
 
     if (g_device_registry == nullptr || !g_device_registry->isReady()) {
-        Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN, "Registry unavailable", "LittleFS device registry is not ready.");
+        Esp32BaseWeb::sendNotice(Esp32BaseWeb::UI_WARN, "设备表不可用", "LittleFS 设备表未就绪。");
         Esp32BaseWeb::sendFooter();
         return;
     }
 
-    Esp32BaseWeb::beginPanel("Business devices");
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>No.</th><th>Sort</th><th>Station / Addr</th><th>Station state</th><th>Device state</th><th>Action</th></tr></thead><tbody>");
+    Esp32BaseWeb::beginPanel("业务设备");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>名称</th><th>类型</th><th>编号</th><th>排序</th><th>分站 / 地址</th><th>分站状态</th><th>设备状态</th><th>操作</th></tr></thead><tbody>");
     bool sent[FaDeviceRegistry::kMaxDevices] = {};
     const uint8_t deviceCount = g_device_registry->deviceCount();
     for (uint8_t emitted = 0u; emitted < deviceCount; ++emitted) {
@@ -165,8 +165,8 @@ void sendDevicesPage(void) {
     Esp32BaseWeb::sendChunk("</tbody></table></div>");
     Esp32BaseWeb::endPanel();
 
-    Esp32BaseWeb::beginPanel("Stations");
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Addr</th><th>Enabled</th><th>Online</th><th>Proto</th><th>FW</th><th>Caps</th><th>Seen</th><th>Error</th><th>Action</th></tr></thead><tbody>");
+    Esp32BaseWeb::beginPanel("分站");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>地址</th><th>启用</th><th>在线</th><th>协议</th><th>固件</th><th>能力</th><th>最近在线</th><th>错误</th><th>操作</th></tr></thead><tbody>");
     for (uint8_t i = 0u; i < g_device_registry->stationCount(); ++i) {
         FaStationRecord station;
         if (g_device_registry->stationAt(i, station)) {
@@ -176,7 +176,7 @@ void sendDevicesPage(void) {
     Esp32BaseWeb::sendChunk("</tbody></table></div>");
     Esp32BaseWeb::endPanel();
 
-    Esp32BaseWeb::sendInfoRowCompactLink("Bus discovery", "Run RS485 scan to refresh station firmware, protocol and capability information.", "RS485", "/bus", "Open", Esp32BaseWeb::UI_INFO);
+    Esp32BaseWeb::sendInfoRowCompactLink("总线发现", "运行 RS485 扫描，刷新分站固件、协议和能力信息。", "RS485", "/bus", "打开", Esp32BaseWeb::UI_INFO);
     Esp32BaseWeb::sendFooter();
 }
 

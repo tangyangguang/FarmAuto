@@ -17,36 +17,36 @@ void sendFeedPage(void) {
     formatStationStatusLabel(deviceStatus, stationStatus, sizeof(stationStatus));
     char value[24];
 
-    Esp32BaseWeb::sendHeader("Feed");
-    Esp32BaseWeb::sendPageTitle("Manual feed", "Sends one bounded feeder action when RS485 is configured; otherwise previews it.");
+    Esp32BaseWeb::sendHeader("下料");
+    Esp32BaseWeb::sendPageTitle("手动下料", "通过 RS485 下发一次有界下料动作；未连接真实 485 时只走当前配置的通讯模式。");
 
     Esp32BaseWeb::beginMetricGrid();
     snprintf(value, sizeof(value), "%u", config.station_address);
-    Esp32BaseWeb::sendMetric("Station", value, "RS485 address");
+    Esp32BaseWeb::sendMetric("分站", value, "RS485 地址");
     snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(config.pulses_per_turn));
-    Esp32BaseWeb::sendMetric("Pulses/turn", value);
+    Esp32BaseWeb::sendMetric("每圈脉冲", value);
     snprintf(value, sizeof(value), "%lu", static_cast<unsigned long>(config.grams_per_turn_mg));
-    Esp32BaseWeb::sendMetric("mg/turn", value);
+    Esp32BaseWeb::sendMetric("每圈毫克", value);
     snprintf(value, sizeof(value), "%u", FaActionRecordStore::count());
-    Esp32BaseWeb::sendMetric("Records", value, FaActionRecordStore::isReady() ? "LittleFS ring ready" : "Store unavailable");
+    Esp32BaseWeb::sendMetric("记录", value, FaActionRecordStore::isReady() ? "LittleFS 环形记录就绪" : "记录不可用");
     Esp32BaseWeb::sendMetric("RS485",
-                             g_transport != nullptr && g_transport->isReady() ? FaRs485Transport::modeName(g_transport->config().mode) : "not configured");
-    Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceStatus.device_enabled ? "enabled" : "disabled");
-    Esp32BaseWeb::sendMetric("Station state", stationStatus);
-    Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
+                             g_transport != nullptr && g_transport->isReady() ? uiTransportMode(g_transport->config().mode) : "未配置");
+    Esp32BaseWeb::sendMetric("设备", deviceLabel, uiEnabled(deviceStatus.device_enabled));
+    Esp32BaseWeb::sendMetric("分站状态", stationStatus);
+    Esp32BaseWeb::sendMetric("动作", uiActionState(g_action_runtime != nullptr && g_action_runtime->isBusy()));
     Esp32BaseWeb::endMetricGrid();
 
-    Esp32BaseWeb::beginPanel("Run");
+    Esp32BaseWeb::beginPanel("执行");
     Esp32BaseWeb::sendChunk("<form method='post' action='/api/feed/manual' onsubmit='return once(this)'><div class='fieldgrid'>");
-    Esp32BaseWeb::sendChunk("<div class='field med'><label>Amount</label><input type='number' name='amount' min='1' max='1000000' value='4000'><small>Stored as mg or turns x1000.</small></div>");
-    Esp32BaseWeb::sendChunk("<div class='field med'><label>Mode</label><select name='mode'><option value='mg'>mg</option><option value='turns'>turns x1000</option></select><small>Use App Config for calibration.</small></div>");
-    Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='Run / preview'></div></form>");
+    Esp32BaseWeb::sendChunk("<div class='field med'><label>数量</label><input type='number' name='amount' min='1' max='1000000' value='4000'><small>按毫克或千分之一圈填写。</small></div>");
+    Esp32BaseWeb::sendChunk("<div class='field med'><label>模式</label><select name='mode'><option value='mg'>毫克</option><option value='turns'>千分之一圈</option></select><small>标定参数在配置页维护。</small></div>");
+    Esp32BaseWeb::sendChunk("</div><div class='actions'><input type='submit' value='执行'></div></form>");
     Esp32BaseWeb::endPanel();
 
     sendActiveActionPanel();
     sendRecentRecordsPanel();
 
-    Esp32BaseWeb::sendInfoRowCompactLink("Feeder parameters", "Station address, pulses/turn, grams/turn and safety limits are stored by Esp32Base App Config.", "App Config", "/esp32base/app-config", "Edit", Esp32BaseWeb::UI_INFO);
+    Esp32BaseWeb::sendInfoRowCompactLink("下料参数", "分站地址、每圈脉冲、每圈克数和保护阈值保存在配置页。", "配置", "/esp32base/app-config", "修改", Esp32BaseWeb::UI_INFO);
 
     Esp32BaseWeb::sendFooter();
 }
