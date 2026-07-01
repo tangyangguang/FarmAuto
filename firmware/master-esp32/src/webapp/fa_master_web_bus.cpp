@@ -103,6 +103,7 @@ void sendBusScanApi(void) {
         return;
     }
     if (!g_transport->isReady()) {
+        ESP32BASE_LOG_W("farm", "bus_scan_blocked transport_not_configured");
         Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"transport\":\"not_configured\"}");
         return;
     }
@@ -114,6 +115,11 @@ void sendBusScanApi(void) {
         Esp32BaseWeb::sendJson(400, "{\"ok\":false,\"error\":\"bad_range\"}");
         return;
     }
+
+    ESP32BASE_LOG_I("farm", "bus_scan_start start=%u end=%u timeout_ms=%u",
+                    start,
+                    end,
+                    timeout_ms);
 
     FaBusScanNode nodes[FA_ADDRESS_MAX];
     uint8_t found = 0u;
@@ -134,6 +140,9 @@ void sendBusScanApi(void) {
                                                                       &seq);
         if (frame_result != FA_FRAME_OK) {
             ++errors;
+            ESP32BASE_LOG_W("farm", "bus_scan_error addr=%u stage=build_ping error=%u",
+                            address,
+                            static_cast<uint16_t>(frame_result));
         } else {
             const FaRs485TransportStatus tx_status = g_transport->transact(request,
                                                                            request_len,
@@ -145,6 +154,9 @@ void sendBusScanApi(void) {
                 ++timeouts;
             } else if (tx_status != FaRs485TransportStatus::OK) {
                 ++errors;
+                ESP32BASE_LOG_W("farm", "bus_scan_error addr=%u stage=transport error=%s",
+                                address,
+                                FaRs485Transport::statusName(tx_status));
             } else {
                 FaMasterPingResponse ping;
                 const uint8_t status = fa_rs485_master_parse_ping(response, response_len, address, seq, &ping);
@@ -160,13 +172,29 @@ void sendBusScanApi(void) {
                     nodes[found].capability_flags = ping.capability_flags;
                     nodes[found].max_payload_len = ping.max_payload_len;
                     ++found;
+                    ESP32BASE_LOG_I("farm", "bus_scan_found addr=%u effective=%u raw=%u fw=%u caps=%lu",
+                                    address,
+                                    ping.effective_bus_address,
+                                    ping.raw_address_input,
+                                    ping.firmware_version,
+                                    static_cast<unsigned long>(ping.capability_flags));
                 } else {
                     ++errors;
+                    ESP32BASE_LOG_W("farm", "bus_scan_error addr=%u stage=parse status=%u",
+                                    address,
+                                    status);
                 }
             }
         }
         yield();
     }
+
+    ESP32BASE_LOG_I("farm", "bus_scan_done start=%u end=%u found=%u timeouts=%u errors=%u",
+                    start,
+                    end,
+                    found,
+                    timeouts,
+                    errors);
 
     Esp32BaseWeb::beginJson(200);
     Esp32BaseWeb::sendChunk("\"ok\":true,\"start\":");

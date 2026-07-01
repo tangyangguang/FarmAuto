@@ -1,6 +1,7 @@
 #include "fa_station_poller.h"
 
 #include <Arduino.h>
+#include <Esp32Base.h>
 
 namespace {
 
@@ -71,6 +72,12 @@ void FaStationPoller::pollOne() {
                                                                            &request_len,
                                                                            &seq);
         if (frame_result != FA_FRAME_OK) {
+            if (station.online_state != FA_STATION_ONLINE_ERROR ||
+                station.last_error != static_cast<uint16_t>(frame_result)) {
+                ESP32BASE_LOG_W("farm", "station_poll_error addr=%u stage=build_status error=%u",
+                                station.bus_address,
+                                static_cast<uint16_t>(frame_result));
+            }
             (void)registry_->markStationError(station.bus_address, static_cast<uint16_t>(frame_result));
             return;
         }
@@ -82,11 +89,23 @@ void FaStationPoller::pollOne() {
                                                                       &response_len,
                                                                       0u);
         if (tx_status == FaRs485TransportStatus::TIMEOUT) {
-            (void)registry_->markStationOffline(station.bus_address, transportErrorCode(tx_status));
+            const uint16_t error_code = transportErrorCode(tx_status);
+            if (station.online_state != FA_STATION_ONLINE_OFFLINE || station.last_error != error_code) {
+                ESP32BASE_LOG_W("farm", "station_offline addr=%u error=%s",
+                                station.bus_address,
+                                FaRs485Transport::statusName(tx_status));
+            }
+            (void)registry_->markStationOffline(station.bus_address, error_code);
             return;
         }
         if (tx_status != FaRs485TransportStatus::OK) {
-            (void)registry_->markStationError(station.bus_address, transportErrorCode(tx_status));
+            const uint16_t error_code = transportErrorCode(tx_status);
+            if (station.online_state != FA_STATION_ONLINE_ERROR || station.last_error != error_code) {
+                ESP32BASE_LOG_W("farm", "station_poll_error addr=%u stage=transport error=%s",
+                                station.bus_address,
+                                FaRs485Transport::statusName(tx_status));
+            }
+            (void)registry_->markStationError(station.bus_address, error_code);
             return;
         }
 
@@ -97,8 +116,20 @@ void FaStationPoller::pollOne() {
                                                                   seq,
                                                                   &status);
         if (parse_status == FA_STATUS_OK) {
+            if (station.online_state != FA_STATION_ONLINE_ONLINE || station.last_error != 0u) {
+                ESP32BASE_LOG_I("farm", "station_online addr=%u active_action=%lu state=%u fault=%u",
+                                station.bus_address,
+                                static_cast<unsigned long>(status.active_action_id),
+                                status.motor_state,
+                                status.common.fault_code);
+            }
             (void)registry_->markStationOnline(station.bus_address, FaMasterActionRuntime::nowSeconds());
         } else {
+            if (station.online_state != FA_STATION_ONLINE_ERROR || station.last_error != parse_status) {
+                ESP32BASE_LOG_W("farm", "station_poll_error addr=%u stage=parse status=%u",
+                                station.bus_address,
+                                parse_status);
+            }
             (void)registry_->markStationError(station.bus_address, parse_status);
         }
         return;
