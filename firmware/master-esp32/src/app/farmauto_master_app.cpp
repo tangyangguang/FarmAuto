@@ -8,6 +8,7 @@
 #include "fa_device_registry.h"
 #include "fa_master_web.h"
 #include "fa_rs485_transport.h"
+#include "fa_station_poller.h"
 
 extern "C" {
 #include "fa_door_service.h"
@@ -21,6 +22,7 @@ static FaFeedService g_feed;
 static FaDoorService g_door;
 static FaDeviceRegistry g_device_registry;
 static FaMasterActionRuntime g_action_runtime;
+static FaStationPoller g_station_poller;
 
 void farmauto_master_setup(void) {
     Esp32Base::setFirmwareInfo("farmauto-master", "0.1.0");
@@ -36,6 +38,7 @@ void farmauto_master_setup(void) {
     fa_feed_service_init(&g_feed, 1u);
     fa_door_service_init(&g_door, 700001u);
     g_action_runtime.begin(&g_rs485, &g_transport);
+    g_station_poller.begin(&g_rs485, &g_transport, &g_device_registry, &g_action_runtime);
     if (!FaActionRecordStore::begin()) {
         ESP32BASE_LOG_W("farm", "action_record_store_unavailable");
     }
@@ -49,5 +52,6 @@ void farmauto_master_setup(void) {
 void farmauto_master_loop(void) {
     Esp32Base::handle();
     g_action_runtime.handle();
+    g_station_poller.handle();
     delay(10);
 }

@@ -21,6 +21,7 @@ constexpr uint16_t kStationRecordLen = 22u;
 constexpr uint16_t kStationSlotLen = 24u;
 constexpr uint16_t kDeviceRecordLen = 46u;
 constexpr uint16_t kDeviceSlotLen = 48u;
+constexpr uint32_t kOnlineSeenPersistIntervalSeconds = 60u;
 
 struct RegistryHeader {
     uint8_t station_capacity = FaDeviceRegistry::kMaxStations;
@@ -538,6 +539,47 @@ bool FaDeviceRegistry::updateStationFromPing(uint8_t bus_address, const FaMaster
     return persistStation(static_cast<uint8_t>(index));
 }
 
+bool FaDeviceRegistry::markStationOnline(uint8_t bus_address, uint32_t seen_at) {
+    if (!isReady() || !fa_address_is_normal(bus_address)) {
+        return false;
+    }
+    const int index = findStationIndexByAddress(bus_address);
+    if (index < 0) {
+        return false;
+    }
+    FaStationRecord& station = g_stations[index];
+    const bool should_persist = station.online_state != FA_STATION_ONLINE_ONLINE ||
+                                station.last_error != 0u ||
+                                seen_at < station.last_seen_at ||
+                                seen_at - station.last_seen_at >= kOnlineSeenPersistIntervalSeconds;
+    station.online_state = FA_STATION_ONLINE_ONLINE;
+    station.last_seen_at = seen_at;
+    station.last_error = 0u;
+    if (!should_persist) {
+        return true;
+    }
+    return persistStation(static_cast<uint8_t>(index));
+}
+
+bool FaDeviceRegistry::markStationOffline(uint8_t bus_address, uint16_t error_code) {
+    if (!isReady() || !fa_address_is_normal(bus_address)) {
+        return false;
+    }
+    const int index = findStationIndexByAddress(bus_address);
+    if (index < 0) {
+        return false;
+    }
+    FaStationRecord& station = g_stations[index];
+    const bool should_persist = station.online_state != FA_STATION_ONLINE_OFFLINE ||
+                                station.last_error != error_code;
+    station.online_state = FA_STATION_ONLINE_OFFLINE;
+    station.last_error = error_code;
+    if (!should_persist) {
+        return true;
+    }
+    return persistStation(static_cast<uint8_t>(index));
+}
+
 bool FaDeviceRegistry::markStationError(uint8_t bus_address, uint16_t error_code) {
     if (!isReady() || !fa_address_is_normal(bus_address)) {
         return false;
@@ -546,8 +588,14 @@ bool FaDeviceRegistry::markStationError(uint8_t bus_address, uint16_t error_code
     if (index < 0) {
         return false;
     }
-    g_stations[index].online_state = FA_STATION_ONLINE_ERROR;
-    g_stations[index].last_error = error_code;
+    FaStationRecord& station = g_stations[index];
+    const bool should_persist = station.online_state != FA_STATION_ONLINE_ERROR ||
+                                station.last_error != error_code;
+    station.online_state = FA_STATION_ONLINE_ERROR;
+    station.last_error = error_code;
+    if (!should_persist) {
+        return true;
+    }
     return persistStation(static_cast<uint8_t>(index));
 }
 

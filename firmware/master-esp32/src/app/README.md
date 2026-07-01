@@ -10,6 +10,7 @@ Current scope:
 - Append the terminal action record to the LittleFS action record ring.
 - Mark an active action as communication failed after 5 consecutive status poll failures.
 - Keep the first LittleFS-backed device registry for business devices and scanned stations.
+- Poll enabled stations at low frequency when no action is running, updating online/offline/error state.
 
 Out of scope:
 

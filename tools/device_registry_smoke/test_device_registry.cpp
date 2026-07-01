@@ -64,6 +64,15 @@ int main() {
     expect_u32(station.online_state, FA_STATION_ONLINE_ONLINE, "station online");
     expect_u32(station.firmware_version, 7u, "station firmware captured");
     expect_u32(station.last_seen_at, 1234u, "station seen time captured");
+    expect_true(registry.markStationOffline(5u, 0x8006u), "mark station offline");
+    expect_true(registry.stationByAddress(5u, station), "station 5 after offline");
+    expect_u32(station.online_state, FA_STATION_ONLINE_OFFLINE, "station offline");
+    expect_u32(station.last_error, 0x8006u, "offline error captured");
+    expect_true(registry.markStationOnline(5u, 2233u), "mark station online");
+    expect_true(registry.stationByAddress(5u, station), "station 5 after online");
+    expect_u32(station.online_state, FA_STATION_ONLINE_ONLINE, "station back online");
+    expect_u32(station.last_seen_at, 2233u, "online seen time captured");
+    expect_u32(station.last_error, 0u, "online clears last error");
 
     FaDeviceRegistry reloaded;
     expect_true(reloaded.begin(), "registry reloads existing file");
@@ -71,6 +80,7 @@ int main() {
     expect_u32(feeder.enabled, 0u, "feeder disabled persisted after reload");
     expect_true(reloaded.stationByAddress(5u, station), "reloaded station 5 exists");
     expect_u32(station.firmware_version, 7u, "station firmware persisted after reload");
+    expect_u32(station.last_seen_at, 2233u, "station online state persisted after reload");
 
     if (failures != 0) {
         return 1;

@@ -1,0 +1,107 @@
+#include "fa_station_poller.h"
+
+#include <Arduino.h>
+
+namespace {
+
+uint16_t transportErrorCode(FaRs485TransportStatus status) {
+    return static_cast<uint16_t>(0x8000u | static_cast<uint8_t>(status));
+}
+
+}  // namespace
+
+void FaStationPoller::begin(FaRs485Master* master,
+                            FaRs485Transport* transport,
+                            FaDeviceRegistry* registry,
+                            FaMasterActionRuntime* action_runtime) {
+    master_ = master;
+    transport_ = transport;
+    registry_ = registry;
+    action_runtime_ = action_runtime;
+    last_poll_ms_ = 0u;
+    next_index_ = 0u;
+}
+
+void FaStationPoller::handle() {
+    if (master_ == nullptr || transport_ == nullptr || registry_ == nullptr ||
+        action_runtime_ == nullptr || !registry_->isReady() || !transport_->isReady()) {
+        return;
+    }
+    if (action_runtime_->isBusy()) {
+        return;
+    }
+
+    const uint32_t now_ms = millis();
+    if (last_poll_ms_ != 0u && now_ms - last_poll_ms_ < kDefaultPollIntervalMs) {
+        return;
+    }
+    last_poll_ms_ = now_ms;
+    pollOne();
+}
+
+void FaStationPoller::pollOne() {
+    const uint8_t count = registry_->stationCount();
+    if (count == 0u) {
+        next_index_ = 0u;
+        return;
+    }
+    if (next_index_ >= count) {
+        next_index_ = 0u;
+    }
+
+    for (uint8_t attempt = 0u; attempt < count; ++attempt) {
+        FaStationRecord station;
+        const uint8_t index = next_index_;
+        next_index_ = static_cast<uint8_t>((next_index_ + 1u) % count);
+        if (!registry_->stationAt(index, station) ||
+            station.enabled == 0u ||
+            !fa_address_is_normal(station.bus_address)) {
+            continue;
+        }
+
+        uint8_t request[FA_MAX_FRAME_LEN];
+        uint8_t response[FA_MAX_FRAME_LEN];
+        size_t request_len = 0u;
+        size_t response_len = 0u;
+        uint8_t seq = 0u;
+        const FaFrameResult frame_result = fa_rs485_master_build_get_status(master_,
+                                                                           station.bus_address,
+                                                                           request,
+                                                                           sizeof(request),
+                                                                           &request_len,
+                                                                           &seq);
+        if (frame_result != FA_FRAME_OK) {
+            (void)registry_->markStationError(station.bus_address, static_cast<uint16_t>(frame_result));
+            return;
+        }
+
+        const FaRs485TransportStatus tx_status = transport_->transact(request,
+                                                                      request_len,
+                                                                      response,
+                                                                      sizeof(response),
+                                                                      &response_len,
+                                                                      0u);
+        if (tx_status == FaRs485TransportStatus::TIMEOUT) {
+            (void)registry_->markStationOffline(station.bus_address, transportErrorCode(tx_status));
+            return;
+        }
+        if (tx_status != FaRs485TransportStatus::OK) {
+            (void)registry_->markStationError(station.bus_address, transportErrorCode(tx_status));
+            return;
+        }
+
+        FaMasterStatusResponse status;
+        const uint8_t parse_status = fa_rs485_master_parse_status(response,
+                                                                  response_len,
+                                                                  station.bus_address,
+                                                                  seq,
+                                                                  &status);
+        if (parse_status == FA_STATUS_OK) {
+            (void)registry_->markStationOnline(station.bus_address, FaMasterActionRuntime::nowSeconds());
+        } else {
+            (void)registry_->markStationError(station.bus_address, parse_status);
+        }
+        return;
+    }
+
+}
