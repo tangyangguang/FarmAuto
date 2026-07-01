@@ -645,5 +645,6 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addApi("/api/devices/name", sendDeviceNameApi);
     Esp32BaseWeb::addApi("/api/devices/display-order", sendDeviceDisplayOrderApi);
     Esp32BaseWeb::addApi("/api/devices/bind-station", sendDeviceBindStationApi);
+    Esp32BaseWeb::addApi("/api/stations/enabled", sendStationSetEnabledApi);
     Esp32BaseWeb::addApi("/api/stations/clear-fault", sendStationClearFaultApi);
 }

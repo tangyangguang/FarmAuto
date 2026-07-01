@@ -81,6 +81,14 @@ int main() {
     expect_u32(station.online_state, FA_STATION_ONLINE_ONLINE, "station back online");
     expect_u32(station.last_seen_at, 2233u, "online seen time captured");
     expect_u32(station.last_error, 0u, "online clears last error");
+    expect_true(registry.setStationEnabled(5u, false), "disable station 5");
+    expect_true(registry.stationByAddress(5u, station), "station 5 after disable");
+    expect_u32(station.enabled, 0u, "station disabled in memory");
+    expect_true(!registry.setStationEnabled(0u, true), "reject reserved station enable address");
+    expect_true(!registry.setStationEnabled(99u, true), "reject missing station enable address");
+    expect_true(registry.setStationEnabled(5u, true), "enable station 5");
+    expect_true(registry.stationByAddress(5u, station), "station 5 after enable");
+    expect_u32(station.enabled, 1u, "station enabled in memory");
     expect_true(registry.setDeviceStationByAddress(feeder.device_id, 5u), "bind feeder to station 5");
     expect_true(registry.deviceById(feeder.device_id, feeder), "read rebound feeder");
     expect_u32(feeder.station_id, 5u, "feeder station updated in memory");
@@ -105,6 +113,7 @@ int main() {
     expect_u32(feeder.sort_order, 30u, "feeder sort order persisted after reload");
     expect_string(feeder.name, "Feeder A", "feeder name persisted after reload");
     expect_true(reloaded.stationByAddress(5u, station), "reloaded station 5 exists");
+    expect_u32(station.enabled, 1u, "station enabled persisted after reload");
     expect_u32(station.firmware_version, 7u, "station firmware persisted after reload");
     expect_u32(station.last_seen_at, 2233u, "station online state persisted after reload");
 

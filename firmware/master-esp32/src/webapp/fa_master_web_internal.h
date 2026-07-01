@@ -92,6 +92,7 @@ void sendDeviceSetEnabledApi(void);
 void sendDeviceNameApi(void);
 void sendDeviceDisplayOrderApi(void);
 void sendDeviceBindStationApi(void);
+void sendStationSetEnabledApi(void);
 void sendStationClearFaultApi(void);
 
 #endif

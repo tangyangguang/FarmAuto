@@ -496,6 +496,18 @@ bool FaDeviceRegistry::stationByAddress(uint8_t bus_address, FaStationRecord& ou
     return true;
 }
 
+bool FaDeviceRegistry::setStationEnabled(uint8_t bus_address, bool enabled) {
+    if (!isReady() || !fa_address_is_normal(bus_address)) {
+        return false;
+    }
+    const int index = findStationIndexByAddress(bus_address);
+    if (index < 0) {
+        return false;
+    }
+    g_stations[index].enabled = enabled ? 1u : 0u;
+    return persistStation(static_cast<uint8_t>(index));
+}
+
 bool FaDeviceRegistry::setDeviceEnabled(uint16_t device_id, bool enabled) {
     if (!isReady()) {
         return false;

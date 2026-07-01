@@ -57,6 +57,7 @@ public:
     bool stationById(uint16_t station_id, FaStationRecord& out) const;
     bool stationByAddress(uint8_t bus_address, FaStationRecord& out) const;
 
+    bool setStationEnabled(uint8_t bus_address, bool enabled);
     bool setDeviceEnabled(uint16_t device_id, bool enabled);
     bool setDeviceName(uint16_t device_id, const char* name);
     bool setDeviceStationByAddress(uint16_t device_id, uint8_t bus_address);

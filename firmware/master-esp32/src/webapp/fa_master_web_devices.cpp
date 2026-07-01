@@ -99,7 +99,14 @@ void sendStationRow(const FaStationRecord& station) {
     sendNumber(station.last_seen_at);
     Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(station.last_error);
-    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/stations/clear-fault' onsubmit='return once(this)'>");
+    Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/stations/enabled' onsubmit='return once(this)'>");
+    Esp32BaseWeb::sendChunk("<input type='hidden' name='address' value='");
+    sendNumber(station.bus_address);
+    Esp32BaseWeb::sendChunk("'><input type='hidden' name='enabled' value='");
+    Esp32BaseWeb::sendChunk(station.enabled != 0u ? "0" : "1");
+    Esp32BaseWeb::sendChunk("'><input type='submit' value='");
+    Esp32BaseWeb::sendChunk(station.enabled != 0u ? "Disable" : "Enable");
+    Esp32BaseWeb::sendChunk("'></form><form method='post' action='/api/stations/clear-fault' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='address' value='");
     sendNumber(station.bus_address);
     Esp32BaseWeb::sendChunk("'><input type='submit' value='Clear fault'></form></td></tr>");
@@ -326,6 +333,42 @@ void sendDeviceBindStationApi(void) {
     Esp32BaseWeb::sendChunk(",\"stationAddress\":");
     sendNumber(address);
     Esp32BaseWeb::sendChunk(",\"message\":\"device station binding updated\"");
+    Esp32BaseWeb::endJson();
+}
+
+void sendStationSetEnabledApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("station_enabled")) {
+        return;
+    }
+    if (g_device_registry == nullptr || !g_device_registry->isReady()) {
+        Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"registry_unavailable\"}");
+        return;
+    }
+    if (g_action_runtime != nullptr && g_action_runtime->isBusy()) {
+        Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"action_busy\"}");
+        return;
+    }
+
+    const uint8_t address = static_cast<uint8_t>(readUIntParam("address", 0u));
+    const bool enabled = readUIntParam("enabled", 0u) != 0u;
+    if (!fa_address_is_normal(address)) {
+        Esp32BaseWeb::sendJson(400, "{\"ok\":false,\"error\":\"bad_address\"}");
+        return;
+    }
+    if (!g_device_registry->setStationEnabled(address, enabled)) {
+        Esp32BaseWeb::sendJson(404, "{\"ok\":false,\"error\":\"station_not_found\"}");
+        return;
+    }
+
+    ESP32BASE_LOG_I("farm", "station_enabled_updated addr=%u enabled=%u",
+                    address,
+                    enabled ? 1u : 0u);
+    Esp32BaseWeb::beginJson(200);
+    Esp32BaseWeb::sendChunk("\"ok\":true,\"stationAddress\":");
+    sendNumber(address);
+    Esp32BaseWeb::sendChunk(",\"enabled\":");
+    Esp32BaseWeb::sendChunk(enabled ? "true" : "false");
+    Esp32BaseWeb::sendChunk(",\"message\":\"station state updated\"");
     Esp32BaseWeb::endJson();
 }
 
