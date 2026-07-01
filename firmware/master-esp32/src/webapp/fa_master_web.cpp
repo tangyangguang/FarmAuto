@@ -13,6 +13,7 @@ FaRs485Master* g_rs485_master = nullptr;
 FaRs485Transport* g_transport = nullptr;
 FaMasterActionRuntime* g_action_runtime = nullptr;
 FaAutoScheduler* g_auto_scheduler = nullptr;
+FaEnvSensorService* g_env_sensor = nullptr;
 
 uint32_t readUIntParam(const char* name, uint32_t fallback) {
     char raw[16] = "";
@@ -574,6 +575,7 @@ void fa_master_web_register_config(void) {
     Esp32BaseAppConfig::addGroup({"feeder", "Feeder"});
     Esp32BaseAppConfig::addGroup({"door", "Door"});
     Esp32BaseAppConfig::addGroup({"auto", "Auto"});
+    Esp32BaseAppConfig::addGroup({"env", "Environment"});
     Esp32BaseAppConfig::addGroup({"notify", "Notify"});
     Esp32BaseAppConfig::addGroup({"rs485", "RS485"});
     Esp32BaseAppConfig::addInt({"feeder", kNs, kStationAddress, "Station address", 1, 1, 127, 1, nullptr,
@@ -634,6 +636,18 @@ void fa_master_web_register_config(void) {
                                 "0 means not paused; epoch seconds pauses automatic feed.", false, nullptr});
     Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_PAUSE_UNTIL, "Door pause until", 0, 0, 2147483647, 1, "epoch",
                                 "0 means not paused; epoch seconds pauses automatic door.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, "SHT30 enabled", true,
+                                 "Read outdoor temperature and humidity from SHT30.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, "SDA pin", 21, -1, 39, 1, nullptr,
+                                "-1 disables SHT30 I2C.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, "SCL pin", 22, -1, 39, 1, nullptr,
+                                "-1 disables SHT30 I2C.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, "I2C address", 68, 8, 119, 1, nullptr,
+                                "SHT30 7-bit address, usually 68 decimal for 0x44.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, "Sample interval", 5000, 1000, 600000, 1000, "ms",
+                                "Background sampling interval.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, "Record interval", 300, 10, 86400, 10, "s",
+                                "Minimum interval for app event records.", false, nullptr});
     Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ENABLED, "Notifications", true,
                                  "Only stores rules; no external sender is connected yet.", false, nullptr});
     Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_DONE, "Action completed", false,
@@ -670,7 +684,8 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
                                    FaRs485Master *rs485_master,
                                    FaRs485Transport *transport,
                                    FaMasterActionRuntime *action_runtime,
-                                   FaAutoScheduler *auto_scheduler) {
+                                   FaAutoScheduler *auto_scheduler,
+                                   FaEnvSensorService *env_sensor) {
     g_feed_service = feed_service;
     g_door_service = door_service;
     g_device_registry = device_registry;
@@ -678,9 +693,11 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_transport = transport;
     g_action_runtime = action_runtime;
     g_auto_scheduler = auto_scheduler;
+    g_env_sensor = env_sensor;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
     Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
     Esp32BaseWeb::addPage("/auto", "Auto", sendAutoPage);
+    Esp32BaseWeb::addPage("/env", "Env", sendEnvPage);
     Esp32BaseWeb::addPage("/records", "Records", sendRecordsPage);
     Esp32BaseWeb::addPage("/devices", "Devices", sendDevicesPage);
     Esp32BaseWeb::addPage("/notify", "Notify", sendNotifyPage);
@@ -693,6 +710,7 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addApi("/api/auto/feed-resume", sendAutoFeedResumeApi);
     Esp32BaseWeb::addApi("/api/auto/door-pause", sendAutoDoorPauseApi);
     Esp32BaseWeb::addApi("/api/auto/door-resume", sendAutoDoorResumeApi);
+    Esp32BaseWeb::addApi("/api/env/read-now", sendEnvReadNowApi);
     Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
     Esp32BaseWeb::addApi("/api/action/stop-active", sendStopActiveActionApi);
     Esp32BaseWeb::addApi("/api/devices/enabled", sendDeviceSetEnabledApi);

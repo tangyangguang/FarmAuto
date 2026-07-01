@@ -6,6 +6,7 @@
 #include "fa_door_service.h"
 #include "fa_feed_service.h"
 #include "fa_device_registry.h"
+#include "fa_env_sensor.h"
 #include "fa_rs485_transport.h"
 
 void fa_master_web_register_config(void);
@@ -15,6 +16,7 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
                                    FaRs485Master *rs485_master,
                                    FaRs485Transport *transport,
                                    FaMasterActionRuntime *action_runtime,
-                                   FaAutoScheduler *auto_scheduler);
+                                   FaAutoScheduler *auto_scheduler,
+                                   FaEnvSensorService *env_sensor);
 
 #endif
