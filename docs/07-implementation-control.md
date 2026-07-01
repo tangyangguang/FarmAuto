@@ -46,6 +46,7 @@
 - ESP32 主控工程和 STC8H8K64U 分站工程均可编译。
 - 分站协议节点能在 host smoke 中响应 `PING`、`SET_MOTOR_CONFIG`、`START_ACTION`、`GET_STATUS`、`STOP_ACTION` 和 `CLEAR_FAULT`。
 - 主控 RS485 transport 已接入可配置 UART、RX/TX/DE、`115200 8N1` 默认波特率和请求超时。
+- 主控 RS485 transport 默认支持固件内 simulated 模式，模拟地址 `1` 和 `2` 的电机分站；烧录到 ESP32 后即使没有 RS485 和电机硬件，也能通过真实 Web/UI/API 验证业务闭环。
 - `/feed` 和 `/door` 手动入口能在 RS485 未配置时 dry-run 构造动作；RS485 就绪时会下发电机配置、启动动作，并由主控动作运行时轮询到终态后写入 LittleFS 动作记录。
 - `/devices` 保存业务设备和分站绑定，显示设备启用状态、名称、显示顺序、分站在线状态，并提供设备启停、名称编辑、显示顺序调整、绑定分站和分站 `CLEAR_FAULT` 维护入口。
 - `/records` 独立显示当前动作和最近动作记录；`/feed`、`/door` 页面也保留就近记录摘要。

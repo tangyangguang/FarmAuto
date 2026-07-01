@@ -11,7 +11,8 @@ It currently does these things:
 - registers FarmAuto feeder, door, automatic schedule and RS485 parameters through `Esp32BaseAppConfig`;
 - exposes `/feed`, `/door`, `/auto`, `/records`, `/devices`, `/notify` and `/bus` pages;
 - sends bounded manual and scheduled actions over RS485 when transport pins are configured;
-- previews manual feed/door actions when RS485 is not configured;
+- runs a firmware-internal RS485 station simulator by default, so the real ESP32 Web UI can be tested without external RS485 or motor hardware;
+- previews manual feed/door actions only when RS485 is disabled or not configured;
 - tracks active actions to terminal state and writes action records;
 - stores device names, display order, station bindings and station enabled state in LittleFS;
 - scans RS485 addresses `1..127` and records discovered stations;

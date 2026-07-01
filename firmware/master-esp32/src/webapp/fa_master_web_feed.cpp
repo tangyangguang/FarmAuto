@@ -29,7 +29,8 @@ void sendFeedPage(void) {
     Esp32BaseWeb::sendMetric("mg/turn", value);
     snprintf(value, sizeof(value), "%u", FaActionRecordStore::count());
     Esp32BaseWeb::sendMetric("Records", value, FaActionRecordStore::isReady() ? "LittleFS ring ready" : "Store unavailable");
-    Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
+    Esp32BaseWeb::sendMetric("RS485",
+                             g_transport != nullptr && g_transport->isReady() ? FaRs485Transport::modeName(g_transport->config().mode) : "not configured");
     Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceStatus.device_enabled ? "enabled" : "disabled");
     Esp32BaseWeb::sendMetric("Station state", stationStatus);
     Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");

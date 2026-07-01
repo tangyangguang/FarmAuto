@@ -648,8 +648,10 @@ void fa_master_web_register_config(void) {
                                  "Notify when an automatic plan is skipped.", false, nullptr});
     Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_POWER_RESTORED, "Power restored", true,
                                  "Notify after restart or power recovery.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_MODE, "Mode", FA_RS485_MODE_SIMULATED, 0, 2, 1, nullptr,
+                                "0 disabled, 1 real UART, 2 simulated stations 1 and 2.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_UART, "UART", 2, 1, 2, 1, nullptr,
-                                "ESP32 hardware serial port.", true, nullptr});
+                                "ESP32 hardware serial port for real UART mode.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_RX_PIN, "RX pin", -1, -1, 39, 1, nullptr,
                                 "-1 disables RS485 transport.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_TX_PIN, "TX pin", -1, -1, 39, 1, nullptr,

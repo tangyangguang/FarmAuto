@@ -240,7 +240,8 @@ void sendDoorPage(void) {
     Esp32BaseWeb::sendMetric("Travel", value, "pulses");
     snprintf(value, sizeof(value), "%d / %d", config.open_direction, config.close_direction);
     Esp32BaseWeb::sendMetric("Direction", value, "open / close");
-    Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
+    Esp32BaseWeb::sendMetric("RS485",
+                             g_transport != nullptr && g_transport->isReady() ? FaRs485Transport::modeName(g_transport->config().mode) : "not configured");
     Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceStatus.device_enabled ? "enabled" : "disabled");
     Esp32BaseWeb::sendMetric("Station state", stationStatus);
     Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
