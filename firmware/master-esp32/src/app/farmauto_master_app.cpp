@@ -7,6 +7,7 @@
 #include "fa_action_record_store.h"
 #include "fa_auto_scheduler.h"
 #include "fa_device_registry.h"
+#include "fa_board_io.h"
 #include "fa_master_web.h"
 #include "fa_rs485_transport.h"
 #include "fa_env_sensor.h"
@@ -27,6 +28,7 @@ static FaMasterActionRuntime g_action_runtime;
 static FaStationPoller g_station_poller;
 static FaAutoScheduler g_auto_scheduler;
 static FaEnvSensorService g_env_sensor;
+static FaBoardIoService g_board_io;
 
 void farmauto_master_setup(void) {
     Esp32Base::setFirmwareInfo("farmauto-master", "0.1.0");
@@ -38,7 +40,8 @@ void farmauto_master_setup(void) {
                                   &g_transport,
                                   &g_action_runtime,
                                   &g_auto_scheduler,
-                                  &g_env_sensor);
+                                  &g_env_sensor,
+                                  &g_board_io);
     Esp32Base::begin();
 
     fa_rs485_master_init(&g_rs485);
@@ -58,6 +61,7 @@ void farmauto_master_setup(void) {
         ESP32BASE_LOG_W("farm", "device_registry_unavailable");
     }
     g_env_sensor.begin();
+    g_board_io.begin();
 
     ESP32BASE_LOG_I("farm", "master boot");
 }
@@ -68,5 +72,6 @@ void farmauto_master_loop(void) {
     g_auto_scheduler.handle();
     g_station_poller.handle();
     g_env_sensor.handle();
+    g_board_io.handle();
     delay(10);
 }

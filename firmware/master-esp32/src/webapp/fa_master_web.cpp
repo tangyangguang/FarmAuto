@@ -14,6 +14,7 @@ FaRs485Transport* g_transport = nullptr;
 FaMasterActionRuntime* g_action_runtime = nullptr;
 FaAutoScheduler* g_auto_scheduler = nullptr;
 FaEnvSensorService* g_env_sensor = nullptr;
+FaBoardIoService* g_board_io = nullptr;
 
 uint32_t readUIntParam(const char* name, uint32_t fallback) {
     char raw[16] = "";
@@ -576,6 +577,7 @@ void fa_master_web_register_config(void) {
     Esp32BaseAppConfig::addGroup({"door", "Door"});
     Esp32BaseAppConfig::addGroup({"auto", "Auto"});
     Esp32BaseAppConfig::addGroup({"env", "Environment"});
+    Esp32BaseAppConfig::addGroup({"board", "Board IO"});
     Esp32BaseAppConfig::addGroup({"notify", "Notify"});
     Esp32BaseAppConfig::addGroup({"rs485", "RS485"});
     Esp32BaseAppConfig::addInt({"feeder", kNs, kStationAddress, "Station address", 1, 1, 127, 1, nullptr,
@@ -648,6 +650,30 @@ void fa_master_web_register_config(void) {
                                 "Background sampling interval.", false, nullptr});
     Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, "Record interval", 300, 10, 86400, 10, "s",
                                 "Minimum interval for app event records.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_ENABLED, "Board IO enabled", true,
+                                 "Drive master RUN/ERR LEDs and read local buttons.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_RUN_LED_PIN, "RUN LED pin", 27, -1, 39, 1, nullptr,
+                                "-1 disables RUN LED output.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_ERR_LED_PIN, "ERR LED pin", 14, -1, 39, 1, nullptr,
+                                "-1 disables ERR LED output.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_LED_ACTIVE_LOW, "LED active low", false,
+                                 "Enable when board LED turns on at LOW output.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BOOT_PIN, "BOOT button pin", 0, -1, 39, 1, nullptr,
+                                "GPIO0 BOOT button input; -1 disables.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_1_PIN, "Button 1 pin", -1, -1, 39, 1, nullptr,
+                                "Reserved local button; -1 disables.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_2_PIN, "Button 2 pin", -1, -1, 39, 1, nullptr,
+                                "Door open button input; action binding is added after shared door executor.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_3_PIN, "Button 3 pin", -1, -1, 39, 1, nullptr,
+                                "Door close button input; action binding is added after shared door executor.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_4_PIN, "Button 4 pin", -1, -1, 39, 1, nullptr,
+                                "Door stop button input; action binding is added after shared door executor.", false, nullptr});
+    Esp32BaseAppConfig::addBool({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_BUTTON_ACTIVE_LOW, "Buttons active low", true,
+                                 "Enable for pull-up buttons that connect to ground when pressed.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_DEBOUNCE_MS, "Debounce", 50, 10, 1000, 10, "ms",
+                                "Button debounce interval.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"board", FaBoardIoConfig::NS, FaBoardIoConfig::KEY_LONG_PRESS_MS, "Long press", 1000, 200, 10000, 100, "ms",
+                                "Long press detection interval.", false, nullptr});
     Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ENABLED, "Notifications", true,
                                  "Only stores rules; no external sender is connected yet.", false, nullptr});
     Esp32BaseAppConfig::addBool({"notify", FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_DONE, "Action completed", false,
@@ -685,7 +711,8 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
                                    FaRs485Transport *transport,
                                    FaMasterActionRuntime *action_runtime,
                                    FaAutoScheduler *auto_scheduler,
-                                   FaEnvSensorService *env_sensor) {
+                                   FaEnvSensorService *env_sensor,
+                                   FaBoardIoService *board_io) {
     g_feed_service = feed_service;
     g_door_service = door_service;
     g_device_registry = device_registry;
@@ -694,10 +721,12 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_action_runtime = action_runtime;
     g_auto_scheduler = auto_scheduler;
     g_env_sensor = env_sensor;
+    g_board_io = board_io;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
     Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
     Esp32BaseWeb::addPage("/auto", "Auto", sendAutoPage);
     Esp32BaseWeb::addPage("/env", "Env", sendEnvPage);
+    Esp32BaseWeb::addPage("/board", "Board", sendBoardPage);
     Esp32BaseWeb::addPage("/records", "Records", sendRecordsPage);
     Esp32BaseWeb::addPage("/devices", "Devices", sendDevicesPage);
     Esp32BaseWeb::addPage("/notify", "Notify", sendNotifyPage);

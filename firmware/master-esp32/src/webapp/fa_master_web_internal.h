@@ -19,6 +19,7 @@ extern FaRs485Transport* g_transport;
 extern FaMasterActionRuntime* g_action_runtime;
 extern FaAutoScheduler* g_auto_scheduler;
 extern FaEnvSensorService* g_env_sensor;
+extern FaBoardIoService* g_board_io;
 
 struct FaWebDeviceStatus {
     uint16_t device_id = 0u;
@@ -70,6 +71,7 @@ void sendAutoPage(void);
 void sendNotifyPage(void);
 void sendEnvPage(void);
 void sendEnvReadNowApi(void);
+void sendBoardPage(void);
 void sendAutoFeedPauseApi(void);
 void sendAutoFeedResumeApi(void);
 void sendAutoDoorPauseApi(void);

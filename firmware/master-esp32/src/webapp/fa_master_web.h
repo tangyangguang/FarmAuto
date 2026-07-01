@@ -3,6 +3,7 @@
 
 #include "fa_master_action_runtime.h"
 #include "fa_auto_scheduler.h"
+#include "fa_board_io.h"
 #include "fa_door_service.h"
 #include "fa_feed_service.h"
 #include "fa_device_registry.h"
@@ -17,6 +18,7 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
                                    FaRs485Transport *transport,
                                    FaMasterActionRuntime *action_runtime,
                                    FaAutoScheduler *auto_scheduler,
-                                   FaEnvSensorService *env_sensor);
+                                   FaEnvSensorService *env_sensor,
+                                   FaBoardIoService *board_io);
 
 #endif

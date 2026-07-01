@@ -10,18 +10,20 @@ It currently does these things:
 - initializes a LittleFS-backed action record ring via `Esp32BaseFs`;
 - registers FarmAuto feeder, door, automatic schedule and RS485 parameters through `Esp32BaseAppConfig`;
 - registers SHT30 temperature/humidity settings through `Esp32BaseAppConfig`;
-- exposes `/feed`, `/door`, `/auto`, `/records`, `/devices`, `/notify`, `/bus` and `/env` pages;
+- registers master board LED and button pins through `Esp32BaseAppConfig`;
+- exposes `/feed`, `/door`, `/auto`, `/records`, `/devices`, `/notify`, `/bus`, `/env` and `/board` pages;
 - sends bounded manual and scheduled actions over RS485 when transport pins are configured;
 - runs a firmware-internal RS485 station simulator by default, so the real ESP32 Web UI can be tested without external RS485 or motor hardware;
 - reads a real SHT30 sensor over ESP32 I2C, defaulting to SDA `21`, SCL `22` and address `0x44`;
 - stores periodic SHT30 samples in Esp32Base App Events as `source=farm` / `type=env_sample`;
+- drives real RUN/ERR LED GPIO and reads BOOT/local button GPIO; button events are logged and shown but not yet bound to door actions;
 - previews manual feed/door actions only when RS485 is disabled or not configured;
 - tracks active actions to terminal state and writes action records;
 - stores device names, display order, station bindings and station enabled state in LittleFS;
 - scans RS485 addresses `1..127` and records discovered stations;
 - starts the Esp32Base runtime loop.
 
-It does not yet bind buttons, LEDs, RTC, FRAM, Bafa/WeChat sending, station OTA, missing-feed detection or final PCB pin-specific board IO.
+It does not yet bind local button presses to door actions, RTC, FRAM, Bafa/WeChat sending, station OTA, missing-feed detection or final PCB pin-specific board IO.
 
 The current action record file is `/farmauto/action-records.bin`. It is a small FarmAuto business ring file built on `Esp32BaseFs`; it is not the FRAM pending-action journal.
 
