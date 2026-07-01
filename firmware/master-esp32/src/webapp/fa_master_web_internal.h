@@ -57,6 +57,7 @@ bool deviceStatusBlocksStart(const FaWebDeviceStatus& status);
 void formatStationStatusLabel(const FaWebDeviceStatus& status, char* out, size_t len);
 void sendDeviceStatusBlockedJson(const FaWebDeviceStatus& status);
 const char* frameResultName(FaFrameResult result);
+void formatTimeValue(uint32_t seconds, char* out, size_t len);
 void sendActiveActionPanel(void);
 void sendRecentRecordsPanel(void);
 void sendFeedTransportError(uint16_t http_code, const char* stage, const char* error_key, const char* error_value);
@@ -94,5 +95,15 @@ void sendDeviceDisplayOrderApi(void);
 void sendDeviceBindStationApi(void);
 void sendStationSetEnabledApi(void);
 void sendStationClearFaultApi(void);
+
+void sendV3HomePage(void);
+void sendV3AutoPage(void);
+void sendV3ManualPage(void);
+void sendV3RecordsPage(void);
+void sendV3SettingsPage(void);
+void redirectV3Home(void);
+void redirectV3Manual(void);
+void redirectV3Records(void);
+void redirectV3Settings(void);
 
 #endif

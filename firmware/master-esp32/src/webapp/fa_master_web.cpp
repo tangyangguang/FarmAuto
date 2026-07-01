@@ -720,7 +720,7 @@ void sendRecordsPage(void) {
 
 void fa_master_web_register_config(void) {
     Esp32BaseWeb::setDeviceName("FarmAuto");
-    Esp32BaseWeb::setHomePath("/feed");
+    Esp32BaseWeb::setHomePath("/home");
     Esp32BaseWeb::setHomeMode(Esp32BaseWeb::HOME_COMBINED);
     Esp32BaseWeb::setSystemNavMode(Esp32BaseWeb::SYSTEM_NAV_SECTION);
     Esp32BaseWeb::setBuiltinLabel(Esp32BaseWeb::BUILTIN_HOME, "状态");
@@ -881,15 +881,19 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_auto_scheduler = auto_scheduler;
     g_env_sensor = env_sensor;
     g_board_io = board_io;
-    Esp32BaseWeb::addPage("/feed", "下料", sendFeedPage);
-    Esp32BaseWeb::addPage("/door", "门控", sendDoorPage);
-    Esp32BaseWeb::addPage("/auto", "自动", sendAutoPage);
-    Esp32BaseWeb::addPage("/env", "温湿度", sendEnvPage);
-    Esp32BaseWeb::addPage("/board", "主控板", sendBoardPage);
-    Esp32BaseWeb::addPage("/records", "记录", sendRecordsPage);
-    Esp32BaseWeb::addPage("/devices", "设备", sendDevicesPage);
-    Esp32BaseWeb::addPage("/notify", "通知", sendNotifyPage);
-    Esp32BaseWeb::addPage("/bus", "RS485", sendBusPage);
+    Esp32BaseWeb::addRoute("/", Esp32BaseWeb::METHOD_GET, redirectV3Home);
+    Esp32BaseWeb::addRoute("/home", Esp32BaseWeb::METHOD_GET, sendV3HomePage);
+    Esp32BaseWeb::addRoute("/auto", Esp32BaseWeb::METHOD_GET, sendV3AutoPage);
+    Esp32BaseWeb::addRoute("/manual", Esp32BaseWeb::METHOD_GET, sendV3ManualPage);
+    Esp32BaseWeb::addRoute("/records", Esp32BaseWeb::METHOD_GET, sendV3RecordsPage);
+    Esp32BaseWeb::addRoute("/settings", Esp32BaseWeb::METHOD_GET, sendV3SettingsPage);
+    Esp32BaseWeb::addRoute("/feed", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
+    Esp32BaseWeb::addRoute("/door", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
+    Esp32BaseWeb::addRoute("/env", Esp32BaseWeb::METHOD_GET, redirectV3Records);
+    Esp32BaseWeb::addRoute("/board", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
+    Esp32BaseWeb::addRoute("/devices", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
+    Esp32BaseWeb::addRoute("/notify", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
+    Esp32BaseWeb::addRoute("/bus", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
     Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
     Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);
     Esp32BaseWeb::addApi("/api/door/close", sendDoorCloseApi);
