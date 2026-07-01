@@ -39,10 +39,30 @@ extern FaRs485Master* g_rs485_master;
 extern FaRs485Transport* g_transport;
 extern FaMasterActionRuntime* g_action_runtime;
 
+struct FaWebDeviceStatus {
+    uint16_t device_id = 0u;
+    uint8_t station_address = 0u;
+    bool registry_ready = false;
+    bool has_device = false;
+    bool device_enabled = true;
+    bool has_station = false;
+    uint8_t station_online_state = FA_STATION_ONLINE_UNKNOWN;
+    uint32_t last_seen_at = 0u;
+    uint16_t last_error = 0u;
+};
+
 uint32_t readUIntParam(const char* name, uint32_t fallback);
 const char* statusName(uint8_t status);
 void sendNumber(uint32_t value);
 void formatDeviceLabel(uint16_t device_id, char* out, size_t len);
+const char* stationOnlineStateName(uint8_t state);
+bool readDeviceStatus(uint8_t device_type,
+                      uint16_t fallback_device_id,
+                      uint8_t fallback_station_address,
+                      FaWebDeviceStatus& out);
+bool deviceStatusBlocksStart(const FaWebDeviceStatus& status);
+void formatStationStatusLabel(const FaWebDeviceStatus& status, char* out, size_t len);
+void sendDeviceStatusBlockedJson(const FaWebDeviceStatus& status);
 const char* frameResultName(FaFrameResult result);
 void sendActiveActionPanel(void);
 void sendRecentRecordsPanel(void);

@@ -22,30 +22,6 @@ FaDoorDeviceConfig readDoorConfig(void) {
     return config;
 }
 
-bool applyDoorDeviceRegistry(FaDoorDeviceConfig& config, uint16_t& device_id, bool& disabled) {
-    disabled = false;
-    device_id = kSingleDoorDeviceId;
-    if (g_device_registry == nullptr || !g_device_registry->isReady()) {
-        return true;
-    }
-
-    FaDeviceRecord device;
-    if (!g_device_registry->deviceByType(FA_DEVICE_TYPE_DOOR, device)) {
-        return true;
-    }
-    device_id = device.device_id;
-
-    FaStationRecord station;
-    if (g_device_registry->stationById(device.station_id, station) && fa_address_is_normal(station.bus_address)) {
-        config.station_address = station.bus_address;
-    }
-    if (device.enabled == 0u) {
-        disabled = true;
-        return false;
-    }
-    return true;
-}
-
 const char* doorCommandName(uint8_t command) {
     return command == FA_DOOR_COMMAND_CLOSE ? "close" : "open";
 }
@@ -64,10 +40,10 @@ void sendManualDoorActionApi(uint8_t command) {
     }
 
     FaDoorDeviceConfig config = readDoorConfig();
-    uint16_t deviceId = kSingleDoorDeviceId;
-    bool deviceDisabled = false;
-    (void)applyDoorDeviceRegistry(config, deviceId, deviceDisabled);
-    if (deviceDisabled) {
+    FaWebDeviceStatus deviceStatus;
+    (void)readDeviceStatus(FA_DEVICE_TYPE_DOOR, kSingleDoorDeviceId, config.station_address, deviceStatus);
+    config.station_address = deviceStatus.station_address;
+    if (!deviceStatus.device_enabled) {
         Esp32BaseWeb::sendJson(409, "{\"ok\":false,\"error\":\"device_disabled\"}");
         return;
     }
@@ -96,6 +72,11 @@ void sendManualDoorActionApi(uint8_t command) {
         sendNumber(result.target_pulses);
         Esp32BaseWeb::sendChunk(",\"message\":\"RS485 pins are not configured; action was built but not sent\"");
         Esp32BaseWeb::endJson();
+        return;
+    }
+
+    if (deviceStatusBlocksStart(deviceStatus)) {
+        sendDeviceStatusBlockedJson(deviceStatus);
         return;
     }
 
@@ -159,7 +140,7 @@ void sendManualDoorActionApi(uint8_t command) {
 
     FaActionRecordStart record_start = {};
     record_start.action_id = action.action_id;
-    record_start.device_id = deviceId;
+    record_start.device_id = deviceStatus.device_id;
     record_start.bus_address = config.station_address;
     record_start.device_type = action.device_type;
     record_start.action_type = action.action_type;
@@ -197,11 +178,9 @@ void sendDoorStopApi(void) {
         return;
     }
     FaDoorDeviceConfig config = readDoorConfig();
-    uint16_t deviceId = kSingleDoorDeviceId;
-    bool deviceDisabled = false;
-    (void)applyDoorDeviceRegistry(config, deviceId, deviceDisabled);
-    (void)deviceId;
-    (void)deviceDisabled;
+    FaWebDeviceStatus deviceStatus;
+    (void)readDeviceStatus(FA_DEVICE_TYPE_DOOR, kSingleDoorDeviceId, config.station_address, deviceStatus);
+    config.station_address = deviceStatus.station_address;
     if (!g_transport->isReady()) {
         Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"transport\":\"not_configured\"}");
         return;
@@ -242,11 +221,13 @@ void sendDoorPage(void) {
     }
 
     FaDoorDeviceConfig config = readDoorConfig();
-    uint16_t deviceId = kSingleDoorDeviceId;
-    bool deviceDisabled = false;
-    (void)applyDoorDeviceRegistry(config, deviceId, deviceDisabled);
+    FaWebDeviceStatus deviceStatus;
+    (void)readDeviceStatus(FA_DEVICE_TYPE_DOOR, kSingleDoorDeviceId, config.station_address, deviceStatus);
+    config.station_address = deviceStatus.station_address;
     char deviceLabel[36];
-    formatDeviceLabel(deviceId, deviceLabel, sizeof(deviceLabel));
+    char stationStatus[36];
+    formatDeviceLabel(deviceStatus.device_id, deviceLabel, sizeof(deviceLabel));
+    formatStationStatusLabel(deviceStatus, stationStatus, sizeof(stationStatus));
     char value[24];
 
     Esp32BaseWeb::sendHeader("Door");
@@ -260,7 +241,8 @@ void sendDoorPage(void) {
     snprintf(value, sizeof(value), "%d / %d", config.open_direction, config.close_direction);
     Esp32BaseWeb::sendMetric("Direction", value, "open / close");
     Esp32BaseWeb::sendMetric("RS485", g_transport != nullptr && g_transport->isReady() ? "ready" : "not configured");
-    Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceDisabled ? "disabled" : "enabled");
+    Esp32BaseWeb::sendMetric("Device", deviceLabel, deviceStatus.device_enabled ? "enabled" : "disabled");
+    Esp32BaseWeb::sendMetric("Station state", stationStatus);
     Esp32BaseWeb::sendMetric("Action", g_action_runtime != nullptr && g_action_runtime->isBusy() ? "running" : "idle");
     Esp32BaseWeb::endMetricGrid();
 

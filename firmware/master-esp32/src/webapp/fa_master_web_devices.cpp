@@ -13,25 +13,6 @@ const char* deviceTypeName(uint8_t type) {
     }
 }
 
-const char* stationStateName(uint8_t state) {
-    switch (state) {
-    case FA_STATION_ONLINE_UNKNOWN:
-        return "unknown";
-    case FA_STATION_ONLINE_ONLINE:
-        return "online";
-    case FA_STATION_ONLINE_OFFLINE:
-        return "offline";
-    case FA_STATION_ONLINE_ERROR:
-        return "error";
-    case FA_STATION_ONLINE_CONFLICT_SUSPECTED:
-        return "conflict_suspected";
-    case FA_STATION_ONLINE_RESERVED_ADDRESS:
-        return "reserved_address";
-    default:
-        return "unknown";
-    }
-}
-
 void sendDeviceRow(const FaDeviceRecord& device) {
     FaStationRecord station;
     const bool hasStation = g_device_registry != nullptr && g_device_registry->stationById(device.station_id, station);
@@ -53,6 +34,8 @@ void sendDeviceRow(const FaDeviceRecord& device) {
         Esp32BaseWeb::sendChunk("-");
     }
     Esp32BaseWeb::sendChunk("</td><td>");
+    Esp32BaseWeb::writeHtmlEscaped(hasStation ? stationOnlineStateName(station.online_state) : "station_missing");
+    Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::writeHtmlEscaped(device.enabled != 0u ? "enabled" : "disabled");
     Esp32BaseWeb::sendChunk("</td><td><form method='post' action='/api/devices/enabled' onsubmit='return once(this)'>");
     Esp32BaseWeb::sendChunk("<input type='hidden' name='deviceId' value='");
@@ -72,7 +55,7 @@ void sendStationRow(const FaStationRecord& station) {
     Esp32BaseWeb::sendChunk("</td><td>");
     Esp32BaseWeb::writeHtmlEscaped(station.enabled != 0u ? "enabled" : "disabled");
     Esp32BaseWeb::sendChunk("</td><td>");
-    Esp32BaseWeb::writeHtmlEscaped(stationStateName(station.online_state));
+    Esp32BaseWeb::writeHtmlEscaped(stationOnlineStateName(station.online_state));
     Esp32BaseWeb::sendChunk("</td><td>");
     sendNumber(station.protocol_version);
     Esp32BaseWeb::sendChunk("</td><td>");
@@ -114,7 +97,7 @@ void sendDevicesPage(void) {
     }
 
     Esp32BaseWeb::beginPanel("Business devices");
-    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>No.</th><th>Station / Addr</th><th>State</th><th>Action</th></tr></thead><tbody>");
+    Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>No.</th><th>Station / Addr</th><th>Station state</th><th>Device state</th><th>Action</th></tr></thead><tbody>");
     for (uint8_t i = 0u; i < g_device_registry->deviceCount(); ++i) {
         FaDeviceRecord device;
         if (g_device_registry->deviceAt(i, device)) {

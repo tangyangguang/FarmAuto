@@ -72,6 +72,107 @@ void formatDeviceLabel(uint16_t device_id, char* out, size_t len) {
     snprintf(out, len, "#%u", device_id);
 }
 
+const char* stationOnlineStateName(uint8_t state) {
+    switch (state) {
+    case FA_STATION_ONLINE_UNKNOWN:
+        return "unknown";
+    case FA_STATION_ONLINE_ONLINE:
+        return "online";
+    case FA_STATION_ONLINE_OFFLINE:
+        return "offline";
+    case FA_STATION_ONLINE_ERROR:
+        return "error";
+    case FA_STATION_ONLINE_CONFLICT_SUSPECTED:
+        return "conflict_suspected";
+    case FA_STATION_ONLINE_RESERVED_ADDRESS:
+        return "reserved_address";
+    default:
+        return "unknown";
+    }
+}
+
+bool readDeviceStatus(uint8_t device_type,
+                      uint16_t fallback_device_id,
+                      uint8_t fallback_station_address,
+                      FaWebDeviceStatus& out) {
+    out = {};
+    out.device_id = fallback_device_id;
+    out.station_address = fallback_station_address;
+    out.device_enabled = true;
+    out.station_online_state = FA_STATION_ONLINE_UNKNOWN;
+
+    if (g_device_registry == nullptr || !g_device_registry->isReady()) {
+        return true;
+    }
+    out.registry_ready = true;
+
+    FaDeviceRecord device;
+    if (!g_device_registry->deviceByType(device_type, device)) {
+        return true;
+    }
+    out.has_device = true;
+    out.device_id = device.device_id;
+    out.device_enabled = device.enabled != 0u;
+
+    FaStationRecord station;
+    if (g_device_registry->stationById(device.station_id, station)) {
+        out.has_station = true;
+        out.station_online_state = station.online_state;
+        out.last_seen_at = station.last_seen_at;
+        out.last_error = station.last_error;
+        if (fa_address_is_normal(station.bus_address)) {
+            out.station_address = station.bus_address;
+        }
+    }
+    return out.device_enabled;
+}
+
+bool deviceStatusBlocksStart(const FaWebDeviceStatus& status) {
+    if (!status.device_enabled) {
+        return true;
+    }
+    if (!status.has_station) {
+        return false;
+    }
+    return status.station_online_state != FA_STATION_ONLINE_UNKNOWN &&
+           status.station_online_state != FA_STATION_ONLINE_ONLINE;
+}
+
+void formatStationStatusLabel(const FaWebDeviceStatus& status, char* out, size_t len) {
+    if (out == nullptr || len == 0u) {
+        return;
+    }
+    if (!status.registry_ready) {
+        snprintf(out, len, "registry unavailable");
+        return;
+    }
+    if (!status.has_device) {
+        snprintf(out, len, "config fallback");
+        return;
+    }
+    if (!status.has_station) {
+        snprintf(out, len, "station missing");
+        return;
+    }
+    if (status.last_error != 0u) {
+        snprintf(out, len, "%s, err %u", stationOnlineStateName(status.station_online_state), status.last_error);
+        return;
+    }
+    snprintf(out, len, "%s", stationOnlineStateName(status.station_online_state));
+}
+
+void sendDeviceStatusBlockedJson(const FaWebDeviceStatus& status) {
+    Esp32BaseWeb::beginJson(409);
+    Esp32BaseWeb::sendChunk("\"ok\":false,\"error\":\"station_not_ready\",\"stationAddress\":");
+    sendNumber(status.station_address);
+    Esp32BaseWeb::sendChunk(",\"stationState\":\"");
+    Esp32BaseWeb::sendChunk(stationOnlineStateName(status.station_online_state));
+    Esp32BaseWeb::sendChunk("\",\"lastError\":");
+    sendNumber(status.last_error);
+    Esp32BaseWeb::sendChunk(",\"message\":\"station state blocks starting a new action\"");
+    Esp32BaseWeb::endJson();
+}
+
 const char* frameResultName(FaFrameResult result) {
     switch (result) {
     case FA_FRAME_OK:
