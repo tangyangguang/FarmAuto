@@ -508,6 +508,22 @@ bool FaDeviceRegistry::setDeviceEnabled(uint16_t device_id, bool enabled) {
     return persistDevice(static_cast<uint8_t>(index));
 }
 
+bool FaDeviceRegistry::setDeviceStationByAddress(uint16_t device_id, uint8_t bus_address) {
+    if (!isReady() || !fa_address_is_normal(bus_address)) {
+        return false;
+    }
+    const int device_index = findDeviceIndexById(device_id);
+    const int station_index = findStationIndexByAddress(bus_address);
+    if (device_index < 0 || station_index < 0) {
+        return false;
+    }
+    if (g_devices[device_index].station_id == g_stations[station_index].station_id) {
+        return true;
+    }
+    g_devices[device_index].station_id = g_stations[station_index].station_id;
+    return persistDevice(static_cast<uint8_t>(device_index));
+}
+
 bool FaDeviceRegistry::updateStationFromPing(uint8_t bus_address, const FaMasterPingResponse& ping, uint32_t seen_at) {
     if (!isReady() || !fa_address_is_normal(bus_address)) {
         return false;
