@@ -13,6 +13,13 @@ const char* deviceTypeName(uint8_t type) {
     }
 }
 
+bool deviceSortsBefore(const FaDeviceRecord& left, const FaDeviceRecord& right) {
+    if (left.sort_order != right.sort_order) {
+        return left.sort_order < right.sort_order;
+    }
+    return left.device_id < right.device_id;
+}
+
 void sendDeviceRow(const FaDeviceRecord& device) {
     FaStationRecord station;
     const bool hasStation = g_device_registry != nullptr && g_device_registry->stationById(device.station_id, station);
@@ -111,11 +118,26 @@ void sendDevicesPage(void) {
 
     Esp32BaseWeb::beginPanel("Business devices");
     Esp32BaseWeb::sendChunk("<div class='tablewrap'><table class='evtable'><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>No.</th><th>Station / Addr</th><th>Station state</th><th>Device state</th><th>Action</th></tr></thead><tbody>");
-    for (uint8_t i = 0u; i < g_device_registry->deviceCount(); ++i) {
-        FaDeviceRecord device;
-        if (g_device_registry->deviceAt(i, device)) {
-            sendDeviceRow(device);
+    bool sent[FaDeviceRegistry::kMaxDevices] = {};
+    const uint8_t deviceCount = g_device_registry->deviceCount();
+    for (uint8_t emitted = 0u; emitted < deviceCount; ++emitted) {
+        uint8_t bestIndex = 0u;
+        bool hasBest = false;
+        FaDeviceRecord best;
+        for (uint8_t i = 0u; i < deviceCount; ++i) {
+            FaDeviceRecord candidate;
+            if (!sent[i] && g_device_registry->deviceAt(i, candidate) &&
+                (!hasBest || deviceSortsBefore(candidate, best))) {
+                best = candidate;
+                bestIndex = i;
+                hasBest = true;
+            }
         }
+        if (!hasBest) {
+            break;
+        }
+        sent[bestIndex] = true;
+        sendDeviceRow(best);
     }
     Esp32BaseWeb::sendChunk("</tbody></table></div>");
     Esp32BaseWeb::endPanel();
