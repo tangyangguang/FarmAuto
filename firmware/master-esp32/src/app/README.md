@@ -11,6 +11,7 @@ Current scope:
 - Mark an active action as communication failed after 5 consecutive status poll failures.
 - Keep the first LittleFS-backed device registry for business devices and scanned stations.
 - Poll enabled stations at low frequency when no action is running, updating online/offline/error state.
+- Log action start, poll failures, terminal records, station online/offline transitions and bus scan summaries for hardware bring-up.
 
 Out of scope:
 

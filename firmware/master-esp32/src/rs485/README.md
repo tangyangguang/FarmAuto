@@ -8,6 +8,7 @@ Current hardware-independent core scope:
 - Maintain request sequence numbers.
 - Parse common responses, `PING`, and `GET_STATUS`.
 - Build `STOP_ACTION` for immediate station stop requests.
+- Build `CLEAR_FAULT` for station maintenance.
 
 Current ESP32 transport scope:
 

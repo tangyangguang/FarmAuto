@@ -41,9 +41,18 @@
 4. 主控最小调用骨架：绑定一个地址，下发配置和手动下料动作，轮询到完成。
 5. 记录最小闭环：写入动作开始、完成、停止原因和完成脉冲。
 
-当前已经补到目标固件工程骨架、分站协议节点、记录最小闭环和最小 Web 手动下料入口：ESP32 主控工程、STC8H8K64U 分站工程都能引用基础库并编译；分站协议节点能在 host smoke 中响应主控 PING、配置、启动和状态查询；主控能把一次下料动作从开始参数和分站最终状态收口成动作记录，并通过 `Esp32BaseFs` 初始化 LittleFS 动作记录环形文件；`/feed` 页面和 `/api/feed/manual` 目前只做 dry-run 动作构造，不发送 RS485、不写完成记录。
+当前已经补到可见纵向闭环：
 
-下一步先接主控真实 RS485 串口事务层；自动计划、门控、Web 完整页面、FRAM 布局和真实板级 IO 仍然后置。
+- ESP32 主控工程和 STC8H8K64U 分站工程均可编译。
+- 分站协议节点能在 host smoke 中响应 `PING`、`SET_MOTOR_CONFIG`、`START_ACTION`、`GET_STATUS`、`STOP_ACTION` 和 `CLEAR_FAULT`。
+- 主控 RS485 transport 已接入可配置 UART、RX/TX/DE、`115200 8N1` 默认波特率和请求超时。
+- `/feed` 和 `/door` 手动入口能在 RS485 未配置时 dry-run 构造动作；RS485 就绪时会下发电机配置、启动动作，并由主控动作运行时轮询到终态后写入 LittleFS 动作记录。
+- `/devices` 保存业务设备和分站绑定，显示设备启用状态、分站在线状态，并提供设备启停和分站 `CLEAR_FAULT` 维护入口。
+- `/bus` 支持扫描 `1..127` 地址并把应答分站写入设备注册表。
+- 主控后台在无动作运行时低频轮询启用分站，更新在线/离线/错误状态。
+- 主控日志覆盖手动动作预览、真实发送、动作跟踪、轮询失败、动作终态、分站状态变化和总线扫描摘要，便于无板和上板阶段对照。
+
+下一步优先继续补齐“可见、可验证”的主控功能闭环；自动计划、FRAM pending-action journal、真实巴法云/微信发送、分站 OTA、缺料检测和真实板级 IO 联调仍然后置。
 
 ## 模块边界
 
@@ -70,13 +79,18 @@
 没有 PCB 时，至少保持这些 smoke test 可运行：
 
 ```sh
-make -C tools/protocol_smoke test
-make -C tools/action_smoke test
-make -C tools/fake_station_smoke test
-make -C tools/master_loop_smoke test
-make -C tools/feed_service_smoke test
-make -C tools/station_node_smoke test
-make -C tools/action_record_smoke test
+pio run -d firmware/master-esp32
+pio run -d firmware/station-stc8h
+make -C tools/protocol_smoke
+make -C tools/action_smoke
+make -C tools/fake_station_smoke
+make -C tools/master_loop_smoke
+make -C tools/feed_service_smoke
+make -C tools/door_service_smoke
+make -C tools/station_node_smoke
+make -C tools/station_board_smoke test
+make -C tools/action_record_smoke
+make -C tools/device_registry_smoke test
 ```
 
 后续新增 fake 分站和主控闭环后，也必须提供 host-side smoke test，验证：
