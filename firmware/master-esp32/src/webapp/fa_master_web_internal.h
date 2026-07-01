@@ -7,30 +7,9 @@
 #include <Esp32Base.h>
 
 #include "fa_action_record_store.h"
+#include "fa_master_config.h"
 
-constexpr const char* kNs = "fa_feed";
-constexpr const char* kStationAddress = "addr";
-constexpr const char* kPulsesPerTurn = "ppt";
-constexpr const char* kGramsPerTurnMg = "gpt_mg";
-constexpr const char* kDirection = "dir";
-constexpr const char* kSpeedPermille = "speed";
-constexpr const char* kOverCurrentMa = "oc_ma";
-constexpr const char* kMaxRunMs = "max_ms";
-constexpr const char* kMaxActionPulses = "max_p";
-constexpr uint16_t kSingleFeederDeviceId = 1u;
-constexpr uint16_t kSingleDoorDeviceId = 2u;
 constexpr uint8_t kRecentRecordLimit = 8u;
-
-constexpr const char* kDoorNs = "fa_door";
-constexpr const char* kDoorStationAddress = "addr";
-constexpr const char* kDoorPulsesPerTurn = "ppt";
-constexpr const char* kDoorTravelPulses = "travel";
-constexpr const char* kDoorOpenDirection = "open_dir";
-constexpr const char* kDoorCloseDirection = "close_dir";
-constexpr const char* kDoorSpeedPermille = "speed";
-constexpr const char* kDoorOverCurrentMa = "oc_ma";
-constexpr const char* kDoorMaxRunMs = "max_ms";
-constexpr const char* kDoorMaxActionPulses = "max_p";
 
 extern FaFeedService* g_feed_service;
 extern FaDoorService* g_door_service;
@@ -38,6 +17,7 @@ extern FaDeviceRegistry* g_device_registry;
 extern FaRs485Master* g_rs485_master;
 extern FaRs485Transport* g_transport;
 extern FaMasterActionRuntime* g_action_runtime;
+extern FaAutoScheduler* g_auto_scheduler;
 
 struct FaWebDeviceStatus {
     uint16_t device_id = 0u;
@@ -85,6 +65,11 @@ void sendDoorOpenApi(void);
 void sendDoorCloseApi(void);
 void sendDoorStopApi(void);
 void sendRecordsPage(void);
+void sendAutoPage(void);
+void sendAutoFeedPauseApi(void);
+void sendAutoFeedResumeApi(void);
+void sendAutoDoorPauseApi(void);
+void sendAutoDoorResumeApi(void);
 void sendBusPage(void);
 void sendBusScanApi(void);
 void sendDevicesPage(void);

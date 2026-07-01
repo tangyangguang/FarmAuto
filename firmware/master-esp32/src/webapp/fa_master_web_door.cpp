@@ -2,26 +2,6 @@
 
 namespace {
 
-FaDoorDeviceConfig readDoorConfig(void) {
-    FaDoorDeviceConfig config;
-    config.station_address = static_cast<uint8_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorStationAddress, 2));
-    config.config_version = 1u;
-    config.pulses_per_turn = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorPulsesPerTurn, 4320));
-    config.travel_pulses = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorTravelPulses, 20000));
-    config.open_direction = static_cast<int8_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorOpenDirection, 1));
-    config.close_direction = static_cast<int8_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorCloseDirection, -1));
-    config.speed_permille = static_cast<uint16_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorSpeedPermille, 700));
-    config.accel_ms = 0u;
-    config.decel_ms = 0u;
-    config.over_current_ma = static_cast<uint16_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorOverCurrentMa, 2500));
-    config.over_current_hold_ms = 100u;
-    config.stall_detect_ms = 500u;
-    config.stall_min_delta_pulses = 10u;
-    config.max_run_ms = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorMaxRunMs, 30000));
-    config.max_action_pulses = static_cast<uint32_t>(Esp32BaseConfig::getInt(kDoorNs, kDoorMaxActionPulses, 100000));
-    return config;
-}
-
 const char* doorCommandName(uint8_t command) {
     return command == FA_DOOR_COMMAND_CLOSE ? "close" : "open";
 }
@@ -40,7 +20,7 @@ void sendManualDoorActionApi(uint8_t command) {
         return;
     }
 
-    FaDoorDeviceConfig config = readDoorConfig();
+    FaDoorDeviceConfig config = fa_master_read_door_config();
     FaWebDeviceStatus deviceStatus;
     (void)readDeviceStatus(FA_DEVICE_TYPE_DOOR, kSingleDoorDeviceId, config.station_address, deviceStatus);
     config.station_address = deviceStatus.station_address;
@@ -196,7 +176,7 @@ void sendDoorStopApi(void) {
         Esp32BaseWeb::sendJson(503, "{\"ok\":false,\"error\":\"service_unavailable\"}");
         return;
     }
-    FaDoorDeviceConfig config = readDoorConfig();
+    FaDoorDeviceConfig config = fa_master_read_door_config();
     FaWebDeviceStatus deviceStatus;
     (void)readDeviceStatus(FA_DEVICE_TYPE_DOOR, kSingleDoorDeviceId, config.station_address, deviceStatus);
     config.station_address = deviceStatus.station_address;
@@ -240,7 +220,7 @@ void sendDoorPage(void) {
         return;
     }
 
-    FaDoorDeviceConfig config = readDoorConfig();
+    FaDoorDeviceConfig config = fa_master_read_door_config();
     FaWebDeviceStatus deviceStatus;
     (void)readDeviceStatus(FA_DEVICE_TYPE_DOOR, kSingleDoorDeviceId, config.station_address, deviceStatus);
     config.station_address = deviceStatus.station_address;

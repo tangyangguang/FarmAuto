@@ -2,6 +2,7 @@
 #define FA_MASTER_WEB_H
 
 #include "fa_master_action_runtime.h"
+#include "fa_auto_scheduler.h"
 #include "fa_door_service.h"
 #include "fa_feed_service.h"
 #include "fa_device_registry.h"
@@ -13,6 +14,7 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
                                    FaDeviceRegistry *device_registry,
                                    FaRs485Master *rs485_master,
                                    FaRs485Transport *transport,
-                                   FaMasterActionRuntime *action_runtime);
+                                   FaMasterActionRuntime *action_runtime,
+                                   FaAutoScheduler *auto_scheduler);
 
 #endif

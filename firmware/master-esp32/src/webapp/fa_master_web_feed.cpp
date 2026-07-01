@@ -2,35 +2,12 @@
 
 #include <string.h>
 
-namespace {
-
-FaFeedDeviceConfig readFeedConfig(void) {
-    FaFeedDeviceConfig config;
-    config.station_address = static_cast<uint8_t>(Esp32BaseConfig::getInt(kNs, kStationAddress, 1));
-    config.config_version = 1u;
-    config.pulses_per_turn = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kPulsesPerTurn, 4320));
-    config.grams_per_turn_mg = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kGramsPerTurnMg, 8000));
-    config.feed_direction = static_cast<int8_t>(Esp32BaseConfig::getInt(kNs, kDirection, 1));
-    config.speed_permille = static_cast<uint16_t>(Esp32BaseConfig::getInt(kNs, kSpeedPermille, 800));
-    config.accel_ms = 0u;
-    config.decel_ms = 0u;
-    config.over_current_ma = static_cast<uint16_t>(Esp32BaseConfig::getInt(kNs, kOverCurrentMa, 2000));
-    config.over_current_hold_ms = 100u;
-    config.stall_detect_ms = 500u;
-    config.stall_min_delta_pulses = 10u;
-    config.max_run_ms = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kMaxRunMs, 60000));
-    config.max_action_pulses = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kMaxActionPulses, 432000));
-    return config;
-}
-
-}  // namespace
-
 void sendFeedPage(void) {
     if (!Esp32BaseWeb::checkAuth()) {
         return;
     }
 
-    FaFeedDeviceConfig config = readFeedConfig();
+    FaFeedDeviceConfig config = fa_master_read_feed_config();
     FaWebDeviceStatus deviceStatus;
     (void)readDeviceStatus(FA_DEVICE_TYPE_FEEDER, kSingleFeederDeviceId, config.station_address, deviceStatus);
     config.station_address = deviceStatus.station_address;
@@ -82,7 +59,7 @@ void sendManualFeedApi(void) {
         return;
     }
 
-    FaFeedDeviceConfig config = readFeedConfig();
+    FaFeedDeviceConfig config = fa_master_read_feed_config();
     FaWebDeviceStatus deviceStatus;
     (void)readDeviceStatus(FA_DEVICE_TYPE_FEEDER, kSingleFeederDeviceId, config.station_address, deviceStatus);
     config.station_address = deviceStatus.station_address;

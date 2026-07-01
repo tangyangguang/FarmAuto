@@ -5,6 +5,7 @@
 
 #include "fa_master_action_runtime.h"
 #include "fa_action_record_store.h"
+#include "fa_auto_scheduler.h"
 #include "fa_device_registry.h"
 #include "fa_master_web.h"
 #include "fa_rs485_transport.h"
@@ -23,11 +24,12 @@ static FaDoorService g_door;
 static FaDeviceRegistry g_device_registry;
 static FaMasterActionRuntime g_action_runtime;
 static FaStationPoller g_station_poller;
+static FaAutoScheduler g_auto_scheduler;
 
 void farmauto_master_setup(void) {
     Esp32Base::setFirmwareInfo("farmauto-master", "0.1.0");
     fa_master_web_register_config();
-    fa_master_web_register_routes(&g_feed, &g_door, &g_device_registry, &g_rs485, &g_transport, &g_action_runtime);
+    fa_master_web_register_routes(&g_feed, &g_door, &g_device_registry, &g_rs485, &g_transport, &g_action_runtime, &g_auto_scheduler);
     Esp32Base::begin();
 
     fa_rs485_master_init(&g_rs485);
@@ -39,6 +41,7 @@ void farmauto_master_setup(void) {
     fa_door_service_init(&g_door, 700001u);
     g_action_runtime.begin(&g_rs485, &g_transport);
     g_station_poller.begin(&g_rs485, &g_transport, &g_device_registry, &g_action_runtime);
+    g_auto_scheduler.begin(&g_rs485, &g_transport, &g_feed, &g_door, &g_device_registry, &g_action_runtime);
     if (!FaActionRecordStore::begin()) {
         ESP32BASE_LOG_W("farm", "action_record_store_unavailable");
     }
@@ -52,6 +55,7 @@ void farmauto_master_setup(void) {
 void farmauto_master_loop(void) {
     Esp32Base::handle();
     g_action_runtime.handle();
+    g_auto_scheduler.handle();
     g_station_poller.handle();
     delay(10);
 }

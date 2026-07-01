@@ -3,12 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fa_auto_scheduler.h"
+
 FaFeedService* g_feed_service = nullptr;
 FaDoorService* g_door_service = nullptr;
 FaDeviceRegistry* g_device_registry = nullptr;
 FaRs485Master* g_rs485_master = nullptr;
 FaRs485Transport* g_transport = nullptr;
 FaMasterActionRuntime* g_action_runtime = nullptr;
+FaAutoScheduler* g_auto_scheduler = nullptr;
 
 uint32_t readUIntParam(const char* name, uint32_t fallback) {
     char raw[16] = "";
@@ -569,6 +572,7 @@ void fa_master_web_register_config(void) {
     Esp32BaseAppConfig::setTitle("FarmAuto Config");
     Esp32BaseAppConfig::addGroup({"feeder", "Feeder"});
     Esp32BaseAppConfig::addGroup({"door", "Door"});
+    Esp32BaseAppConfig::addGroup({"auto", "Auto"});
     Esp32BaseAppConfig::addGroup({"rs485", "RS485"});
     Esp32BaseAppConfig::addInt({"feeder", kNs, kStationAddress, "Station address", 1, 1, 127, 1, nullptr,
                                 "RS485 address 1..127.", false, nullptr});
@@ -604,6 +608,30 @@ void fa_master_web_register_config(void) {
                                 "Single action timeout.", false, nullptr});
     Esp32BaseAppConfig::addInt({"door", kDoorNs, kDoorMaxActionPulses, "Max pulses", 100000, 1, 2000000, 1, "pulses",
                                 "Single action pulse limit.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_ENABLED, "Auto enabled", 1, 0, 1, 1, nullptr,
+                                "1 enables daily automatic schedules.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_TZ_OFFSET_MIN, "Timezone offset", 480, -720, 840, 1, "min",
+                                "Local time offset from UTC; China is 480.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_ENABLED, "Feed schedule", 1, 0, 1, 1, nullptr,
+                                "1 enables daily feed points.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_1_MIN, "Feed 1 minute", 430, 0, 1439, 1, "min",
+                                "Minute of local day, e.g. 430 is 07:10.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_1_AMOUNT_MG, "Feed 1 amount", 100000, 1, 5000000, 1, "mg",
+                                "Scheduled feed amount.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_2_MIN, "Feed 2 minute", 1090, 0, 1439, 1, "min",
+                                "Minute of local day, e.g. 1090 is 18:10.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_2_AMOUNT_MG, "Feed 2 amount", 100000, 1, 5000000, 1, "mg",
+                                "Scheduled feed amount.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_ENABLED, "Door schedule", 1, 0, 1, 1, nullptr,
+                                "1 enables daily door open/close.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_OPEN_MIN, "Door open minute", 480, 0, 1439, 1, "min",
+                                "Minute of local day, e.g. 480 is 08:00.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_CLOSE_MIN, "Door close minute", 1050, 0, 1439, 1, "min",
+                                "Minute of local day, e.g. 1050 is 17:30.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_FEED_PAUSE_UNTIL, "Feed pause until", 0, 0, 2147483647, 1, "epoch",
+                                "0 means not paused; epoch seconds pauses automatic feed.", false, nullptr});
+    Esp32BaseAppConfig::addInt({"auto", FaAutoScheduleConfig::NS, FaAutoScheduleConfig::KEY_DOOR_PAUSE_UNTIL, "Door pause until", 0, 0, 2147483647, 1, "epoch",
+                                "0 means not paused; epoch seconds pauses automatic door.", false, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_UART, "UART", 2, 1, 2, 1, nullptr,
                                 "ESP32 hardware serial port.", true, nullptr});
     Esp32BaseAppConfig::addInt({"rs485", FaRs485Config::NS, FaRs485Config::KEY_RX_PIN, "RX pin", -1, -1, 39, 1, nullptr,
@@ -623,15 +651,18 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
                                    FaDeviceRegistry *device_registry,
                                    FaRs485Master *rs485_master,
                                    FaRs485Transport *transport,
-                                   FaMasterActionRuntime *action_runtime) {
+                                   FaMasterActionRuntime *action_runtime,
+                                   FaAutoScheduler *auto_scheduler) {
     g_feed_service = feed_service;
     g_door_service = door_service;
     g_device_registry = device_registry;
     g_rs485_master = rs485_master;
     g_transport = transport;
     g_action_runtime = action_runtime;
+    g_auto_scheduler = auto_scheduler;
     Esp32BaseWeb::addPage("/feed", "Feed", sendFeedPage);
     Esp32BaseWeb::addPage("/door", "Door", sendDoorPage);
+    Esp32BaseWeb::addPage("/auto", "Auto", sendAutoPage);
     Esp32BaseWeb::addPage("/records", "Records", sendRecordsPage);
     Esp32BaseWeb::addPage("/devices", "Devices", sendDevicesPage);
     Esp32BaseWeb::addPage("/bus", "RS485", sendBusPage);
@@ -639,6 +670,10 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);
     Esp32BaseWeb::addApi("/api/door/close", sendDoorCloseApi);
     Esp32BaseWeb::addApi("/api/door/stop", sendDoorStopApi);
+    Esp32BaseWeb::addApi("/api/auto/feed-pause", sendAutoFeedPauseApi);
+    Esp32BaseWeb::addApi("/api/auto/feed-resume", sendAutoFeedResumeApi);
+    Esp32BaseWeb::addApi("/api/auto/door-pause", sendAutoDoorPauseApi);
+    Esp32BaseWeb::addApi("/api/auto/door-resume", sendAutoDoorResumeApi);
     Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
     Esp32BaseWeb::addApi("/api/action/stop-active", sendStopActiveActionApi);
     Esp32BaseWeb::addApi("/api/devices/enabled", sendDeviceSetEnabledApi);

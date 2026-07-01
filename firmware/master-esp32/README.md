@@ -5,18 +5,23 @@ This PlatformIO project is the first hardware-targeted master scaffold.
 It currently does these things:
 
 - builds against `Esp32Base`;
-- builds the shared FarmAuto RS485 protocol and master/feed-service/action-record core;
+- builds the shared FarmAuto RS485 protocol and master feed/door/action-record core;
 - explicitly compiles shared protocol sources into the ESP32 target;
 - initializes a LittleFS-backed action record ring via `Esp32BaseFs`;
-- registers FarmAuto feeder parameters through `Esp32BaseAppConfig`;
-- exposes a minimal `/feed` page and `/api/feed/manual` dry-run action builder;
+- registers FarmAuto feeder, door, automatic schedule and RS485 parameters through `Esp32BaseAppConfig`;
+- exposes `/feed`, `/door`, `/auto`, `/records`, `/devices` and `/bus` pages;
+- sends bounded manual and scheduled actions over RS485 when transport pins are configured;
+- previews manual feed/door actions when RS485 is not configured;
+- tracks active actions to terminal state and writes action records;
+- stores device names, display order, station bindings and station enabled state in LittleFS;
+- scans RS485 addresses `1..127` and records discovered stations;
 - starts the Esp32Base runtime loop.
 
-It does not yet bind RS485 UART pins, buttons, LEDs, RTC, FRAM, SHT30, or the full V3 business Web pages.
+It does not yet bind buttons, LEDs, RTC, FRAM, SHT30, Bafa/WeChat sending, station OTA, missing-feed detection or final PCB pin-specific board IO.
 
 The current action record file is `/farmauto/action-records.bin`. It is a small FarmAuto business ring file built on `Esp32BaseFs`; it is not the FRAM pending-action journal.
 
-The current Web manual feed endpoint is intentionally a dry run. It builds the bounded motor action from saved config and returns the action preview, but does not send RS485 and does not write a completed action record.
+Automatic schedules require real time to be synced. Missed schedule points are not backfilled; blocked runs are logged and skipped.
 
 ## Local dependency
 
