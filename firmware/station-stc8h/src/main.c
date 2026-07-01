@@ -1,4 +1,5 @@
 #include "fa_protocol.h"
+#include "fa_station_board.h"
 #include "fa_station_node.h"
 #include "stc8h_compiler.h"
 #include "stc8h_interrupt.h"
@@ -27,6 +28,7 @@ static stc8h_u32 station_now_ms(void) {
 void main(void) {
     stc8h_u16 i;
     size_t response_len;
+    uint32_t now_ms;
 
     (void)stc8h_uart_init(STC8H_UART1);
 
@@ -39,9 +41,16 @@ void main(void) {
     stc8h_timer_start(STC8H_TIMER0);
 
     fa_station_node_init(&g_node, FA_ADDRESS_MIN);
+    fa_station_board_init(station_now_ms());
 
     while (1) {
-        fa_station_node_tick(&g_node, station_now_ms(), 0, 0u);
+        now_ms = station_now_ms();
+        fa_station_board_tick(now_ms);
+        fa_station_node_tick(&g_node,
+                             now_ms,
+                             fa_station_board_position_pulses(),
+                             fa_station_board_current_ma());
+        fa_station_board_apply_output(&g_node.output);
 
         if (stc8h_uart_readable(STC8H_UART1) != 0u) {
             response_len = 0u;
