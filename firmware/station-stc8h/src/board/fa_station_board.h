@@ -5,6 +5,13 @@
 
 #include <stdint.h>
 
+#define FA_STATION_BOARD_BACKEND_SIM 1
+#define FA_STATION_BOARD_BACKEND_REAL 2
+
+#ifndef FA_STATION_BOARD_BACKEND
+#define FA_STATION_BOARD_BACKEND FA_STATION_BOARD_BACKEND_SIM
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

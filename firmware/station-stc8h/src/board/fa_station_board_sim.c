@@ -1,5 +1,7 @@
 #include "fa_station_board.h"
 
+#if FA_STATION_BOARD_BACKEND == FA_STATION_BOARD_BACKEND_SIM
+
 #include <string.h>
 
 #ifndef FA_STATION_SIM_MAX_PULSES_PER_SEC
@@ -80,3 +82,5 @@ int32_t fa_station_board_position_pulses(void) {
 uint16_t fa_station_board_current_ma(void) {
     return g_board.current_ma;
 }
+
+#endif
