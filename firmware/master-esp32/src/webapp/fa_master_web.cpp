@@ -26,6 +26,14 @@ bool registerRouteChecked(const char* path, Esp32BaseWeb::Method method, Esp32Ba
     return ok;
 }
 
+bool registerPageChecked(const char* path, const char* title, Esp32BaseWeb::Handler handler) {
+    const bool ok = Esp32BaseWeb::addPage(path, title, handler);
+    if (!ok) {
+        ESP32BASE_LOG_E("farm", "web_page_register_failed path=%s", path != nullptr ? path : "-");
+    }
+    return ok;
+}
+
 bool registerApiChecked(const char* path, Esp32BaseWeb::Handler handler) {
     const bool ok = Esp32BaseWeb::addApi(path, handler);
     if (!ok) {
@@ -819,10 +827,6 @@ void fa_master_web_register_config(void) {
                                 "0 表示未暂停；epoch 秒表示暂停自动门控到该时间。", false, nullptr});
     Esp32BaseAppConfig::addBool({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, "启用 SHT30", true,
                                  "读取室外温湿度。", false, nullptr});
-    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, "SDA 引脚", 21, -1, 39, 1, nullptr,
-                                "-1 表示停用 SHT30 I2C。", false, nullptr});
-    Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, "SCL 引脚", 22, -1, 39, 1, nullptr,
-                                "-1 表示停用 SHT30 I2C。", false, nullptr});
     Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, "I2C 地址", 68, 8, 119, 1, nullptr,
                                 "SHT30 7 位地址，常见 68 即 0x44。", false, nullptr});
     Esp32BaseAppConfig::addInt({"env", FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, "采样间隔", 5000, 1000, 600000, 1000, "ms",
@@ -902,11 +906,11 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_env_sensor = env_sensor;
     g_board_io = board_io;
     registerRouteChecked("/", Esp32BaseWeb::METHOD_GET, redirectV3Home);
-    registerRouteChecked("/home", Esp32BaseWeb::METHOD_GET, sendV3HomePage);
-    registerRouteChecked("/auto", Esp32BaseWeb::METHOD_GET, sendV3AutoPage);
-    registerRouteChecked("/manual", Esp32BaseWeb::METHOD_GET, sendV3ManualPage);
-    registerRouteChecked("/records", Esp32BaseWeb::METHOD_GET, sendV3RecordsPage);
-    registerRouteChecked("/settings", Esp32BaseWeb::METHOD_GET, sendV3SettingsPage);
+    registerPageChecked("/home", "首页", sendV3HomePage);
+    registerPageChecked("/auto", "自动", sendV3AutoPage);
+    registerPageChecked("/manual", "手动", sendV3ManualPage);
+    registerPageChecked("/records", "记录", sendV3RecordsPage);
+    registerPageChecked("/settings", "设置", sendV3SettingsPage);
     registerRouteChecked("/feed", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
     registerRouteChecked("/door", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
     registerRouteChecked("/env", Esp32BaseWeb::METHOD_GET, redirectV3Records);

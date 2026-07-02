@@ -14,15 +14,29 @@ enum class V3Page : uint8_t {
     Settings
 };
 
-const char* V3_CSS =
-    ":root{--bg:#f5f7fa;--surface:#fff;--surface2:#eef3f7;--line:#dbe4ec;--text:#17212b;--muted:#667789;--green:#0f766e;--green2:#e7f7f4;--blue:#1d5f7a;--blue2:#e8f3f7;--amber:#9b5d12;--amber2:#fff6e5;--red:#b42318;--red2:#fff0ee;--radius:8px;color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}"
-    "*{box-sizing:border-box}html{background:var(--bg);color:var(--text)}body{margin:0;min-height:100vh;background:linear-gradient(180deg,rgba(15,118,110,.05),transparent 230px),linear-gradient(90deg,rgba(29,95,122,.035) 1px,transparent 1px),linear-gradient(180deg,rgba(29,95,122,.025) 1px,transparent 1px),var(--bg);background-size:auto,28px 28px,28px 28px,auto;letter-spacing:0}button,input,select{font:inherit}a{color:inherit;text-decoration:none}.app-shell{width:min(1180px,100%);margin:0 auto;padding:0 12px 92px}.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -12px;padding:10px 12px;background:rgba(245,247,250,.94);border-bottom:1px solid rgba(219,228,236,.92);backdrop-filter:blur(16px)}"
-    ".brand{display:flex;align-items:center;gap:10px;min-width:0}.brand-mark{display:grid;place-items:center;width:34px;height:34px;flex:0 0 auto;border-radius:var(--radius);background:var(--green);color:#fff;font-size:13px;font-weight:600}.brand-title{margin:0;font-size:17px;line-height:1.1;font-weight:600}.brand-subtitle{display:block;margin-top:3px;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workspace{display:grid;gap:12px;padding-top:10px}.page-rail{position:sticky;top:65px;z-index:10;display:none;gap:7px;margin:0 -12px;padding:0 12px 10px;overflow-x:auto}.rail-title{display:none}.rail-button,.tab-button,.seg-button{border:1px solid var(--line);background:rgba(255,255,255,.82);color:var(--text);border-radius:var(--radius);min-height:34px;padding:7px 10px;font-size:13px;font-weight:520;cursor:pointer;white-space:nowrap}.rail-button.active,.tab-button.active,.seg-button.active{color:var(--green);border-color:rgba(15,118,110,.34);background:var(--green2)}"
-    ".screen-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:2px 0 12px}.screen-kicker{margin:0 0 3px;color:var(--green);font-size:12px;font-weight:650}.screen-header h1{margin:0;font-size:26px;line-height:1.08;font-weight:650}.muted{color:var(--muted)}.small{font-size:12px}.screen-header .muted{margin:6px 0 0;font-size:13px;line-height:1.45}.status-pill,.mini-pill,.tag{display:inline-flex;align-items:center;gap:6px;min-height:28px;border-radius:999px;border:1px solid transparent;font-weight:560;white-space:nowrap}.status-pill{padding:5px 9px;font-size:12px}.mini-pill,.tag{padding:5px 8px;font-size:11px}.ok{color:var(--green);background:var(--green2);border-color:rgba(36,107,69,.18)}.warn{color:var(--amber);background:var(--amber2);border-color:rgba(154,92,19,.20)}.bad{color:var(--red);background:var(--red2);border-color:rgba(167,53,47,.20)}.info{color:var(--blue);background:var(--blue2);border-color:rgba(37,99,122,.18)}.dot{width:7px;height:7px;border-radius:50%;background:currentColor}"
-    ".hero-status{border:1px solid var(--line);background:linear-gradient(180deg,#fff,rgba(255,255,255,.86));border-radius:var(--radius);box-shadow:0 10px 26px rgba(23,33,43,.07);padding:14px}.hero-main{display:grid;grid-template-columns:1fr;gap:12px}.hero-title{font-size:24px;line-height:1.1;font-weight:680}.hero-copy{margin:6px 0 0;color:var(--muted);font-size:13px}.top-temp-status{display:grid;gap:2px;text-align:left;border:1px solid rgba(15,118,110,.2);background:var(--green2);border-radius:var(--radius);padding:10px;color:var(--green);cursor:pointer}.top-temp-status span{font-size:12px}.top-temp-status strong{font-size:19px}.home-summary-grid,.grid{display:grid;gap:10px}.home-summary-grid{margin-top:12px}.home-summary-card,.card{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);padding:12px}.summary-head,.section-title,.run-slot-head,.run-task-head,.split-line{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.summary-title,.event-title,.record-title,.plan-title,.run-task-title{font-weight:650}.summary-main{margin-top:12px;font-size:18px;font-weight:650}.summary-meta,.summary-foot,.event-detail,.record-detail,.plan-detail,.run-task-detail{color:var(--muted);font-size:12px;line-height:1.45}.summary-foot{display:grid;gap:4px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}"
-    ".run-slot{margin-top:10px}.run-slot h2,.section-title h2,.card h2{margin:0;font-size:17px}.run-task{margin-top:10px;border:1px solid var(--line);border-radius:var(--radius);padding:10px;background:#fff}.run-task.active{background:var(--amber2);border-color:rgba(154,92,19,.22)}.run-task-title,.run-task-detail{margin:0}.progress-track{height:8px;background:rgba(154,92,19,.16);border-radius:999px;overflow:hidden;margin:10px 0}.progress-fill{height:100%;background:var(--amber);border-radius:999px}.run-task-action{display:flex;justify-content:flex-end}.event-list,.plan-list,.record-list,.menu-grid{display:grid;gap:8px}.section-title{margin:14px 0 8px}.event-row,.record-row,.plan-row,.menu-row,.setting-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:var(--radius);padding:10px;text-align:left}.menu-row{width:100%;cursor:pointer}.icon-box{display:grid;place-items:center;width:36px;height:36px;border-radius:var(--radius);background:var(--surface2);color:var(--green);font-weight:650}.event-title,.event-detail,.record-title,.record-detail,.plan-title,.plan-detail{margin:0}.event-time,.record-time{color:var(--soft,#8a98a8);font-size:12px;white-space:nowrap}"
-    ".fieldgrid,.form-grid{display:grid;gap:10px}.field{display:grid;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:650}.field input,.field select{width:100%;min-height:40px;border:1px solid var(--line);border-radius:var(--radius);padding:8px 9px;background:#fff;color:var(--text)}.segmented{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.button-row,.actions{display:flex;flex-wrap:wrap;gap:8px}.button-row form,.actions form{display:inline-flex}.action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.action-grid form{display:grid}.action-grid input[type=submit]{width:100%}.action-button,.primary-button,.secondary-button,.danger-button,.hold-button,input[type=submit],button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;border-radius:var(--radius);min-height:39px;padding:9px 11px;background:#fff;color:var(--text);font-size:14px;font-weight:520;cursor:pointer;text-align:center}.primary-button{background:var(--green);border-color:var(--green);color:#fff}.secondary-button,.action-button{background:rgba(255,255,255,.92);border-color:var(--line);color:var(--text)}.danger-button{background:var(--red);border-color:var(--red);color:#fff}.action-button.urgent{background:var(--red2);border-color:rgba(180,35,24,.32);color:var(--red)}button:disabled,.action-button:disabled,.primary-button:disabled,.secondary-button:disabled,.danger-button:disabled,.hold-button:disabled{color:var(--soft,#8a98a8);background:var(--surface2);border-color:var(--line);cursor:not-allowed}.critical-card{border-color:rgba(180,35,24,.22);background:linear-gradient(180deg,#fff,var(--red2))}.idle-state{background:linear-gradient(180deg,#fff,var(--green2))}.rule-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}.rule-list li{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;color:var(--muted);font-size:13px}.check{display:grid;place-items:center;width:20px;height:20px;border-radius:999px;background:var(--green2);color:var(--green);font-weight:700}.warn-mark{background:var(--amber2);color:var(--amber)}.confirm-sheet{display:none;gap:9px;padding:12px;border-radius:var(--radius);border:1px solid rgba(180,35,24,.28);background:var(--red2)}.confirm-sheet.show{display:grid}#globalConfirm{position:fixed;left:12px;right:12px;bottom:76px;z-index:45;box-shadow:0 10px 26px rgba(23,33,43,.07)}.hold-button{position:relative;overflow:hidden;color:#fff;background:var(--red);border-color:var(--red);user-select:none;touch-action:manipulation}.hold-button::before{content:'';position:absolute;inset:0;width:var(--hold-progress,0%);background:rgba(255,255,255,.24);transition:width 80ms linear}.hold-button span{position:relative;z-index:1}.record-panel{display:none}.record-panel.active{display:grid;gap:8px}.record-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px}.temp-chart{border:1px solid var(--line);background:#fff;border-radius:var(--radius);padding:12px}.chart-grid{position:relative;height:160px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,rgba(15,118,110,.05),transparent),repeating-linear-gradient(0deg,transparent,transparent 31px,var(--line) 32px)}.chart-line{position:absolute;height:3px;border-radius:999px;background:var(--green);transform-origin:left center}.chart-line.hum{background:var(--blue)}.chart-dot{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px #fff}.chart-dot.hum{background:var(--blue)}.chart-legend{display:flex;gap:12px;margin-top:8px;color:var(--muted);font-size:12px}.legend-item{display:inline-flex;align-items:center;gap:6px}.legend-swatch{width:14px;height:3px;border-radius:999px;background:var(--green)}.legend-swatch.hum{background:var(--blue)}.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:rgba(255,255,255,.96);border-top:1px solid var(--line);backdrop-filter:blur(16px)}.nav-button{display:grid;gap:2px;place-items:center;border:0;border-radius:0;background:transparent;min-height:58px;padding:7px 4px;color:var(--muted);font-size:12px}.nav-button span:first-child{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:var(--surface2);font-size:12px}.nav-button.active{color:var(--green)}.nav-button.active span:first-child{background:var(--green2)}.toast{position:fixed;left:12px;right:12px;bottom:70px;z-index:40;display:none;padding:10px 12px;border-radius:var(--radius);background:#17212b;color:#fff;font-size:13px}.toast.show{display:block}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 6px;font-size:13px}th{color:var(--muted);font-size:12px;font-weight:650}"
-    "@media(min-width:760px){.app-shell{padding-bottom:24px}.workspace{grid-template-columns:150px 1fr}.page-rail{display:grid;align-self:start;margin:0;padding:0;top:70px;overflow:visible}.rail-title{display:block;color:var(--muted);font-size:12px;font-weight:650;margin-bottom:2px}.rail-button{text-align:left}.bottom-nav{display:none}.hero-main{grid-template-columns:1fr 220px}.home-summary-grid,.desktop-two{grid-template-columns:repeat(2,minmax(0,1fr))}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fieldgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}";
+const char* V3_CSS = R"CSS(
+.fa-status-line{display:flex;justify-content:flex-end;margin:-4px 0 10px}
+.hero-status{display:grid;gap:10px;padding:14px;border:1px solid var(--eb-line);border-radius:8px;background:rgba(255,255,255,.96)}
+.hero-main{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.hero-title{margin-bottom:4px;font-size:16px;line-height:1.18;font-weight:750}
+.hero-copy{margin:0;color:var(--eb-muted);font-size:13px;line-height:1.5}
+.top-temp-status{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;min-height:30px;padding:5px 8px;border:1px solid var(--eb-line);border-radius:8px;background:var(--eb-soft);color:var(--eb-ink);text-align:right;white-space:nowrap}
+.top-temp-status span{color:var(--eb-muted);font-size:12px;line-height:1.2}.top-temp-status strong{font-size:13px;line-height:1.2;font-weight:750}
+.fa-grid,.home-summary-grid,.grid,.menu-grid,.event-list,.plan-list{display:grid;gap:10px}.home-summary-grid{margin:10px 0}.desktop-two{display:grid;gap:10px}
+.home-summary-card,.card{border:1px solid var(--eb-line);background:var(--eb-surface);border-radius:8px;padding:12px;margin:10px 0}.card h2{font-size:16px;margin:0}.critical-card{border-color:#efc0ba;background:#fffafa}
+.summary-head,.section-title,.run-slot-head,.run-task-head,.split-line{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.section-title{margin:14px 0 8px}.section-title h2{margin:0;font-size:16px}
+.summary-title,.event-title,.record-title,.plan-title,.run-task-title{font-weight:700}.summary-main{margin-top:10px;font-size:17px;font-weight:750}.summary-meta,.summary-foot,.event-detail,.record-detail,.plan-detail,.run-task-detail{color:var(--eb-muted);font-size:12px;line-height:1.45}.summary-foot{display:grid;gap:4px;margin-top:10px;padding-top:8px;border-top:1px solid var(--eb-line-soft)}
+.mini-pill,.status-pill{display:inline-flex;align-items:center;min-height:24px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:750}.status-pill{min-height:26px}.dot{display:none}.mini-pill.ok,.status-pill.ok{color:var(--eb-ok);background:var(--eb-ok-soft)}.mini-pill.warn,.status-pill.warn{color:var(--eb-warn);background:var(--eb-warn-soft)}.mini-pill.bad,.status-pill.bad{color:var(--eb-danger);background:var(--eb-danger-soft)}.mini-pill.info,.status-pill.info{color:var(--eb-info);background:var(--eb-info-soft)}
+.event-row,.record-row,.plan-row,.menu-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid var(--eb-line-soft);background:#fff;border-radius:8px;padding:10px;text-align:left;margin:8px 0}.menu-row{width:100%;color:var(--eb-ink)}.icon-box{display:grid;place-items:center;width:34px;height:34px;border-radius:7px;background:var(--eb-primary-soft);color:var(--eb-primary);font-weight:750}.icon-box.info{background:var(--eb-info-soft);color:var(--eb-info)}.event-title,.event-detail,.record-title,.record-detail,.plan-title,.plan-detail{margin:0}.event-time,.record-time{color:var(--eb-muted);font-size:12px;white-space:nowrap}
+.button-row{display:flex;flex-wrap:wrap;gap:8px}.button-row form{display:inline-flex}.action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.action-grid form{display:grid}.action-grid input[type=submit]{width:100%}.action-button.urgent,input.action-button.urgent{background:var(--eb-danger-soft);color:var(--eb-danger);border-color:#efc0ba}.run-task{margin-top:10px;border:1px solid var(--eb-line-soft);border-radius:8px;padding:10px;background:#fff}.run-task.active{background:var(--eb-warn-soft);border-color:#efcf96}.progress-track{height:8px;background:#f5ddb3;border-radius:999px;overflow:hidden;margin:10px 0}.progress-fill{height:100%;background:var(--eb-warn);border-radius:999px}.run-task-action{display:flex;justify-content:flex-end}
+.segmented,.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px}.seg-button{background:var(--eb-button-soft);color:#344054;border:1px solid var(--eb-button-border)}.seg-button.active{background:var(--eb-primary-soft);color:var(--eb-primary)}.record-panel{display:none}.record-panel.active{display:grid;gap:8px}.record-footer{display:flex;justify-content:space-between;color:var(--eb-muted);font-size:12px}
+.form-grid{display:grid;gap:8px}.rule-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}.rule-list li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start}.check{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:var(--eb-ok-soft);color:var(--eb-ok);font-weight:750}.check.warn-mark{background:var(--eb-warn-soft);color:var(--eb-warn)}
+.temp-chart{border:1px solid var(--eb-line);background:#fff;border-radius:8px;padding:12px}.chart-grid{position:relative;height:160px;border:1px solid var(--eb-line);border-radius:8px;background:linear-gradient(180deg,rgba(23,107,122,.05),transparent),repeating-linear-gradient(0deg,transparent,transparent 31px,var(--eb-line-soft) 32px)}.chart-line{position:absolute;height:3px;border-radius:999px;background:var(--eb-primary);transform-origin:left center}.chart-line.hum{background:var(--eb-info)}.chart-dot{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--eb-primary);box-shadow:0 0 0 3px #fff}.chart-dot.hum{background:var(--eb-info)}.chart-legend{display:flex;gap:12px;margin-top:8px;color:var(--eb-muted);font-size:12px}.legend-item{display:inline-flex;align-items:center;gap:6px}.legend-swatch{width:14px;height:3px;border-radius:999px;background:var(--eb-primary)}.legend-swatch.hum{background:var(--eb-info)}
+.confirm-sheet{display:none;gap:9px;padding:12px;border-radius:8px;border:1px solid #efc0ba;background:var(--eb-danger-soft);margin:10px 0}.confirm-sheet.show{display:grid;position:fixed;left:14px;right:14px;bottom:14px;z-index:45;box-shadow:0 10px 26px rgba(23,33,43,.12)}.hold-button{position:relative;overflow:hidden;background:var(--eb-danger);border-color:var(--eb-danger);color:#fff;user-select:none;touch-action:manipulation}.hold-button::before{content:'';position:absolute;inset:0;width:var(--hold-progress,0%);background:rgba(255,255,255,.24);transition:width 80ms linear}.hold-button span{position:relative;z-index:1}.toast{position:fixed;left:14px;right:14px;bottom:14px;z-index:40;display:none;padding:10px 12px;border-radius:8px;background:#17212b;color:#fff;font-size:13px}.toast.show{display:block}
+@media(min-width:760px){.home-summary-grid,.desktop-two,.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.field{grid-column:span 4}.field.full{grid-column:1/-1}.confirm-sheet.show,.toast{left:50%;right:auto;bottom:22px;width:min(460px,calc(100vw - 28px));transform:translateX(-50%)}}
+@media(max-width:520px){.hero-main{align-items:flex-start;flex-direction:column}.top-temp-status{width:100%;justify-content:space-between}.action-grid{grid-template-columns:1fr}.event-row,.record-row,.plan-row,.menu-row{grid-template-columns:auto minmax(0,1fr)}.event-time,.record-time{grid-column:2}}
+)CSS";
+
 
 const char* V3_JS = R"JS(
 var faPendingForm=null;
@@ -207,110 +221,19 @@ void formatEnvValue(const FaEnvSensorSnapshot& env, char* out, size_t len) {
              static_cast<unsigned long>(env.humidity_x100 / 100u));
 }
 
-const char* navHref(V3Page page) {
-    switch (page) {
-    case V3Page::Home:
-        return "/home";
-    case V3Page::Auto:
-        return "/auto";
-    case V3Page::Manual:
-        return "/manual";
-    case V3Page::Records:
-        return "/records";
-    case V3Page::Settings:
-    default:
-        return "/settings";
-    }
-}
-
-const char* navLabel(V3Page page) {
-    switch (page) {
-    case V3Page::Home:
-        return "首页";
-    case V3Page::Auto:
-        return "自动";
-    case V3Page::Manual:
-        return "手动";
-    case V3Page::Records:
-        return "记录";
-    case V3Page::Settings:
-    default:
-        return "设置";
-    }
-}
-
-const char* navIcon(V3Page page) {
-    switch (page) {
-    case V3Page::Home:
-        return "首";
-    case V3Page::Auto:
-        return "自";
-    case V3Page::Manual:
-        return "手";
-    case V3Page::Records:
-        return "记";
-    case V3Page::Settings:
-    default:
-        return "设";
-    }
-}
-
-void sendNavLink(V3Page page, V3Page active) {
-    Esp32BaseWeb::sendChunk("<a class='rail-button");
-    if (page == active) {
-        Esp32BaseWeb::sendChunk(" active");
-    }
-    Esp32BaseWeb::sendChunk("' href='");
-    Esp32BaseWeb::sendChunk(navHref(page));
-    Esp32BaseWeb::sendChunk("'>");
-    Esp32BaseWeb::sendChunk(navLabel(page));
-    Esp32BaseWeb::sendChunk("</a>");
-}
-
-void sendBottomNavLink(V3Page page, V3Page active) {
-    Esp32BaseWeb::sendChunk("<a class='nav-button");
-    if (page == active) {
-        Esp32BaseWeb::sendChunk(" active");
-    }
-    Esp32BaseWeb::sendChunk("' href='");
-    Esp32BaseWeb::sendChunk(navHref(page));
-    Esp32BaseWeb::sendChunk("'><span>");
-    Esp32BaseWeb::sendChunk(navIcon(page));
-    Esp32BaseWeb::sendChunk("</span><span>");
-    Esp32BaseWeb::sendChunk(navLabel(page));
-    Esp32BaseWeb::sendChunk("</span></a>");
-}
-
 void sendV3Header(V3Page active, const char* title, const char* subtitle, const char* topText, const char* toneClass = "ok") {
+    (void)active;
     if (!Esp32BaseWeb::checkAuth()) {
         return;
     }
-    if (!Esp32BaseWeb::beginResponse(200, "text/html; charset=utf-8", nullptr)) {
-        return;
-    }
-    Esp32BaseWeb::sendChunk("<!doctype html><html lang='zh-CN'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>");
-    sendEsc(title);
-    Esp32BaseWeb::sendChunk("</title><style>");
+    Esp32BaseWeb::sendHeader(title);
+    Esp32BaseWeb::sendChunk("<style>");
     Esp32BaseWeb::sendChunk(V3_CSS);
     Esp32BaseWeb::sendChunk("</style><script>");
     Esp32BaseWeb::sendChunk(V3_JS);
-    Esp32BaseWeb::sendChunk("</script></head><body><div class='app-shell'><header class='topbar'><div class='brand'><div class='brand-mark'>FA</div><div><p class='brand-title'>FarmAuto</p><span class='brand-subtitle'>已联网 · 真实主控运行中</span></div></div><div class='top-actions'><span class='status-pill ");
-    Esp32BaseWeb::sendChunk(toneClass);
-    Esp32BaseWeb::sendChunk("'><span class='dot'></span>");
-    sendEsc(topText);
-    Esp32BaseWeb::sendChunk("</span></div></header><div class='workspace'><aside class='page-rail'><span class='rail-title'>主导航</span>");
-    sendNavLink(V3Page::Home, active);
-    sendNavLink(V3Page::Auto, active);
-    sendNavLink(V3Page::Manual, active);
-    sendNavLink(V3Page::Records, active);
-    sendNavLink(V3Page::Settings, active);
-    Esp32BaseWeb::sendChunk("</aside><main class='content'><section class='screen active'><div class='screen-header'><div><p class='screen-kicker'>");
-    sendEsc(navLabel(active));
-    Esp32BaseWeb::sendChunk("</p><h1>");
-    sendEsc(title);
-    Esp32BaseWeb::sendChunk("</h1><p class='muted'>");
-    sendEsc(subtitle);
-    Esp32BaseWeb::sendChunk("</p></div><span class='status-pill ");
+    Esp32BaseWeb::sendChunk("</script>");
+    Esp32BaseWeb::sendPageTitle(title, subtitle);
+    Esp32BaseWeb::sendChunk("<div class='fa-status-line'><span class='status-pill ");
     Esp32BaseWeb::sendChunk(toneClass);
     Esp32BaseWeb::sendChunk("'><span class='dot'></span>");
     sendEsc(topText);
@@ -318,14 +241,9 @@ void sendV3Header(V3Page active, const char* title, const char* subtitle, const 
 }
 
 void sendV3Footer(V3Page active) {
-    Esp32BaseWeb::sendChunk("</section></main></div></div><nav class='bottom-nav'>");
-    sendBottomNavLink(V3Page::Home, active);
-    sendBottomNavLink(V3Page::Auto, active);
-    sendBottomNavLink(V3Page::Manual, active);
-    sendBottomNavLink(V3Page::Records, active);
-    sendBottomNavLink(V3Page::Settings, active);
-    Esp32BaseWeb::sendChunk("</nav><iframe id='faSubmitFrame' name='faSubmitFrame' style='display:none;width:0;height:0;border:0'></iframe><div class='confirm-sheet' id='globalConfirm'><div><p class='event-title' id='globalConfirmTitle'>确认动作</p><p class='event-detail' id='globalConfirmNote'></p></div><button class='hold-button' id='globalHold' onmousedown='faHoldStart(event)' ontouchstart='faHoldStart(event)' onmouseup='faHoldCancel()' onmouseleave='faHoldCancel()' ontouchend='faHoldCancel()' ontouchcancel='faHoldCancel()' oncontextmenu='return false'><span>长按 1 秒发送</span></button><button class='secondary-button' type='button' onclick='faCancelConfirm()'>取消</button></div><div class='toast' id='toast'></div></body></html>");
-    Esp32BaseWeb::endResponse();
+    (void)active;
+    Esp32BaseWeb::sendChunk("<iframe id='faSubmitFrame' name='faSubmitFrame' style='display:none;width:0;height:0;border:0'></iframe><div class='confirm-sheet' id='globalConfirm'><div><p class='event-title' id='globalConfirmTitle'>确认动作</p><p class='event-detail' id='globalConfirmNote'></p></div><button class='hold-button' id='globalHold' onmousedown='faHoldStart(event)' ontouchstart='faHoldStart(event)' onmouseup='faHoldCancel()' onmouseleave='faHoldCancel()' ontouchend='faHoldCancel()' ontouchcancel='faHoldCancel()' oncontextmenu='return false'><span>长按 1 秒发送</span></button><button class='secondary' type='button' onclick='faCancelConfirm()'>取消</button></div><div class='toast' id='toast'></div>");
+    Esp32BaseWeb::sendFooter();
 }
 
 void sendDeviceSummaryCard(const char* type, const FaWebDeviceStatus& status, const char* nextText) {
@@ -371,9 +289,9 @@ void sendActiveRunSlot(void) {
         sendEsc(progress);
         Esp32BaseWeb::sendChunk("</p></div><span class='tag warn'>运行中</span></div><div class='progress-track'><div class='progress-fill' style='width:");
         sendU32(pct > 100u ? 100u : pct);
-        Esp32BaseWeb::sendChunk("%'></div></div><div class='run-task-action'><form method='post' action='/api/action/stop-active' data-confirm-title='停止当前动作' data-confirm-note='只停止当前正在跟踪的动作，不影响其他空闲设备。' data-success='停止命令已发送' onsubmit='return faPost(this)'><input class='danger-button' type='submit' value='停止当前动作'></form></div></div>");
+        Esp32BaseWeb::sendChunk("%'></div></div><div class='run-task-action'><form method='post' action='/api/action/stop-active' data-confirm-title='停止当前动作' data-confirm-note='只停止当前正在跟踪的动作，不影响其他空闲设备。' data-success='停止命令已发送' onsubmit='return faPost(this)'><input class='danger' type='submit' value='停止当前动作'></form></div></div>");
     } else {
-        Esp32BaseWeb::sendChunk("<div class='run-task'><div class='run-task-head'><div><p class='run-task-title'>当前无动作</p><p class='run-task-detail'>空闲时保留当前位置，停止按钮不可用。</p></div><span class='tag ok'>空闲</span></div><div class='run-task-action'><button class='danger-button' disabled>停止当前动作</button></div></div>");
+        Esp32BaseWeb::sendChunk("<div class='run-task'><div class='run-task-head'><div><p class='run-task-title'>当前无动作</p><p class='run-task-detail'>空闲时保留当前位置，停止按钮不可用。</p></div><span class='tag ok'>空闲</span></div><div class='run-task-action'><button class='dangerbtn' disabled>停止当前动作</button></div></div>");
     }
     Esp32BaseWeb::sendChunk("</div>");
 }
@@ -511,7 +429,7 @@ void sendV3HomePage(void) {
     sendDeviceSummaryCard("下料", feedStatus, nextText);
     Esp32BaseWeb::sendChunk("</div></div>");
     sendActiveRunSlot();
-    Esp32BaseWeb::sendChunk("<div class='section-title'><h2>最近关键事件</h2><a class='secondary-button' href='/records'>看全部</a></div><div class='event-list'>");
+    Esp32BaseWeb::sendChunk("<div class='section-title'><h2>最近关键事件</h2><a class='btnlink secondary' href='/records'>看全部</a></div><div class='event-list'>");
     sendRecordRows(2);
     Esp32BaseWeb::sendChunk("</div>");
     sendV3Footer(V3Page::Home);
@@ -535,7 +453,7 @@ void sendV3AutoPage(void) {
     sendEsc(openTime);
     Esp32BaseWeb::sendChunk(" 开门 · 门控 01</p><p class='plan-detail'>每天执行 · 到位后由分站停止</p></div><span class='tag ok'>启用</span></div><div class='plan-row'><div class='icon-box'>关</div><div><p class='plan-title'>");
     sendEsc(closeTime);
-    Esp32BaseWeb::sendChunk(" 关门 · 门控 01</p><p class='plan-detail'>每天执行 · 到位后由分站停止</p></div><span class='tag ok'>启用</span></div></div><div class='button-row' style='margin-top:12px'><form method='post' action='/api/auto/door-pause' data-confirm-title='暂停自动门控' data-confirm-note='确认后只暂停自动门控；手动开门、关门、停止仍可使用。' data-success='自动门控已暂停' onsubmit='return faPost(this)'><input type='hidden' name='durationMin' value='360'><input class='danger-button' type='submit' value='暂停自动门控'></form><form method='post' action='/api/auto/door-resume' data-confirm-title='恢复自动门控' data-confirm-note='恢复后门控会继续按已保存计划自动执行。' data-success='自动门控已恢复' onsubmit='return faPost(this)'><input class='secondary-button' type='submit' value='恢复门控'></form></div></div>");
+    Esp32BaseWeb::sendChunk(" 关门 · 门控 01</p><p class='plan-detail'>每天执行 · 到位后由分站停止</p></div><span class='tag ok'>启用</span></div></div><div class='button-row' style='margin-top:12px'><form method='post' action='/api/auto/door-pause' data-confirm-title='暂停自动门控' data-confirm-note='确认后只暂停自动门控；手动开门、关门、停止仍可使用。' data-success='自动门控已暂停' onsubmit='return faPost(this)'><input type='hidden' name='durationMin' value='360'><input class='danger' type='submit' value='暂停自动门控'></form><form method='post' action='/api/auto/door-resume' data-confirm-title='恢复自动门控' data-confirm-note='恢复后门控会继续按已保存计划自动执行。' data-success='自动门控已恢复' onsubmit='return faPost(this)'><input class='secondary' type='submit' value='恢复门控'></form></div></div>");
     Esp32BaseWeb::sendChunk("<div class='card'><div class='section-title' style='margin:0 0 10px'><h2>下料计划</h2><span class='tag ");
     Esp32BaseWeb::sendChunk(state.feed_enabled ? "ok'>自动启用" : "warn'>已停用");
     Esp32BaseWeb::sendChunk("</span></div><div class='plan-list'><div class='plan-row'><div class='icon-box'>早</div><div><p class='plan-title'>");
@@ -546,7 +464,7 @@ void sendV3AutoPage(void) {
     sendEsc(feed2Time);
     Esp32BaseWeb::sendChunk(" 晚料</p><p class='plan-detail'>");
     sendU32(state.feed_2_amount_mg);
-    Esp32BaseWeb::sendChunk(" mg · 按标定值换算圈数</p></div><span class='tag ok'>启用</span></div></div><div class='button-row' style='margin-top:12px'><form method='post' action='/api/auto/feed-pause' data-confirm-title='暂停自动下料' data-confirm-note='确认后只暂停自动下料；手动下料仍可单独执行。' data-success='自动下料已暂停' onsubmit='return faPost(this)'><input type='hidden' name='durationMin' value='360'><input class='danger-button' type='submit' value='暂停自动下料'></form><form method='post' action='/api/auto/feed-resume' data-confirm-title='恢复自动下料' data-confirm-note='恢复后下料设备会继续按已保存计划自动执行。' data-success='自动下料已恢复' onsubmit='return faPost(this)'><input class='secondary-button' type='submit' value='恢复下料'></form></div></div></div>");
+    Esp32BaseWeb::sendChunk(" mg · 按标定值换算圈数</p></div><span class='tag ok'>启用</span></div></div><div class='button-row' style='margin-top:12px'><form method='post' action='/api/auto/feed-pause' data-confirm-title='暂停自动下料' data-confirm-note='确认后只暂停自动下料；手动下料仍可单独执行。' data-success='自动下料已暂停' onsubmit='return faPost(this)'><input type='hidden' name='durationMin' value='360'><input class='danger' type='submit' value='暂停自动下料'></form><form method='post' action='/api/auto/feed-resume' data-confirm-title='恢复自动下料' data-confirm-note='恢复后下料设备会继续按已保存计划自动执行。' data-success='自动下料已恢复' onsubmit='return faPost(this)'><input class='secondary' type='submit' value='恢复下料'></form></div></div></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title'><h2>计划参数</h2></div><div class='card'><form method='post' action='/api/auto/schedule' data-success='自动计划已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
     sendBoolSelect("总开关", "enabled", state.enabled);
     sendBoolSelect("下料计划", "feedEnabled", state.feed_enabled);
@@ -557,7 +475,7 @@ void sendV3AutoPage(void) {
     sendNumberField("晚料 mg", "feed2AmountMg", static_cast<int32_t>(state.feed_2_amount_mg), 1, 5000000);
     sendNumberField("开门分钟", "doorOpenMin", state.door_open_minute, 0, 1439);
     sendNumberField("关门分钟", "doorCloseMin", state.door_close_minute, 0, 1439);
-    Esp32BaseWeb::sendChunk("</div><p class='muted small'>分钟数为当天 0-1439，例如 08:00 为 480，17:30 为 1050。</p><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存自动计划'><a class='secondary-button' href='/esp32base/app-config'>高级配置</a></div></form></div>");
+    Esp32BaseWeb::sendChunk("</div><p class='muted small'>分钟数为当天 0-1439，例如 08:00 为 480，17:30 为 1050。</p><div class='actions' style='margin-top:12px'><input type='submit' value='保存自动计划'><a class='btnlink secondary' href='/esp32base/app-config'>高级配置</a></div></form></div>");
     sendV3Footer(V3Page::Auto);
 }
 
@@ -584,7 +502,7 @@ void sendV3ManualPage(void) {
     sendEsc(feedName);
     Esp32BaseWeb::sendChunk("</span></div><div class='split-line'><span class='muted'>设备状态</span><strong>");
     sendEsc(feedName);
-    Esp32BaseWeb::sendChunk("</strong></div><div class='split-line'><span class='muted'>发送方式</span><strong>选量后长按 1 秒发送</strong></div><form method='post' action='/api/feed/manual' data-confirm-title='确认手动下料' data-confirm-note='确认后立即向下料设备发送动作命令，执行结果会写入记录。' data-success='手动下料命令已发送' onsubmit='return faPost(this)' style='margin-top:12px'><div class='fieldgrid'><div class='field'><label>数量</label><input type='number' name='amount' min='1' max='1000000' value='4000'></div><div class='field'><label>模式</label><select name='mode'><option value='mg'>毫克</option><option value='turns'>千分之一圈</option></select></div></div><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='核对并下料'></div></form></div></div>");
+    Esp32BaseWeb::sendChunk("</strong></div><div class='split-line'><span class='muted'>发送方式</span><strong>选量后长按 1 秒发送</strong></div><form method='post' action='/api/feed/manual' data-confirm-title='确认手动下料' data-confirm-note='确认后立即向下料设备发送动作命令，执行结果会写入记录。' data-success='手动下料命令已发送' onsubmit='return faPost(this)' style='margin-top:12px'><div class='fieldgrid'><div class='field'><label>数量</label><input type='number' name='amount' min='1' max='1000000' value='4000'></div><div class='field'><label>模式</label><select name='mode'><option value='mg'>毫克</option><option value='turns'>千分之一圈</option></select></div></div><div class='actions' style='margin-top:12px'><input type='submit' value='核对并下料'></div></form></div></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title'><h2>操作原则</h2></div><div class='card'><ul class='rule-list'><li><span class='check'>✓</span><span>手动动作只执行一次，结果写入对应记录。</span></li><li><span class='check warn-mark'>!</span><span>暂停自动执行时，手动操作仍允许，但需要单独确认。</span></li><li><span class='check'>✓</span><span>开门、关门和下料命令到达后，由对应分站完成本地闭环和安全停止。</span></li></ul></div>");
     sendV3Footer(V3Page::Manual);
 }
@@ -618,8 +536,6 @@ void sendV3SettingsPage(void) {
     char envText[40];
     formatEnvValue(env, envText, sizeof(envText));
     const bool envEnabled = Esp32BaseConfig::getBool(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, true);
-    const int32_t envSda = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, 21);
-    const int32_t envScl = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, 22);
     const int32_t envAddress = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, 68);
     const int32_t envInterval = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, 5000);
     const int32_t envRecordInterval = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, 300);
@@ -636,12 +552,10 @@ void sendV3SettingsPage(void) {
     sendEsc(envText);
     Esp32BaseWeb::sendChunk("</span></div><div class='card'><form method='post' action='/api/config/env' data-success='温湿度设置已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
     sendBoolSelect("启用 SHT30", "enabled", envEnabled);
-    sendNumberField("SDA 引脚", "sda", envSda, -1, 39);
-    sendNumberField("SCL 引脚", "scl", envScl, -1, 39);
     sendNumberField("I2C 地址", "address", envAddress, 8, 119);
     sendNumberField("采样间隔 ms", "intervalMs", envInterval, 1000, 600000, 1000);
     sendNumberField("记录间隔 s", "recordIntervalS", envRecordInterval, 10, 86400, 10);
-    Esp32BaseWeb::sendChunk("</div><p class='event-detail'>-1 表示停用对应 I2C 引脚；常见 SHT30 地址 68 即 0x44。</p><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存温湿度设置'></div></form><form method='post' action='/api/env/read-now' data-success='已触发立即读取' data-reload='1' onsubmit='return faPost(this)' style='margin-top:8px'><input class='secondary-button' type='submit' value='立即读取 SHT30'></form></div>");
+    Esp32BaseWeb::sendChunk("</div><p class='event-detail'>SDA/SCL 为当前主控板固定接线；常见 SHT30 地址 68 即 0x44。</p><div class='actions' style='margin-top:12px'><input type='submit' value='保存温湿度设置'></div></form><form method='post' action='/api/env/read-now' data-success='已触发立即读取' data-reload='1' onsubmit='return faPost(this)' style='margin-top:8px'><input class='secondary' type='submit' value='立即读取 SHT30'></form></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title'><h2>下料器校准</h2></div><div class='card'><form method='post' action='/api/config/feed' data-success='下料参数已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
     sendNumberField("分站地址", "stationAddress", feedConfig.station_address, 1, 127);
     sendNumberField("每圈脉冲", "pulsesPerTurn", static_cast<int32_t>(feedConfig.pulses_per_turn), 1, 200000);
@@ -651,7 +565,7 @@ void sendV3SettingsPage(void) {
     sendNumberField("过流 mA", "overCurrentMa", feedConfig.over_current_ma, 1, 10000);
     sendNumberField("最长运行 ms", "maxRunMs", static_cast<int32_t>(feedConfig.max_run_ms), 100, 600000, 100);
     sendNumberField("最大脉冲", "maxActionPulses", static_cast<int32_t>(feedConfig.max_action_pulses), 1, 2000000);
-    Esp32BaseWeb::sendChunk("</div><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存下料参数'></div></form></div>");
+    Esp32BaseWeb::sendChunk("</div><div class='actions' style='margin-top:12px'><input type='submit' value='保存下料参数'></div></form></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title'><h2>门控校准</h2></div><div class='card'><form method='post' action='/api/config/door' data-success='门控参数已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
     sendNumberField("分站地址", "stationAddress", doorConfig.station_address, 1, 127);
     sendNumberField("每圈脉冲", "pulsesPerTurn", static_cast<int32_t>(doorConfig.pulses_per_turn), 1, 200000);
@@ -662,7 +576,7 @@ void sendV3SettingsPage(void) {
     sendNumberField("过流 mA", "overCurrentMa", doorConfig.over_current_ma, 1, 10000);
     sendNumberField("最长运行 ms", "maxRunMs", static_cast<int32_t>(doorConfig.max_run_ms), 100, 600000, 100);
     sendNumberField("最大脉冲", "maxActionPulses", static_cast<int32_t>(doorConfig.max_action_pulses), 1, 2000000);
-    Esp32BaseWeb::sendChunk("</div><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存门控参数'></div></form></div>");
+    Esp32BaseWeb::sendChunk("</div><div class='actions' style='margin-top:12px'><input type='submit' value='保存门控参数'></div></form></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title' id='devices'><h2>设备管理</h2></div><div class='grid desktop-two'>");
     if (g_device_registry != nullptr && g_device_registry->isReady()) {
         for (uint8_t i = 0u; i < g_device_registry->deviceCount(); ++i) {
@@ -693,20 +607,22 @@ void sendV3SettingsPage(void) {
             sendU32(device.device_id);
             Esp32BaseWeb::sendChunk("'><div class='field'><label>设备名称</label><input name='name' maxlength='23' value='");
             sendEsc(device.name);
-            Esp32BaseWeb::sendChunk("'></div><div class='actions'><input class='secondary-button' type='submit' value='保存名称'></div></form>");
+            Esp32BaseWeb::sendChunk("'></div><div class='actions'><input class='secondary' type='submit' value='保存名称'></div></form>");
             Esp32BaseWeb::sendChunk("<form method='post' action='/api/devices/display-order' data-success='显示顺序已保存' data-reload='1' onsubmit='return faPost(this)'><input type='hidden' name='deviceId' value='");
             sendU32(device.device_id);
             Esp32BaseWeb::sendChunk("'><div class='fieldgrid'>");
             sendNumberField("显示编号", "displayNo", device.display_no, 1, 9999);
             sendNumberField("排序", "sortOrder", device.sort_order, 0, 65535);
-            Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='secondary-button' type='submit' value='保存排序'></div></form>");
+            Esp32BaseWeb::sendChunk("</div><div class='actions'><input class='secondary' type='submit' value='保存排序'></div></form>");
             Esp32BaseWeb::sendChunk("<div class='button-row'><form method='post' action='/api/devices/enabled' data-confirm-title='切换设备启用状态' data-confirm-note='停用后该业务设备不会参与计划和手动动作。' data-success='设备启用状态已保存' data-reload='1' onsubmit='return faPost(this)'><input type='hidden' name='deviceId' value='");
             sendU32(device.device_id);
             Esp32BaseWeb::sendChunk("'><input type='hidden' name='enabled' value='");
             Esp32BaseWeb::sendChunk(device.enabled != 0u ? "0" : "1");
-            Esp32BaseWeb::sendChunk("'><input class='");
-            Esp32BaseWeb::sendChunk(device.enabled != 0u ? "danger-button" : "primary-button");
-            Esp32BaseWeb::sendChunk("' type='submit' value='");
+            Esp32BaseWeb::sendChunk("'><input");
+            if (device.enabled != 0u) {
+                Esp32BaseWeb::sendChunk(" class='danger'");
+            }
+            Esp32BaseWeb::sendChunk(" type='submit' value='");
             Esp32BaseWeb::sendChunk(device.enabled != 0u ? "停用设备" : "启用设备");
             Esp32BaseWeb::sendChunk("'></form><form method='post' action='/api/devices/bind-station' data-confirm-title='绑定 RS485 分站' data-confirm-note='绑定后该业务设备会使用新的分站地址执行动作。' data-success='设备绑定已保存' data-reload='1' onsubmit='return faPost(this)'><input type='hidden' name='deviceId' value='");
             sendU32(device.device_id);
@@ -716,12 +632,12 @@ void sendV3SettingsPage(void) {
             } else {
                 Esp32BaseWeb::sendChunk("1");
             }
-            Esp32BaseWeb::sendChunk("'></div><input class='secondary-button' type='submit' value='绑定地址'></form></div></div></div>");
+            Esp32BaseWeb::sendChunk("'></div><input class='secondary' type='submit' value='绑定地址'></form></div></div></div>");
         }
     } else {
         Esp32BaseWeb::sendChunk("<div class='card'><h2>设备表不可用</h2><p class='muted'>LittleFS 设备表未就绪。</p></div>");
     }
-    Esp32BaseWeb::sendChunk("</div><div class='section-title' id='scan'><h2>扫描 RS485 地址</h2></div><div class='card'><form method='post' action='/api/bus/scan' data-success='RS485 扫描已完成，分站表已刷新' onsubmit='return faPost(this)'><div class='fieldgrid'><div class='field'><label>起始地址</label><input type='number' name='start' min='1' max='127' value='1'></div><div class='field'><label>结束地址</label><input type='number' name='end' min='1' max='127' value='127'></div><div class='field'><label>超时 ms</label><input type='number' name='timeout' min='20' max='2000' value='25'></div></div><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='扫描 RS485 地址'></div></form></div>");
+    Esp32BaseWeb::sendChunk("</div><div class='section-title' id='scan'><h2>扫描 RS485 地址</h2></div><div class='card'><form method='post' action='/api/bus/scan' data-success='RS485 扫描已完成，分站表已刷新' onsubmit='return faPost(this)'><div class='fieldgrid'><div class='field'><label>起始地址</label><input type='number' name='start' min='1' max='127' value='1'></div><div class='field'><label>结束地址</label><input type='number' name='end' min='1' max='127' value='127'></div><div class='field'><label>超时 ms</label><input type='number' name='timeout' min='20' max='2000' value='25'></div></div><div class='actions' style='margin-top:12px'><input type='submit' value='扫描 RS485 地址'></div></form></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title' id='notify'><h2>通知规则</h2><span class='tag warn'>仅保存规则</span></div><div class='card'><form method='post' action='/api/config/notify' data-success='通知规则已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
     sendBoolSelect("总开关", "enabled", notifyEnabled);
     sendBoolSelect("动作完成", "actionDone", notifyActionDone);
@@ -730,6 +646,6 @@ void sendV3SettingsPage(void) {
     sendBoolSelect("分站离线", "stationOffline", notifyStationOffline);
     sendBoolSelect("计划跳过", "scheduleSkipped", notifyScheduleSkipped);
     sendBoolSelect("上电恢复", "powerRestored", notifyPowerRestored);
-    Esp32BaseWeb::sendChunk("</div><p class='event-detail'>当前固件只保存规则；巴法云或微信真实发送属于后续专项。</p><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存通知规则'></div></form></div>");
+    Esp32BaseWeb::sendChunk("</div><p class='event-detail'>当前固件只保存规则；巴法云或微信真实发送属于后续专项。</p><div class='actions' style='margin-top:12px'><input type='submit' value='保存通知规则'></div></form></div>");
     sendV3Footer(V3Page::Settings);
 }

@@ -297,21 +297,11 @@ void sendEnvConfigSaveApi(void) {
     }
 
     int32_t enabled = 0;
-    int32_t sda = 0;
-    int32_t scl = 0;
     int32_t address = 0;
     int32_t interval = 0;
     int32_t record_interval = 0;
     if (!readBoundedInt("enabled", 0, 1, enabled)) {
         sendBadParam("enabled");
-        return;
-    }
-    if (!readBoundedInt("sda", -1, 39, sda)) {
-        sendBadParam("sda");
-        return;
-    }
-    if (!readBoundedInt("scl", -1, 39, scl)) {
-        sendBadParam("scl");
         return;
     }
     if (!readBoundedInt("address", 8, 119, address)) {
@@ -329,8 +319,6 @@ void sendEnvConfigSaveApi(void) {
 
     const bool ok =
         setBoolChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, enabled != 0) &&
-        setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, sda) &&
-        setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, scl) &&
         setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, address) &&
         setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, interval) &&
         setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, record_interval);
@@ -339,10 +327,8 @@ void sendEnvConfigSaveApi(void) {
         return;
     }
 
-    ESP32BASE_LOG_I("farm", "env_config_saved enabled=%ld sda=%ld scl=%ld addr=0x%02lx interval_ms=%ld record_s=%ld",
+    ESP32BASE_LOG_I("farm", "env_config_saved enabled=%ld addr=0x%02lx interval_ms=%ld record_s=%ld",
                     static_cast<long>(enabled),
-                    static_cast<long>(sda),
-                    static_cast<long>(scl),
                     static_cast<unsigned long>(address),
                     static_cast<long>(interval),
                     static_cast<long>(record_interval));
