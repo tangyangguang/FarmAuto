@@ -111,6 +111,10 @@ void sendManualDoorActionApi(uint8_t command) {
         Esp32BaseWeb::endJson();
         return;
     }
+    if (!fa_master_save_next_door_action_id(g_door_service->next_action_id)) {
+        ESP32BASE_LOG_W("farm", "door_action_id_save_failed next=%lu",
+                        static_cast<unsigned long>(g_door_service->next_action_id));
+    }
 
     request_len = 0u;
     seq = 0u;

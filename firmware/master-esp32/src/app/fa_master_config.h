@@ -27,7 +27,19 @@ constexpr const char* kDoorOverCurrentMa = "oc_ma";
 constexpr const char* kDoorMaxRunMs = "max_ms";
 constexpr const char* kDoorMaxActionPulses = "max_p";
 
+namespace FaActionIdConfig {
+constexpr const char* NS = "fa_action_id";
+constexpr const char* KEY_NEXT_FEED = "next_feed";
+constexpr const char* KEY_NEXT_DOOR = "next_door";
+constexpr uint32_t DEFAULT_NEXT_FEED = 1u;
+constexpr uint32_t DEFAULT_NEXT_DOOR = 700001u;
+}
+
 FaFeedDeviceConfig fa_master_read_feed_config(void);
 FaDoorDeviceConfig fa_master_read_door_config(void);
+uint32_t fa_master_read_next_feed_action_id(void);
+uint32_t fa_master_read_next_door_action_id(void);
+bool fa_master_save_next_feed_action_id(uint32_t next_action_id);
+bool fa_master_save_next_door_action_id(uint32_t next_action_id);
 
 #endif

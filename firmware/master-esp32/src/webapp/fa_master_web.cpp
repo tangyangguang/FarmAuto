@@ -934,6 +934,8 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     registerApiChecked("/api/env/read-now", sendEnvReadNowApi);
     registerApiChecked("/api/bus/scan", sendBusScanApi);
     registerApiChecked("/api/action/stop-active", sendStopActiveActionApi);
+    registerApiChecked("/api/status/summary", sendStatusSummaryApi);
+    registerApiChecked("/api/records/recent", sendRecentRecordsApi);
     registerApiChecked("/api/devices/enabled", sendDeviceSetEnabledApi);
     registerApiChecked("/api/devices/name", sendDeviceNameApi);
     registerApiChecked("/api/devices/display-order", sendDeviceDisplayOrderApi);

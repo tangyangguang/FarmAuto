@@ -176,6 +176,10 @@ bool FaAutoScheduler::triggerFeed(uint8_t source_id, uint32_t amount_mg) {
         ESP32BASE_LOG_W("farm", "auto_feed_skipped reason=make_action status=%u source=%u", status, source_id);
         return false;
     }
+    if (!fa_master_save_next_feed_action_id(feed_service_->next_action_id)) {
+        ESP32BASE_LOG_W("farm", "auto_feed_action_id_save_failed next=%lu",
+                        static_cast<unsigned long>(feed_service_->next_action_id));
+    }
     if (!sendAction(config.station_address, action, "auto_feed_start_action")) {
         return false;
     }
@@ -248,6 +252,10 @@ bool FaAutoScheduler::triggerDoor(uint8_t source_id, uint8_t command) {
                         source_id,
                         doorCommandName(command));
         return false;
+    }
+    if (!fa_master_save_next_door_action_id(door_service_->next_action_id)) {
+        ESP32BASE_LOG_W("farm", "auto_door_action_id_save_failed next=%lu",
+                        static_cast<unsigned long>(door_service_->next_action_id));
     }
     if (!sendAction(config.station_address, action, "auto_door_start_action")) {
         return false;

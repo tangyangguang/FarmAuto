@@ -168,6 +168,10 @@ void sendManualFeedApi(void) {
         Esp32BaseWeb::endJson();
         return;
     }
+    if (!fa_master_save_next_feed_action_id(g_feed_service->next_action_id)) {
+        ESP32BASE_LOG_W("farm", "feed_action_id_save_failed next=%lu",
+                        static_cast<unsigned long>(g_feed_service->next_action_id));
+    }
 
     request_len = 0u;
     seq = 0u;

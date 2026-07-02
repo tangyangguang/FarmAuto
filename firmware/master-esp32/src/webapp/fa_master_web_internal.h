@@ -100,6 +100,8 @@ void sendDeviceDisplayOrderApi(void);
 void sendDeviceBindStationApi(void);
 void sendStationSetEnabledApi(void);
 void sendStationClearFaultApi(void);
+void sendStatusSummaryApi(void);
+void sendRecentRecordsApi(void);
 
 void sendV3HomePage(void);
 void sendV3AutoPage(void);

@@ -7,6 +7,7 @@
 #include "fa_action_record_store.h"
 #include "fa_auto_scheduler.h"
 #include "fa_device_registry.h"
+#include "fa_master_config.h"
 #include "fa_board_io.h"
 #include "fa_master_web.h"
 #include "fa_rs485_transport.h"
@@ -50,8 +51,8 @@ void farmauto_master_setup(void) {
     if (!g_transport.begin(rs485_config)) {
         ESP32BASE_LOG_W("farm", "rs485_transport_not_configured");
     }
-    fa_feed_service_init(&g_feed, 1u);
-    fa_door_service_init(&g_door, 700001u);
+    fa_feed_service_init(&g_feed, fa_master_read_next_feed_action_id());
+    fa_door_service_init(&g_door, fa_master_read_next_door_action_id());
     g_action_runtime.begin(&g_rs485, &g_transport);
     g_station_poller.begin(&g_rs485, &g_transport, &g_device_registry, &g_action_runtime);
     g_auto_scheduler.begin(&g_rs485, &g_transport, &g_feed, &g_door, &g_device_registry, &g_action_runtime);

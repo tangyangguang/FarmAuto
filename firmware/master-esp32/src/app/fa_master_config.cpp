@@ -2,6 +2,22 @@
 
 #include <Esp32Base.h>
 
+namespace {
+
+uint32_t readActionId(const char* key, uint32_t fallback) {
+    const int32_t raw = Esp32BaseConfig::getInt(FaActionIdConfig::NS, key, static_cast<int32_t>(fallback));
+    return raw > 0 ? static_cast<uint32_t>(raw) : fallback;
+}
+
+bool saveActionId(const char* key, uint32_t next_action_id) {
+    if (next_action_id == 0u || next_action_id > 0x7FFFFFFFul) {
+        return false;
+    }
+    return Esp32BaseConfig::setInt(FaActionIdConfig::NS, key, static_cast<int32_t>(next_action_id));
+}
+
+}  // namespace
+
 FaFeedDeviceConfig fa_master_read_feed_config(void) {
     FaFeedDeviceConfig config;
     config.station_address = static_cast<uint8_t>(Esp32BaseConfig::getInt(kNs, kStationAddress, 1));
@@ -19,6 +35,22 @@ FaFeedDeviceConfig fa_master_read_feed_config(void) {
     config.max_run_ms = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kMaxRunMs, 60000));
     config.max_action_pulses = static_cast<uint32_t>(Esp32BaseConfig::getInt(kNs, kMaxActionPulses, 432000));
     return config;
+}
+
+uint32_t fa_master_read_next_feed_action_id(void) {
+    return readActionId(FaActionIdConfig::KEY_NEXT_FEED, FaActionIdConfig::DEFAULT_NEXT_FEED);
+}
+
+uint32_t fa_master_read_next_door_action_id(void) {
+    return readActionId(FaActionIdConfig::KEY_NEXT_DOOR, FaActionIdConfig::DEFAULT_NEXT_DOOR);
+}
+
+bool fa_master_save_next_feed_action_id(uint32_t next_action_id) {
+    return saveActionId(FaActionIdConfig::KEY_NEXT_FEED, next_action_id);
+}
+
+bool fa_master_save_next_door_action_id(uint32_t next_action_id) {
+    return saveActionId(FaActionIdConfig::KEY_NEXT_DOOR, next_action_id);
 }
 
 FaDoorDeviceConfig fa_master_read_door_config(void) {
