@@ -89,6 +89,8 @@ void sendAutoDoorResumeApi(void);
 void sendAutoScheduleSaveApi(void);
 void sendFeedConfigSaveApi(void);
 void sendDoorConfigSaveApi(void);
+void sendEnvConfigSaveApi(void);
+void sendNotifyConfigSaveApi(void);
 void sendBusPage(void);
 void sendBusScanApi(void);
 void sendDevicesPage(void);

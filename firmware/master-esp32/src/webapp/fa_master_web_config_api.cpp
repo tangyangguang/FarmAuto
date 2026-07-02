@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 
+#include "fa_notification_rules.h"
+
 namespace {
 
 bool readIntParamStrict(const char* name, int32_t& out) {
@@ -27,6 +29,10 @@ bool readBoundedInt(const char* name, int32_t min_value, int32_t max_value, int3
 
 bool setIntChecked(const char* ns, const char* key, int32_t value) {
     return Esp32BaseConfig::setInt(ns, key, value);
+}
+
+bool setBoolChecked(const char* ns, const char* key, bool value) {
+    return Esp32BaseConfig::setBool(ns, key, value);
 }
 
 void sendBadParam(const char* name) {
@@ -283,4 +289,127 @@ void sendDoorConfigSaveApi(void) {
                     static_cast<long>(max_run),
                     static_cast<long>(max_pulses));
     sendSaved("door");
+}
+
+void sendEnvConfigSaveApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("env_config_save")) {
+        return;
+    }
+
+    int32_t enabled = 0;
+    int32_t sda = 0;
+    int32_t scl = 0;
+    int32_t address = 0;
+    int32_t interval = 0;
+    int32_t record_interval = 0;
+    if (!readBoundedInt("enabled", 0, 1, enabled)) {
+        sendBadParam("enabled");
+        return;
+    }
+    if (!readBoundedInt("sda", -1, 39, sda)) {
+        sendBadParam("sda");
+        return;
+    }
+    if (!readBoundedInt("scl", -1, 39, scl)) {
+        sendBadParam("scl");
+        return;
+    }
+    if (!readBoundedInt("address", 8, 119, address)) {
+        sendBadParam("address");
+        return;
+    }
+    if (!readBoundedInt("intervalMs", 1000, 600000, interval)) {
+        sendBadParam("intervalMs");
+        return;
+    }
+    if (!readBoundedInt("recordIntervalS", 10, 86400, record_interval)) {
+        sendBadParam("recordIntervalS");
+        return;
+    }
+
+    const bool ok =
+        setBoolChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, enabled != 0) &&
+        setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, sda) &&
+        setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, scl) &&
+        setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, address) &&
+        setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, interval) &&
+        setIntChecked(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, record_interval);
+    if (!ok) {
+        sendSaveFailed("env");
+        return;
+    }
+
+    ESP32BASE_LOG_I("farm", "env_config_saved enabled=%ld sda=%ld scl=%ld addr=0x%02lx interval_ms=%ld record_s=%ld",
+                    static_cast<long>(enabled),
+                    static_cast<long>(sda),
+                    static_cast<long>(scl),
+                    static_cast<unsigned long>(address),
+                    static_cast<long>(interval),
+                    static_cast<long>(record_interval));
+    sendSaved("env");
+}
+
+void sendNotifyConfigSaveApi(void) {
+    if (!Esp32BaseWeb::checkPostAllowed("notify_config_save")) {
+        return;
+    }
+
+    int32_t enabled = 0;
+    int32_t action_done = 0;
+    int32_t action_failed = 0;
+    int32_t station_fault = 0;
+    int32_t station_offline = 0;
+    int32_t schedule_skipped = 0;
+    int32_t power_restored = 0;
+    if (!readBoundedInt("enabled", 0, 1, enabled)) {
+        sendBadParam("enabled");
+        return;
+    }
+    if (!readBoundedInt("actionDone", 0, 1, action_done)) {
+        sendBadParam("actionDone");
+        return;
+    }
+    if (!readBoundedInt("actionFailed", 0, 1, action_failed)) {
+        sendBadParam("actionFailed");
+        return;
+    }
+    if (!readBoundedInt("stationFault", 0, 1, station_fault)) {
+        sendBadParam("stationFault");
+        return;
+    }
+    if (!readBoundedInt("stationOffline", 0, 1, station_offline)) {
+        sendBadParam("stationOffline");
+        return;
+    }
+    if (!readBoundedInt("scheduleSkipped", 0, 1, schedule_skipped)) {
+        sendBadParam("scheduleSkipped");
+        return;
+    }
+    if (!readBoundedInt("powerRestored", 0, 1, power_restored)) {
+        sendBadParam("powerRestored");
+        return;
+    }
+
+    const bool ok =
+        setBoolChecked(FaNotificationConfig::NS, FaNotificationConfig::KEY_ENABLED, enabled != 0) &&
+        setBoolChecked(FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_DONE, action_done != 0) &&
+        setBoolChecked(FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_FAILED, action_failed != 0) &&
+        setBoolChecked(FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_FAULT, station_fault != 0) &&
+        setBoolChecked(FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_OFFLINE, station_offline != 0) &&
+        setBoolChecked(FaNotificationConfig::NS, FaNotificationConfig::KEY_SCHEDULE_SKIPPED, schedule_skipped != 0) &&
+        setBoolChecked(FaNotificationConfig::NS, FaNotificationConfig::KEY_POWER_RESTORED, power_restored != 0);
+    if (!ok) {
+        sendSaveFailed("notify");
+        return;
+    }
+
+    ESP32BASE_LOG_I("farm", "notify_config_saved enabled=%ld done=%ld failed=%ld fault=%ld offline=%ld skip=%ld power=%ld",
+                    static_cast<long>(enabled),
+                    static_cast<long>(action_done),
+                    static_cast<long>(action_failed),
+                    static_cast<long>(station_fault),
+                    static_cast<long>(station_offline),
+                    static_cast<long>(schedule_skipped),
+                    static_cast<long>(power_restored));
+    sendSaved("notify");
 }

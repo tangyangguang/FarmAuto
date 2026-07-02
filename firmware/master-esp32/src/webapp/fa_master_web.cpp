@@ -16,6 +16,26 @@ FaAutoScheduler* g_auto_scheduler = nullptr;
 FaEnvSensorService* g_env_sensor = nullptr;
 FaBoardIoService* g_board_io = nullptr;
 
+namespace {
+
+bool registerRouteChecked(const char* path, Esp32BaseWeb::Method method, Esp32BaseWeb::Handler handler) {
+    const bool ok = Esp32BaseWeb::addRoute(path, method, handler);
+    if (!ok) {
+        ESP32BASE_LOG_E("farm", "web_route_register_failed path=%s", path != nullptr ? path : "-");
+    }
+    return ok;
+}
+
+bool registerApiChecked(const char* path, Esp32BaseWeb::Handler handler) {
+    const bool ok = Esp32BaseWeb::addApi(path, handler);
+    if (!ok) {
+        ESP32BASE_LOG_E("farm", "web_api_register_failed path=%s", path != nullptr ? path : "-");
+    }
+    return ok;
+}
+
+}  // namespace
+
 uint32_t readUIntParam(const char* name, uint32_t fallback) {
     char raw[16] = "";
     if (!Esp32BaseWeb::getParam(name, raw, sizeof(raw)) || raw[0] == '\0') {
@@ -881,37 +901,39 @@ void fa_master_web_register_routes(FaFeedService *feed_service,
     g_auto_scheduler = auto_scheduler;
     g_env_sensor = env_sensor;
     g_board_io = board_io;
-    Esp32BaseWeb::addRoute("/", Esp32BaseWeb::METHOD_GET, redirectV3Home);
-    Esp32BaseWeb::addRoute("/home", Esp32BaseWeb::METHOD_GET, sendV3HomePage);
-    Esp32BaseWeb::addRoute("/auto", Esp32BaseWeb::METHOD_GET, sendV3AutoPage);
-    Esp32BaseWeb::addRoute("/manual", Esp32BaseWeb::METHOD_GET, sendV3ManualPage);
-    Esp32BaseWeb::addRoute("/records", Esp32BaseWeb::METHOD_GET, sendV3RecordsPage);
-    Esp32BaseWeb::addRoute("/settings", Esp32BaseWeb::METHOD_GET, sendV3SettingsPage);
-    Esp32BaseWeb::addRoute("/feed", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
-    Esp32BaseWeb::addRoute("/door", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
-    Esp32BaseWeb::addRoute("/env", Esp32BaseWeb::METHOD_GET, redirectV3Records);
-    Esp32BaseWeb::addRoute("/board", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
-    Esp32BaseWeb::addRoute("/devices", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
-    Esp32BaseWeb::addRoute("/notify", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
-    Esp32BaseWeb::addRoute("/bus", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
-    Esp32BaseWeb::addApi("/api/feed/manual", sendManualFeedApi);
-    Esp32BaseWeb::addApi("/api/door/open", sendDoorOpenApi);
-    Esp32BaseWeb::addApi("/api/door/close", sendDoorCloseApi);
-    Esp32BaseWeb::addApi("/api/door/stop", sendDoorStopApi);
-    Esp32BaseWeb::addApi("/api/auto/feed-pause", sendAutoFeedPauseApi);
-    Esp32BaseWeb::addApi("/api/auto/feed-resume", sendAutoFeedResumeApi);
-    Esp32BaseWeb::addApi("/api/auto/door-pause", sendAutoDoorPauseApi);
-    Esp32BaseWeb::addApi("/api/auto/door-resume", sendAutoDoorResumeApi);
-    Esp32BaseWeb::addApi("/api/auto/schedule", sendAutoScheduleSaveApi);
-    Esp32BaseWeb::addApi("/api/config/feed", sendFeedConfigSaveApi);
-    Esp32BaseWeb::addApi("/api/config/door", sendDoorConfigSaveApi);
-    Esp32BaseWeb::addApi("/api/env/read-now", sendEnvReadNowApi);
-    Esp32BaseWeb::addApi("/api/bus/scan", sendBusScanApi);
-    Esp32BaseWeb::addApi("/api/action/stop-active", sendStopActiveActionApi);
-    Esp32BaseWeb::addApi("/api/devices/enabled", sendDeviceSetEnabledApi);
-    Esp32BaseWeb::addApi("/api/devices/name", sendDeviceNameApi);
-    Esp32BaseWeb::addApi("/api/devices/display-order", sendDeviceDisplayOrderApi);
-    Esp32BaseWeb::addApi("/api/devices/bind-station", sendDeviceBindStationApi);
-    Esp32BaseWeb::addApi("/api/stations/enabled", sendStationSetEnabledApi);
-    Esp32BaseWeb::addApi("/api/stations/clear-fault", sendStationClearFaultApi);
+    registerRouteChecked("/", Esp32BaseWeb::METHOD_GET, redirectV3Home);
+    registerRouteChecked("/home", Esp32BaseWeb::METHOD_GET, sendV3HomePage);
+    registerRouteChecked("/auto", Esp32BaseWeb::METHOD_GET, sendV3AutoPage);
+    registerRouteChecked("/manual", Esp32BaseWeb::METHOD_GET, sendV3ManualPage);
+    registerRouteChecked("/records", Esp32BaseWeb::METHOD_GET, sendV3RecordsPage);
+    registerRouteChecked("/settings", Esp32BaseWeb::METHOD_GET, sendV3SettingsPage);
+    registerRouteChecked("/feed", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
+    registerRouteChecked("/door", Esp32BaseWeb::METHOD_GET, redirectV3Manual);
+    registerRouteChecked("/env", Esp32BaseWeb::METHOD_GET, redirectV3Records);
+    registerRouteChecked("/board", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
+    registerRouteChecked("/devices", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
+    registerRouteChecked("/notify", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
+    registerRouteChecked("/bus", Esp32BaseWeb::METHOD_GET, redirectV3Settings);
+    registerApiChecked("/api/feed/manual", sendManualFeedApi);
+    registerApiChecked("/api/door/open", sendDoorOpenApi);
+    registerApiChecked("/api/door/close", sendDoorCloseApi);
+    registerApiChecked("/api/door/stop", sendDoorStopApi);
+    registerApiChecked("/api/auto/feed-pause", sendAutoFeedPauseApi);
+    registerApiChecked("/api/auto/feed-resume", sendAutoFeedResumeApi);
+    registerApiChecked("/api/auto/door-pause", sendAutoDoorPauseApi);
+    registerApiChecked("/api/auto/door-resume", sendAutoDoorResumeApi);
+    registerApiChecked("/api/auto/schedule", sendAutoScheduleSaveApi);
+    registerApiChecked("/api/config/feed", sendFeedConfigSaveApi);
+    registerApiChecked("/api/config/door", sendDoorConfigSaveApi);
+    registerApiChecked("/api/config/env", sendEnvConfigSaveApi);
+    registerApiChecked("/api/config/notify", sendNotifyConfigSaveApi);
+    registerApiChecked("/api/env/read-now", sendEnvReadNowApi);
+    registerApiChecked("/api/bus/scan", sendBusScanApi);
+    registerApiChecked("/api/action/stop-active", sendStopActiveActionApi);
+    registerApiChecked("/api/devices/enabled", sendDeviceSetEnabledApi);
+    registerApiChecked("/api/devices/name", sendDeviceNameApi);
+    registerApiChecked("/api/devices/display-order", sendDeviceDisplayOrderApi);
+    registerApiChecked("/api/devices/bind-station", sendDeviceBindStationApi);
+    registerApiChecked("/api/stations/enabled", sendStationSetEnabledApi);
+    registerApiChecked("/api/stations/clear-fault", sendStationClearFaultApi);
 }

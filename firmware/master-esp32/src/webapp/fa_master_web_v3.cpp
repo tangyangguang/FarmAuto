@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "fa_notification_rules.h"
+
 namespace {
 
 enum class V3Page : uint8_t {
@@ -34,38 +36,6 @@ function faToast(t){
   e.classList.add('show');
   clearTimeout(faToast.timer);
   faToast.timer=setTimeout(function(){e.classList.remove('show')},2600);
-}
-function faPct(n){
-  var h='0123456789ABCDEF';
-  return '%'+h.charAt((n>>4)&15)+h.charAt(n&15);
-}
-function faUrlEnc(v){
-  var s=String(v||''),out='',i=0,c=0,n=0;
-  for(i=0;i<s.length;i++){
-    c=s.charCodeAt(i);
-    if((c>=48&&c<=57)||(c>=65&&c<=90)||(c>=97&&c<=122)||c===45||c===46||c===95||c===126){out+=s.charAt(i);continue;}
-    if(c===32){out+='+';continue;}
-    if(c>=55296&&c<=56319&&i+1<s.length){
-      n=65536+((c-55296)<<10)+(s.charCodeAt(++i)-56320);
-      out+=faPct(240|((n>>18)&7))+faPct(128|((n>>12)&63))+faPct(128|((n>>6)&63))+faPct(128|(n&63));
-    }else if(c<128){
-      out+=faPct(c);
-    }else if(c<2048){
-      out+=faPct(192|((c>>6)&31))+faPct(128|(c&63));
-    }else{
-      out+=faPct(224|((c>>12)&15))+faPct(128|((c>>6)&63))+faPct(128|(c&63));
-    }
-  }
-  return out;
-}
-function faEncodeForm(f){
-  var pairs=[];
-  Array.prototype.forEach.call(f.elements,function(e){
-    if(!e.name||e.disabled)return;
-    if((e.type==='checkbox'||e.type==='radio')&&!e.checked)return;
-    pairs.push(faUrlEnc(e.name)+'='+faUrlEnc(e.value||''));
-  });
-  return pairs.join('&');
 }
 function faPostNow(f){
   if(f.dataset.busy)return false;
@@ -644,8 +614,34 @@ void sendV3RecordsPage(void) {
 void sendV3SettingsPage(void) {
     FaFeedDeviceConfig feedConfig = fa_master_read_feed_config();
     FaDoorDeviceConfig doorConfig = fa_master_read_door_config();
+    FaEnvSensorSnapshot env = g_env_sensor != nullptr ? g_env_sensor->snapshot() : FaEnvSensorSnapshot();
+    char envText[40];
+    formatEnvValue(env, envText, sizeof(envText));
+    const bool envEnabled = Esp32BaseConfig::getBool(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ENABLED, true);
+    const int32_t envSda = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SDA_PIN, 21);
+    const int32_t envScl = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_SCL_PIN, 22);
+    const int32_t envAddress = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_ADDRESS, 68);
+    const int32_t envInterval = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_INTERVAL_MS, 5000);
+    const int32_t envRecordInterval = Esp32BaseConfig::getInt(FaEnvSensorConfig::NS, FaEnvSensorConfig::KEY_RECORD_INTERVAL_S, 300);
+    const bool notifyEnabled = Esp32BaseConfig::getBool(FaNotificationConfig::NS, FaNotificationConfig::KEY_ENABLED, true);
+    const bool notifyActionDone = Esp32BaseConfig::getBool(FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_DONE, false);
+    const bool notifyActionFailed = Esp32BaseConfig::getBool(FaNotificationConfig::NS, FaNotificationConfig::KEY_ACTION_FAILED, true);
+    const bool notifyStationFault = Esp32BaseConfig::getBool(FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_FAULT, true);
+    const bool notifyStationOffline = Esp32BaseConfig::getBool(FaNotificationConfig::NS, FaNotificationConfig::KEY_STATION_OFFLINE, true);
+    const bool notifyScheduleSkipped = Esp32BaseConfig::getBool(FaNotificationConfig::NS, FaNotificationConfig::KEY_SCHEDULE_SKIPPED, true);
+    const bool notifyPowerRestored = Esp32BaseConfig::getBool(FaNotificationConfig::NS, FaNotificationConfig::KEY_POWER_RESTORED, true);
     sendV3Header(V3Page::Settings, "设置与维护", "这里放系统配置、设备维护和通知规则；日常查看和操作不放在这里。", "配置入口", "ok");
     Esp32BaseWeb::sendChunk("<div class='section-title'><h2>系统配置</h2></div><div class='menu-grid'><a class='menu-row' href='/esp32base/app-config'><span class='icon-box'>参</span><span><span class='event-title'>系统设置</span><span class='event-detail'>RS485 通讯、温湿度记录、自动运行和主控板 IO</span></span></a><a class='menu-row' href='/settings#devices'><span class='icon-box'>设</span><span><span class='event-title'>设备管理</span><span class='event-detail'>按类型查看设备、绑定地址和启用状态</span></span></a><a class='menu-row' href='/settings#scan'><span class='icon-box'>扫</span><span><span class='event-title'>扫描 RS485 地址</span><span class='event-detail'>默认扫描 1-127 地址，在线未绑定地址可用于绑定</span></span></a><a class='menu-row' href='/settings#notify'><span class='icon-box info'>知</span><span><span class='event-title'>通知规则</span><span class='event-detail'>只保存规则，真实发送通道后续接入</span></span></a></div>");
+    Esp32BaseWeb::sendChunk("<div class='section-title'><h2>温湿度设置</h2><span class='tag info'>当前 ");
+    sendEsc(envText);
+    Esp32BaseWeb::sendChunk("</span></div><div class='card'><form method='post' action='/api/config/env' data-success='温湿度设置已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
+    sendBoolSelect("启用 SHT30", "enabled", envEnabled);
+    sendNumberField("SDA 引脚", "sda", envSda, -1, 39);
+    sendNumberField("SCL 引脚", "scl", envScl, -1, 39);
+    sendNumberField("I2C 地址", "address", envAddress, 8, 119);
+    sendNumberField("采样间隔 ms", "intervalMs", envInterval, 1000, 600000, 1000);
+    sendNumberField("记录间隔 s", "recordIntervalS", envRecordInterval, 10, 86400, 10);
+    Esp32BaseWeb::sendChunk("</div><p class='event-detail'>-1 表示停用对应 I2C 引脚；常见 SHT30 地址 68 即 0x44。</p><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存温湿度设置'></div></form><form method='post' action='/api/env/read-now' data-success='已触发立即读取' data-reload='1' onsubmit='return faPost(this)' style='margin-top:8px'><input class='secondary-button' type='submit' value='立即读取 SHT30'></form></div>");
     Esp32BaseWeb::sendChunk("<div class='section-title'><h2>下料器校准</h2></div><div class='card'><form method='post' action='/api/config/feed' data-success='下料参数已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
     sendNumberField("分站地址", "stationAddress", feedConfig.station_address, 1, 127);
     sendNumberField("每圈脉冲", "pulsesPerTurn", static_cast<int32_t>(feedConfig.pulses_per_turn), 1, 200000);
@@ -726,6 +722,14 @@ void sendV3SettingsPage(void) {
         Esp32BaseWeb::sendChunk("<div class='card'><h2>设备表不可用</h2><p class='muted'>LittleFS 设备表未就绪。</p></div>");
     }
     Esp32BaseWeb::sendChunk("</div><div class='section-title' id='scan'><h2>扫描 RS485 地址</h2></div><div class='card'><form method='post' action='/api/bus/scan' data-success='RS485 扫描已完成，分站表已刷新' onsubmit='return faPost(this)'><div class='fieldgrid'><div class='field'><label>起始地址</label><input type='number' name='start' min='1' max='127' value='1'></div><div class='field'><label>结束地址</label><input type='number' name='end' min='1' max='127' value='127'></div><div class='field'><label>超时 ms</label><input type='number' name='timeout' min='20' max='2000' value='25'></div></div><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='扫描 RS485 地址'></div></form></div>");
-    Esp32BaseWeb::sendChunk("<div class='section-title' id='notify'><h2>通知规则</h2><a class='secondary-button' href='/esp32base/app-config'>修改规则</a></div><div class='card'><p class='muted'>当前只保存通知规则；巴法云或微信真实发送属于后续专项。</p></div>");
+    Esp32BaseWeb::sendChunk("<div class='section-title' id='notify'><h2>通知规则</h2><span class='tag warn'>仅保存规则</span></div><div class='card'><form method='post' action='/api/config/notify' data-success='通知规则已保存' data-reload='1' onsubmit='return faPost(this)'><div class='fieldgrid'>");
+    sendBoolSelect("总开关", "enabled", notifyEnabled);
+    sendBoolSelect("动作完成", "actionDone", notifyActionDone);
+    sendBoolSelect("动作失败", "actionFailed", notifyActionFailed);
+    sendBoolSelect("分站故障", "stationFault", notifyStationFault);
+    sendBoolSelect("分站离线", "stationOffline", notifyStationOffline);
+    sendBoolSelect("计划跳过", "scheduleSkipped", notifyScheduleSkipped);
+    sendBoolSelect("上电恢复", "powerRestored", notifyPowerRestored);
+    Esp32BaseWeb::sendChunk("</div><p class='event-detail'>当前固件只保存规则；巴法云或微信真实发送属于后续专项。</p><div class='actions' style='margin-top:12px'><input class='primary-button' type='submit' value='保存通知规则'></div></form></div>");
     sendV3Footer(V3Page::Settings);
 }
